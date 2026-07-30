@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* ============================================
+       NEON BRUTALISM — DESIGN TOKENS
+       ============================================ */
+    
+    /* Background */
+    --nb-bg: #FAF7EE;
+    --nb-surface: #FFFFFF;
+    --nb-surface-alt: #FAF7EE;
+    
+    /* Border & Shadow */
+    --nb-border: #000000;
+    --nb-shadow: #000000;
+    --nb-shadow-yellow: #000000;
+    --nb-shadow-pink: #000000;
+    --nb-shadow-mint: #000000;
+    --nb-shadow-purple: #000000;
+    --nb-shadow-cyan: #000000;
+    
+    /* Text */
+    --nb-text: #000000;
+    --nb-text-muted: #6b7280;
+    --nb-text-on-accent: #000000;
+    
+    /* Accent Colors (same for both themes) */
+    --nb-yellow: #FFDC00;
+    --nb-yellow-hover: #FFE633;
+    --nb-pink: #FF4D79;
+    --nb-pink-hover: #FF668C;
+    --nb-mint: #6EE7B7;
+    --nb-mint-hover: #86EFAC;
+    --nb-purple: #C4B5FD;
+    --nb-purple-hover: #DDD6FE;
+    --nb-cyan: #7DD3FC;
+    --nb-cyan-hover: #BAE6FD;
+    --nb-orange: #FF9F1C;
+    --nb-orange-hover: #FFAA33;
+    --nb-danger: #EF4444;
+    --nb-danger-hover: #F87171;
+    
+    /* Component-specific */
+    --nb-input-bg: #FFFFFF;
+    --nb-input-focus-bg: #FAF7EE;
+    --nb-card-white: #FFFFFF;
+    --nb-table-header-bg: #FAF7EE;
+    --nb-table-row-hover: rgba(250, 247, 238, 0.7);
+    --nb-divider: #000000;
+    --nb-overlay: rgba(0, 0, 0, 0.5);
+    
+    /* Dark variant (for dark buttons/elements in light mode) */
+    --nb-dark-bg: #000000;
+    --nb-dark-text: #FFFFFF;
+    
+    --nb-border-width: 3px;
+  }
+
+  /* ============================================
+     DARK BRUTALISM THEME
+     ============================================ */
+  [data-theme="dark"] {
+    /* Background */
+    --nb-bg: #0f0f1a;
+    --nb-surface: #1a1a2e;
+    --nb-surface-alt: #16213e;
+    
+    /* Border & Shadow — COLORFUL NEON GLOW! */
+    --nb-border: #e0e0e0;
+    --nb-shadow: #39FF14;           /* Default: neon green */
+    --nb-shadow-yellow: #FFDC00;    /* Yellow glow */
+    --nb-shadow-pink: #FF4D79;      /* Pink glow */
+    --nb-shadow-mint: #6EE7B7;      /* Mint glow */
+    --nb-shadow-purple: #C4B5FD;    /* Purple glow */
+    --nb-shadow-cyan: #7DD3FC;      /* Cyan glow */
+    
+    /* Text */
+    --nb-text: #f0f0f0;
+    --nb-text-muted: #9ca3af;
+    --nb-text-on-accent: #000000;
+    
+    /* Accent Colors — slightly brighter for dark bg */
+    --nb-yellow: #FFDC00;
+    --nb-yellow-hover: #FFE94D;
+    --nb-pink: #FF4D79;
+    --nb-pink-hover: #FF7099;
+    --nb-mint: #6EE7B7;
+    --nb-mint-hover: #A7F3D0;
+    --nb-purple: #C4B5FD;
+    --nb-purple-hover: #E0D4FF;
+    --nb-cyan: #7DD3FC;
+    --nb-cyan-hover: #B0E4FF;
+    --nb-orange: #FF9F1C;
+    --nb-orange-hover: #FFB84D;
+    --nb-danger: #EF4444;
+    --nb-danger-hover: #F87171;
+    
+    /* Component-specific */
+    --nb-input-bg: #1a1a2e;
+    --nb-input-focus-bg: #16213e;
+    --nb-card-white: #1a1a2e;
+    --nb-table-header-bg: #16213e;
+    --nb-table-row-hover: rgba(22, 33, 62, 0.7);
+    --nb-divider: #e0e0e0;
+    --nb-overlay: rgba(0, 0, 0, 0.7);
+    
+    /* Dark variant flips in dark mode */
+    --nb-dark-bg: #f0f0f0;
+    --nb-dark-text: #000000;
+  }
+
+  body {
+    background-color: var(--nb-bg);
+    color: var(--nb-text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* Neo-Brutalist Grid Background */
+.bg-brutalist-grid {
+  background-color: var(--nb-bg);
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--nb-border) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nb-border) 7%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Custom Neo-Brutalist Utilities */
+.border-brutal {
+  border: 3px solid var(--nb-border) !important;
+}
+
+.border-brutal-4 {
+  border: 4px solid var(--nb-border) !important;
+}
+
+.shadow-brutal-sm {
+  box-shadow: 2px 2px 0px 0px var(--nb-shadow) !important;
+}
+
+.shadow-brutal {
+  box-shadow: 4px 4px 0px 0px var(--nb-shadow) !important;
+}
+
+.shadow-brutal-lg {
+  box-shadow: 6px 6px 0px 0px var(--nb-shadow) !important;
+}
+
+.shadow-brutal-xl {
+  box-shadow: 8px 8px 0px 0px var(--nb-shadow) !important;
+}
+
+.btn-brutal-press {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.btn-brutal-press:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--nb-shadow) !important;
+}
+
+.btn-brutal-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px var(--nb-shadow) !important;
+}

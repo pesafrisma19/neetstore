@@ -1,0 +1,323 @@
+import React, { useState } from 'react';
+import { Navbar } from '../../../../components/layout/Navbar';
+import { Footer } from '../../../../components/layout/Footer';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
+import { Stat } from '../../../../components/ui/Stat';
+import { Badge } from '../../../../components/ui/Badge';
+import { Button } from '../../../../components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
+import { Switch } from '../../../../components/ui/Switch';
+import { Select } from '../../../../components/ui/Select';
+import { Dialog } from '../../../../components/ui/Dialog';
+import { Textarea } from '../../../../components/ui/Textarea';
+import { Avatar } from '../../../../components/ui/Avatar';
+import { Wallet, History, Shield, Zap, RefreshCw, CheckCircle, Clock, PlusCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { dashboardApi } from '../services/dashboard.api';
+
+export const UserDashboardPage: React.FC = () => {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
+  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [selectedBank, setSelectedBank] = useState('qris');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isFetchingTx, setIsFetchingTx] = useState(false);
+
+  // Protected Route Logic
+  React.useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/');
+    }
+  }, [user, isLoading, navigate]);
+
+  const fetchTransactions = async () => {
+    if (!user) return;
+    setIsFetchingTx(true);
+    try {
+      const data = await dashboardApi.getUserTransactions();
+      setTransactions(data);
+    } catch (e) {
+      console.error('Failed to fetch transactions', e);
+    } finally {
+      setIsFetchingTx(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (user) {
+      fetchTransactions();
+    }
+  }, [user]);
+
+  if (isLoading || !user) {
+    return <div className="min-h-screen flex items-center justify-center bg-brutalist-grid"><span className="font-black text-2xl">LOADING...</span></div>;
+  }
+
+  const formatRupiah = (val: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+  };
+  
+  const formatDate = (dateStr: string) => {
+    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(dateStr));
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)]">
+      <Navbar />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left">
+        
+        {/* User Profile Header Box */}
+        <Card variant="yellow" shadow="xl" className="p-6 md:p-8 mb-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Avatar fallback={user.username.substring(0,2).toUpperCase()} variant="pink" size="lg" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-black uppercase text-[var(--nb-text)] m-0">{user.username}</h1>
+                  <Badge variant="mint" size="sm">MEMBER {user.level}</Badge>
+                </div>
+                <p className="text-xs font-bold text-black/80 mt-1">{user.phone || 'Belum ada No HP'} • ID Member: #{user.id}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button variant="pink" size="md" onClick={() => setDepositModalOpen(true)}>
+                <PlusCircle className="w-4 h-4 stroke-[3]" />
+                DEPOSIT SALDO
+              </Button>
+              <Link to="/">
+                <Button variant="white" size="md">
+                  <Zap className="w-4 h-4 fill-black stroke-[2]" />
+                  TOP UP BARU
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+
+        {/* Metric Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <Stat
+            label="SALDO NETSTORE"
+            value={formatRupiah(user.balance)}
+            subtext="Tersedia untuk pembayaran instan"
+            badge="TOP UP"
+            badgeTone="yellow"
+            icon={<Wallet className="w-5 h-5 text-[var(--nb-text)] stroke-[3]" />}
+            variant="white"
+          />
+
+          <Stat
+            label="TOTAL TRANSAKSI"
+            value={`${transactions.length} Pesanan`}
+            subtext={`${transactions.filter(t => t.orderStatus === 'SUCCESS').length} Berhasil • ${transactions.filter(t => t.orderStatus === 'PENDING').length} Dalam Proses`}
+            badge="AKTIF"
+            badgeTone="mint"
+            icon={<History className="w-5 h-5 text-[var(--nb-text)] stroke-[3]" />}
+            variant="white"
+          />
+
+          <Stat
+            label="POIN REWARD"
+            value="1.250 Pts"
+            subtext="Bisa ditukar voucher cashback"
+            badge="VIP 2"
+            badgeTone="purple"
+            icon={<Shield className="w-5 h-5 text-[var(--nb-text)] stroke-[3]" />}
+            variant="white"
+          />
+        </div>
+
+        {/* Dashboard Tabs & Content */}
+        <Tabs defaultValue="history">
+          <TabsList>
+            <TabsTrigger value="history">RIWAYAT TRANSAKSI</TabsTrigger>
+            <TabsTrigger value="topup">ISI SALDO AKUN</TabsTrigger>
+            <TabsTrigger value="settings">PENGATURAN AKUN</TabsTrigger>
+          </TabsList>
+
+          {/* History Tab using Table Component Primitives */}
+          <TabsContent value="history">
+            <Card variant="white" shadow="lg" className="mt-4">
+              <CardHeader headerBg="#6EE7B7">
+                <CardTitle className="flex items-center justify-between w-full">
+                  <span>TRANSAKSI TERAKHIR</span>
+                  <RefreshCw className="w-4 h-4 stroke-[3] cursor-pointer" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>INVOICE ID</TableHead>
+                      <TableHead>PRODUK</TableHead>
+                      <TableHead>TANGGAL</TableHead>
+                      <TableHead>TOTAL</TableHead>
+                      <TableHead>PEMBAYARAN</TableHead>
+                      <TableHead>STATUS</TableHead>
+                      <TableHead className="text-right">AKSI</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isFetchingTx ? (
+                       <TableRow>
+                          <TableCell colSpan={7} className="text-center font-bold py-8">Memuat transaksi...</TableCell>
+                       </TableRow>
+                    ) : transactions.length === 0 ? (
+                       <TableRow>
+                          <TableCell colSpan={7} className="text-center font-bold py-8">Belum ada transaksi</TableCell>
+                       </TableRow>
+                    ) : transactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="font-black">{tx.providerRef || tx.id}</TableCell>
+                        <TableCell className="uppercase">{tx.product?.name || `Produk #${tx.productId}`}</TableCell>
+                        <TableCell className="text-[var(--nb-text-muted)]">{formatDate(tx.createdAt)}</TableCell>
+                        <TableCell className="font-black">{formatRupiah(tx.amount)}</TableCell>
+                        <TableCell className="uppercase font-bold">{tx.paymentMethod}</TableCell>
+                        <TableCell>
+                          {tx.orderStatus === 'SUCCESS' ? (
+                            <Badge variant="mint" size="sm">
+                              <CheckCircle className="w-3 h-3 stroke-[3]" /> BERHASIL
+                            </Badge>
+                          ) : (
+                            <Badge variant="yellow" size="sm">
+                              <Clock className="w-3 h-3 stroke-[3]" /> {tx.orderStatus}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link to={`/invoice/${tx.providerRef || tx.id}`}>
+                            <Button variant="yellow" size="sm">STRUK</Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Top Up Balance Tab */}
+          <TabsContent value="topup">
+            <Card variant="white" shadow="lg" className="mt-4">
+              <CardHeader headerBg="#FFDC00">
+                <CardTitle>DEPOSIT SALDO AKUN NETSTORE</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 max-w-md">
+                <p className="text-xs font-bold text-[var(--nb-text-muted)]">
+                  Isi saldo akun kamu untuk checkout top-up game secara instan tanpa perlu bayar via bank setiap kali bertransaksi.
+                </p>
+
+                <Select
+                  label="Metode Deposit"
+                  value={selectedBank}
+                  onChange={(e) => setSelectedBank(e.target.value)}
+                  options={[
+                    { value: 'qris', label: 'QRIS Instant (Tanpa Admin)' },
+                    { value: 'bca', label: 'BCA Virtual Account' },
+                    { value: 'mandiri', label: 'Mandiri Virtual Account' },
+                  ]}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  {['Rp 50.000', 'Rp 100.000', 'Rp 250.000', 'Rp 500.000'].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      className="p-3 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface)] hover:bg-[var(--nb-yellow)] font-black text-sm shadow-[2px_2px_0px_0px_var(--nb-shadow)] cursor-pointer"
+                    >
+                      {amt}
+                    </button>
+                  ))}
+                </div>
+                <Button variant="pink" size="md" onClick={() => setDepositModalOpen(true)}>
+                  DEPOSIT SEKARANG
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab using Switch Primitive */}
+          <TabsContent value="settings">
+            <Card variant="white" shadow="lg" className="mt-4">
+              <CardHeader headerBg="#C4B5FD">
+                <CardTitle>PENGATURAN PROFIL & KEAMANAN</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6 max-w-lg">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-black uppercase">Username</label>
+                  <input
+                    type="text"
+                    defaultValue={user.username}
+                    readOnly
+                    className="p-2.5 border-[3px] border-[var(--nb-border)] bg-gray-100 text-xs font-bold cursor-not-allowed text-[var(--nb-text-muted)]"
+                  />
+                  <span className="text-[10px] font-bold text-red-500">Username tidak dapat diubah</span>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-black uppercase">No HP / WhatsApp</label>
+                  <input
+                    type="text"
+                    defaultValue={user.phone || ''}
+                    className="p-2.5 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface)] text-xs font-bold"
+                  />
+                </div>
+
+                <Textarea label="Catatan Profil / Bio" defaultValue="Gamer sejati MLBB & Valorant" />
+
+                <div className="border-t-[2px] border-[var(--nb-border)] pt-4 flex flex-col gap-4">
+                  <h4 className="text-xs font-black uppercase text-[var(--nb-text)]">NOTIFIKASI TRANSAKSI</h4>
+                  <Switch
+                    checked={notifyWhatsapp}
+                    onChange={setNotifyWhatsapp}
+                    label="KIRIM BUKTI TRANSAKSI VIA WHATSAPP"
+                    tone="yellow"
+                  />
+                  <Switch
+                    checked={notifyEmail}
+                    onChange={setNotifyEmail}
+                    label="KIRIM LAPORAN PROMO KE EMAIL"
+                    tone="pink"
+                  />
+                </div>
+
+                <Button variant="yellow" size="md">SIMPAN PERUBAHAN</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+        </Tabs>
+
+        {/* Dialog Modal Primitive */}
+        <Dialog
+          isOpen={depositModalOpen}
+          onClose={() => setDepositModalOpen(false)}
+          title="DEPOSIT SALDO INSTAN"
+        >
+          <div className="flex flex-col gap-4 text-left">
+            <p className="text-xs font-bold text-[var(--nb-text-muted)]">
+              Pilih nominal deposit saldo yang ingin ditambahkan ke akun Anda:
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {['Rp 50.000', 'Rp 100.000', 'Rp 250.000', 'Rp 500.000'].map((amt) => (
+                <Button key={amt} variant="white" size="sm" onClick={() => setDepositModalOpen(false)}>
+                  {amt}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </Dialog>
+
+      </main>
+
+      <Footer />
+    </div>
+  );
+};

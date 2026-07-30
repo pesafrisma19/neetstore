@@ -1,0 +1,11 @@
+export interface TransactionData { id: any; [key: string]: any; }
+export interface UserData { id: any; [key: string]: any; }
+export interface VoucherData { id: any; [key: string]: any; }
+export interface ProviderData { id: any; [key: string]: any; }
+export interface CategoryData { id: any; [key: string]: any; }
+export interface BrandData { id: any; [key: string]: any; }
+export interface ProductData { id: any; [key: string]: any; }
+export interface PricingRuleData { id: any; [key: string]: any; }
+export interface PaymentMethodData { id: any; [key: string]: any; }
+export interface BannerData { id: any; [key: string]: any; }
+export interface SettingData { id: any; [key: string]: any; }
