@@ -4,17 +4,16 @@ import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Copy, ArrowLeft, Clock, Download, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
-import { Card, CardContent } from '../../../../components/ui/Card';
+import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Sticker } from '../../../../components/ui/Sticker';
 import { Button } from '../../../../components/ui/Button';
 import { IconButton } from '../../../../components/ui/IconButton';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
-import { StatusDot } from '../../../../components/ui/StatusDot';
+import { Table, TableBody, TableRow, TableCell } from '../../../../components/ui/Table';
 import { Separator } from '../../../../components/ui/Separator';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
@@ -208,7 +207,7 @@ export const InvoicePage: React.FC = () => {
             </p>
           </div>
           <div className="hidden sm:block">
-            <Sticker variant={ordStatus === 'SUCCESS' ? 'yellow' : isFailed ? 'dark' : ordStatus === 'PROCESS' ? 'mint' : 'light'} size="lg">
+            <Sticker variant={ordStatus === 'SUCCESS' ? 'yellow' : isFailed ? 'purple' : ordStatus === 'PROCESS' ? 'mint' : 'white'} size="lg">
               {ordStatus === 'SUCCESS' ? 'SELESAI' : isFailed ? 'GAGAL' : ordStatus === 'PROCESS' ? 'DIPROSES' : 'PENDING'}
             </Sticker>
           </div>
@@ -225,11 +224,11 @@ export const InvoicePage: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block mb-1">Status Pembayaran</span>
-                  <Badge variant={isPaid ? 'mint' : isUnpaid ? 'yellow' : 'red'}>{payStatus}</Badge>
+                  <Badge variant={isPaid ? 'mint' : isUnpaid ? 'yellow' : 'orange'}>{payStatus}</Badge>
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block mb-1">Status Pesanan</span>
-                  <Badge variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : ordStatus === 'FAILED' ? 'red' : 'light'}>{ordStatus}</Badge>
+                  <Badge variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : ordStatus === 'FAILED' ? 'orange' : 'white'}>{ordStatus}</Badge>
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block mb-1">Tanggal Dibuat</span>

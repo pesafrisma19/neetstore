@@ -15,6 +15,10 @@ export interface ProviderData {
   balance: number;
   isActive: boolean;
   updatedAt?: string;
+  lastSync?: string | null;
+  _count?: {
+    products: number;
+  };
 }
 
 interface ProviderModalProps {
