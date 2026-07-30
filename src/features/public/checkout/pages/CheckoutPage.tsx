@@ -19,6 +19,14 @@ import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
 import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Sparkles, Download, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
 import { checkoutApi } from '../services/checkout.api';
 
+const optimizeGoogleBanner = (url: string) => {
+  if (!url || !url.includes('googleusercontent.com')) return url;
+  if (url.includes('=')) {
+    return url.replace(/=.*$/, '=w1920-h1080-rw');
+  }
+  return url + '=w1920-h1080-rw';
+};
+
 // Verified Starburst Badge SVG
 export const VerifiedBadgeIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={`shrink-0 ${className}`}>
@@ -404,7 +412,7 @@ export const CheckoutPage: React.FC = () => {
           {/* 1. AUTO BANNER SLIDER (Geser-Geser Sendiri 4s) */}
           <div className="relative w-full h-48 sm:h-72 md:h-96 rounded-xl sm:rounded-2xl border-[2.5px] sm:border-[3.5px] border-[var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow)] overflow-hidden bg-[var(--nb-surface-alt)] group">
             <img
-              src={headerBanners[bannerIndex]}
+              src={optimizeGoogleBanner(headerBanners[bannerIndex])}
               alt={`${gameTitle} Banner Slide ${bannerIndex + 1}`}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-all duration-700"
