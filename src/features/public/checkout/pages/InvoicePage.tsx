@@ -149,7 +149,7 @@ export const InvoicePage: React.FC = () => {
       <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)]">
         <Navbar />
         <main className="flex-1 flex flex-col items-center justify-center p-4">
-          <Card variant="dark" shadow="xl" className="max-w-md w-full p-8 text-center border-red-500">
+          <Card variant="purple" shadow="xl" className="max-w-md w-full p-8 text-center border-red-500">
             <h1 className="text-4xl font-black text-white mb-4 uppercase">Tidak Ditemukan</h1>
             <p className="text-sm font-bold text-gray-300 mb-8">
               Invoice ID {invoiceNumber} tidak valid atau belum terdaftar.
@@ -207,7 +207,7 @@ export const InvoicePage: React.FC = () => {
             </p>
           </div>
           <div className="hidden sm:block">
-            <Sticker variant={ordStatus === 'SUCCESS' ? 'yellow' : isFailed ? 'purple' : ordStatus === 'PROCESS' ? 'mint' : 'white'} size="lg">
+            <Sticker variant={ordStatus === 'SUCCESS' ? 'yellow' : isFailed ? 'purple' : ordStatus === 'PROCESS' ? 'mint' : 'cyan'} size="lg">
               {ordStatus === 'SUCCESS' ? 'SELESAI' : isFailed ? 'GAGAL' : ordStatus === 'PROCESS' ? 'DIPROSES' : 'PENDING'}
             </Sticker>
           </div>
@@ -289,7 +289,7 @@ export const InvoicePage: React.FC = () => {
 
             {/* Khusus Admin */}
             {user?.role === 'ADMIN' && (
-              <Card variant="dark" className="p-0 overflow-hidden border-yellow-500">
+              <Card variant="purple" className="p-0 overflow-hidden border-yellow-500">
                 <div className="bg-yellow-500 p-3 flex items-center gap-2">
                    <ShieldCheck className="w-5 h-5 text-black stroke-[3]" />
                    <h2 className="text-sm font-black uppercase text-black m-0">ADMIN ONLY DEBUG VIEW</h2>
@@ -377,7 +377,7 @@ export const InvoicePage: React.FC = () => {
 
             {/* Expired State */}
             {isExpired && (
-              <Card variant="dark" className="p-6 text-center text-white">
+              <Card variant="purple" className="p-6 text-center text-white">
                 <AlertTriangle className="w-12 h-12 stroke-[2] text-red-500 mx-auto mb-4" />
                 <h3 className="text-lg font-black uppercase mb-2">WAKTU HABIS</h3>
                 <p className="text-sm font-bold text-gray-400 mb-6">Metode pembayaran ini sudah kadaluwarsa.</p>
