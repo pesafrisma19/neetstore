@@ -2,18 +2,7 @@ import React from 'react';
 import { Card } from '../../../../components/ui/Card';
 import { DollarSign, Wallet, Gamepad2, Users } from 'lucide-react';
 
-interface TabOverviewProps {
-  digiflazzBalance?: number;
-  categoriesCount?: number;
-  brandsCount?: number;
-  productsCount?: number;
-  usersCount?: number;
-  transactionsCount?: number;
-  vouchersCount?: number;
-  isSyncing?: boolean;
-  onSyncDigiflazz?: () => void;
-  onNavigateTab?: (tab: any) => void;
-}
+
 import { getAdminDashboardStats } from '../../../../utils/api';
 
 export const AdminOverviewPage: React.FC = () => {

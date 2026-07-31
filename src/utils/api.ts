@@ -3,7 +3,7 @@ import { api } from '../services/api';
 // =====================================================
 // Base URL — otomatis sesuai environment
 // =====================================================
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 
 // =====================================================
 // HELPER: Generic fetch dengan error handling (Menggunakan Axios)
