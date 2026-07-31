@@ -140,21 +140,20 @@ export const AdminSidebar: React.FC = () => {
           color="mint"
           count={5}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/providers',
-            '/secret-admin-dashboard/brands',
             '/secret-admin-dashboard/categories',
+            '/secret-admin-dashboard/brands',
             '/secret-admin-dashboard/product-types',
             '/secret-admin-dashboard/products',
+            '/secret-admin-dashboard/providers',
           ])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/providers"
-            label="Provider"
-          />
-          <SidebarItem to="/secret-admin-dashboard/brands" label="Brand" />
-          <SidebarItem
             to="/secret-admin-dashboard/categories"
             label="Category"
+          />
+          <SidebarItem
+            to="/secret-admin-dashboard/brands"
+            label="Brand"
           />
           <SidebarItem
             to="/secret-admin-dashboard/product-types"
@@ -163,6 +162,10 @@ export const AdminSidebar: React.FC = () => {
           <SidebarItem
             to="/secret-admin-dashboard/products"
             label="Product"
+          />
+          <SidebarItem
+            to="/secret-admin-dashboard/providers"
+            label="Provider"
           />
         </SidebarGroup>
 

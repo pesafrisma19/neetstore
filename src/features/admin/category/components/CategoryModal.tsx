@@ -18,7 +18,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, c
     name: '',
     slug: '',
     icon: '',
-    googlePlayId: '',
     isActive: true,
   });
   const [loading, setLoading] = useState(false);
@@ -31,11 +30,10 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, c
           name: category.name || '',
           slug: category.slug || '',
           icon: category.icon || '',
-          googlePlayId: category.googlePlayId || '',
           isActive: category.isActive !== undefined ? category.isActive : true,
         });
       } else {
-        setFormData({ name: '', slug: '', icon: '', googlePlayId: '', isActive: true });
+        setFormData({ name: '', slug: '', icon: '', isActive: true });
       }
       setError(null);
     }
@@ -114,15 +112,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, c
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-bold text-[var(--nb-text)] mb-1">Google Play ID (Opsional)</label>
-          <Input 
-            name="googlePlayId" 
-            value={formData.googlePlayId} 
-            onChange={handleChange} 
-            placeholder="Contoh: com.mobile.legends" 
-          />
-        </div>
 
         <div className="flex items-center justify-between pt-2">
           <label className="block text-sm font-bold text-[var(--nb-text)]">Status Aktif</label>
