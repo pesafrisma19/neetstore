@@ -1,51 +1,46 @@
+import { api } from '../services/api';
+
 // =====================================================
 // Base URL — otomatis sesuai environment
 // =====================================================
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // =====================================================
-// HELPER: Generic fetch dengan error handling
+// HELPER: Generic fetch dengan error handling (Menggunakan Axios)
 // =====================================================
 export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<T | null> => {
-  let token = null;
-  if (path.startsWith('/admin')) {
-    token = localStorage.getItem('adminToken') || localStorage.getItem('token');
-  } else {
-    token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-  }
-  
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options?.headers as Record<string, string>),
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   try {
-    // Otomatis stringify body jika bentuknya object biasa (bukan string/FormData)
-    let finalBody = options?.body;
-    if (finalBody && typeof finalBody === 'object' && !(finalBody instanceof FormData)) {
-      finalBody = JSON.stringify(finalBody) as any;
-    }
+    const axiosConfig: any = {
+      method: options?.method || 'GET',
+      url: path, // baseURL is already set in axios instance
+      headers: options?.headers || {},
+      data: options?.body, // Axios uses 'data' instead of 'body'
+    };
 
-    const res = await fetch(`${BASE_URL}${path}`, {
-      ...options,
-      body: finalBody,
-      headers,
-      credentials: 'include',
-    });
-    
-    if (!res.ok) {
+    // Otomatis parse JSON jika string
+    if (typeof axiosConfig.data === 'string') {
       try {
-        const errData = await res.json();
-        return { success: false, error: errData.error || `Error ${res.status}` } as T;
+        axiosConfig.data = JSON.parse(axiosConfig.data);
       } catch (e) {
-        return null;
+        // Biarkan sebagai string jika gagal parse
       }
     }
-    return res.json() as Promise<T>;
-  } catch {
+
+    const res = await api.request<T>(axiosConfig);
+    
+    // Attach pagination metadata safely without breaking existing array expectations
+    if (res.headers['x-total-count'] && typeof res.data === 'object' && res.data !== null) {
+      (res.data as any)._meta = {
+        totalCount: parseInt(res.headers['x-total-count'] as string) || 0,
+        totalPages: parseInt(res.headers['x-total-pages'] as string) || 0
+      };
+    }
+
+    return res.data;
+  } catch (error: any) {
+    if (error.response) {
+      return { success: false, error: error.response.data?.error || `Error ${error.response.status}` } as T;
+    }
     return null; // Graceful fallback on network failure
   }
 };
@@ -258,3 +253,4 @@ export const updateAdminSettings = (data: any) => apiFetch<any>('/admin/settings
 export const getAdminActivityLogs = () => apiFetch<any[]>('/admin/logs/activity');
 export const getAdminWebhookLogs = () => apiFetch<any[]>('/admin/logs/webhook');
 export const getAdminErrorLogs = () => apiFetch<any[]>('/admin/logs/error');
+export const getAdminDashboardStats = () => apiFetch<any>('/admin/dashboard/stats');
