@@ -78,7 +78,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, c
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title={category ? 'Edit Kategori' : 'Tambah Kategori'} maxWidth="md">
+    <Dialog isOpen={isOpen} onClose={onClose} title={category ? 'Edit Kategori' : 'Tambah Kategori'}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="text-red-500 text-sm font-bold p-2 bg-red-100 rounded border border-red-500">{error}</div>}
         
