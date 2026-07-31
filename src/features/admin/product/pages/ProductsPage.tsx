@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../../../../utils/api';
+import { apiFetch, getAdminProducts } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
@@ -16,6 +16,16 @@ interface TabProductsProps {
   onAddProduct: () => void;
   onEditProduct: (product: ProductData) => void;
   onDeleteProduct: (id: number) => void;
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  searchQuery: string;
+  onSearchChange: (search: string) => void;
+  filterCat: string;
+  onFilterCatChange: (cat: string) => void;
+  filterBrand: string;
+  onFilterBrandChange: (brand: string) => void;
 }
 
 export const TabProducts: React.FC<TabProductsProps> = ({
@@ -25,27 +35,17 @@ export const TabProducts: React.FC<TabProductsProps> = ({
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
+  totalCount,
+  totalPages,
+  currentPage,
+  onPageChange,
+  searchQuery,
+  onSearchChange,
+  filterCat,
+  onFilterCatChange,
+  filterBrand,
+  onFilterBrandChange,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCat, setFilterCat] = useState('ALL');
-  const [filterBrand, setFilterBrand] = useState('ALL');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // Filter logika
-  const filteredProducts = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCat = filterCat === 'ALL' || String(p.categoryId) === filterCat;
-    const matchBrand = filterBrand === 'ALL' || String(p.brandId) === filterBrand;
-    return matchSearch && matchCat && matchBrand;
-  });
-
-  // Pagination logika
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-
   return (
     <Card variant="white" shadow="xl" borderWidth="4" className="text-left">
       <CardHeader headerBg="#00F0FF" className="flex items-center justify-between">
@@ -64,14 +64,14 @@ export const TabProducts: React.FC<TabProductsProps> = ({
             <Input 
               placeholder="Cari produk / SKU..." 
               value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={e => onSearchChange(e.target.value)}
               className="pl-9 text-sm py-1.5"
             />
           </div>
 
           <Select 
             value={filterCat} 
-            onChange={e => { setFilterCat(e.target.value); setFilterBrand('ALL'); setCurrentPage(1); }}
+            onChange={e => onFilterCatChange(e.target.value)}
             fullWidth={false}
             className="w-full md:w-auto"
             options={[
@@ -82,7 +82,7 @@ export const TabProducts: React.FC<TabProductsProps> = ({
 
           <Select 
             value={filterBrand} 
-            onChange={e => { setFilterBrand(e.target.value); setCurrentPage(1); }}
+            onChange={e => onFilterBrandChange(e.target.value)}
             fullWidth={false}
             className="w-full md:w-auto"
             options={[
@@ -110,12 +110,12 @@ export const TabProducts: React.FC<TabProductsProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentProducts.length === 0 ? (
+              {products.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-6 text-[var(--nb-text-muted)] italic">Tidak ada produk ditemukan.</TableCell>
                 </TableRow>
               ) : (
-                currentProducts.map((p) => (
+                products.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-black text-[var(--nb-text)]">{p.sku}</TableCell>
                     <TableCell className="font-bold text-[var(--nb-text)]">{p.name}</TableCell>
@@ -142,13 +142,13 @@ export const TabProducts: React.FC<TabProductsProps> = ({
         {/* Pagination */}
         <div className="flex items-center justify-between mt-6 pt-4 border-t-2 border-dashed border-[var(--nb-border)]">
           <div className="text-xs font-bold text-[var(--nb-text-muted)]">
-            Menampilkan {currentProducts.length} dari {filteredProducts.length} produk
+            Menampilkan {products.length} dari {totalCount} produk (Halaman {currentPage} / {totalPages})
           </div>
           <div className="flex items-center gap-2">
             <Button 
               variant="white" 
               size="sm" 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="w-4 h-4 stroke-[3]" />
@@ -159,8 +159,8 @@ export const TabProducts: React.FC<TabProductsProps> = ({
             <Button 
               variant="white" 
               size="sm" 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
             >
               <ChevronRight className="w-4 h-4 stroke-[3]" />
             </Button>
@@ -180,26 +180,59 @@ export const ProductsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
 
-  const loadAll = async () => {
+  // Server-side pagination & filtering state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCat, setFilterCat] = useState('ALL');
+  const [filterBrand, setFilterBrand] = useState('ALL');
+
+  const loadMetadata = async () => {
     try {
-      const [prodData, catData, brandData, provData] = await Promise.all([
-        apiFetch<ProductData[]>('/admin/products').catch(() => apiFetch<ProductData[]>('/products')),
+      const [catData, brandData, provData] = await Promise.all([
         apiFetch<CategoryData[]>('/admin/categories').catch(() => apiFetch<CategoryData[]>('/categories')),
         apiFetch<BrandData[]>('/admin/brands').catch(() => apiFetch<BrandData[]>('/brands')),
         apiFetch<ProviderData[]>('/admin/providers').catch(() => apiFetch<ProviderData[]>('/providers')),
       ]);
-      setProducts(prodData || []);
       setCategories(catData || []);
       setBrands(brandData || []);
       setProviders(provData || []);
     } catch (e) {
-      console.error('Failed fetching products data:', e);
+      console.error('Failed fetching metadata:', e);
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      const prodData = await getAdminProducts({
+        page: currentPage,
+        limit: 50,
+        search: searchQuery || undefined,
+        categoryId: filterCat,
+        brandId: filterBrand,
+      });
+      setProducts(prodData || []);
+      const meta = (prodData as any)?._meta;
+      if (meta) {
+        setTotalCount(meta.totalCount || 0);
+        setTotalPages(meta.totalPages || 1);
+      } else {
+        setTotalCount((prodData || []).length);
+        setTotalPages(1);
+      }
+    } catch (e) {
+      console.error('Failed fetching products:', e);
     }
   };
 
   useEffect(() => {
-    loadAll();
+    loadMetadata();
   }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [currentPage, searchQuery, filterCat, filterBrand]);
 
   const handleAddProduct = () => {
     setEditingProduct(null);
@@ -215,7 +248,7 @@ export const ProductsPage: React.FC = () => {
     if (!window.confirm('Yakin ingin menghapus produk ini?')) return;
     try {
       await apiFetch(`/admin/products/${id}`, { method: 'DELETE' });
-      loadAll();
+      loadProducts();
     } catch (error) {
       console.error('Failed to delete', error);
       alert('Gagal menghapus produk');
@@ -231,6 +264,26 @@ export const ProductsPage: React.FC = () => {
         onAddProduct={handleAddProduct}
         onEditProduct={handleEditProduct}
         onDeleteProduct={handleDeleteProduct}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        searchQuery={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setCurrentPage(1);
+        }}
+        filterCat={filterCat}
+        onFilterCatChange={(val) => {
+          setFilterCat(val);
+          setFilterBrand('ALL');
+          setCurrentPage(1);
+        }}
+        filterBrand={filterBrand}
+        onFilterBrandChange={(val) => {
+          setFilterBrand(val);
+          setCurrentPage(1);
+        }}
       />
       <ProductModal
         isOpen={isModalOpen}
@@ -239,7 +292,7 @@ export const ProductsPage: React.FC = () => {
         categories={categories}
         brands={brands}
         providers={providers}
-        onSaved={loadAll}
+        onSaved={loadProducts}
       />
     </>
   );

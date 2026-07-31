@@ -220,6 +220,24 @@ export const createAdminProvider = (data: any) => apiFetch<any>('/admin/provider
 export const updateAdminProvider = (id: number, data: any) => apiFetch<any>(`/admin/providers/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const syncDigiflazzProducts = syncDigiflazzNow;
 
+// === Products ===
+export const getAdminProducts = (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+  brandId?: string;
+}) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.search) query.append('search', params.search);
+  if (params?.categoryId && params.categoryId !== 'ALL') query.append('categoryId', params.categoryId);
+  if (params?.brandId && params.brandId !== 'ALL') query.append('brandId', params.brandId);
+  const queryString = query.toString();
+  return apiFetch<any[]>(`/admin/products${queryString ? `?${queryString}` : ''}`);
+};
+
 // === Pricing Rules ===
 export const getAdminPricingRules = () => apiFetch<any[]>('/admin/pricing-rules');
 export const createAdminPricingRule = (data: any) => apiFetch<any>('/admin/pricing-rules', { method: 'POST', body: data });
