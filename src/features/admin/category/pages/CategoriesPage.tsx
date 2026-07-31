@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../../../../utils/api';
+import { apiFetch, deleteAdminCategory } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import type { CategoryData } from '../../types';
+import { CategoryModal } from '../components/CategoryModal';
+import { useToast } from '../../../../components/ui/ToastContext';
 
 interface TabCategoriesProps {
   categories: CategoryData[];
@@ -69,6 +71,13 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
                 </TableCell>
               </TableRow>
             ))}
+            {categories.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-[var(--nb-text-muted)] font-bold">
+                  Belum ada kategori yang ditambahkan.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
@@ -78,27 +87,65 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
 
 export const CategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryData | null>(null);
+  const { addToast } = useToast();
+
+  const fetchCategories = async () => {
+    try {
+      const data = await apiFetch<CategoryData[]>('/admin/categories');
+      setCategories(data || []);
+    } catch (e) {
+      addToast({ title: 'ERROR', message: 'Gagal memuat kategori', type: 'error' });
+    }
+  };
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await apiFetch<CategoryData[]>('/admin/categories');
-        setCategories(data || []);
-      } catch (e) {
-        console.error('Failed fetching categories:', e);
-      }
-    };
     fetchCategories();
   }, []);
 
+  const handleAdd = () => {
+    setSelectedCategory(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (cat: CategoryData) => {
+    setSelectedCategory(cat);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Yakin ingin menghapus kategori ini? Semua brand di dalamnya mungkin akan terpengaruh.')) return;
+    try {
+      await deleteAdminCategory(id);
+      addToast({ title: 'SUKSES', message: 'Kategori berhasil dihapus', type: 'success' });
+      fetchCategories();
+    } catch (err: any) {
+      addToast({ title: 'ERROR', message: err.message || 'Gagal menghapus kategori', type: 'error' });
+    }
+  };
+
+  const handleSuccess = () => {
+    addToast({ title: 'SUKSES', message: 'Kategori berhasil disimpan!', type: 'success' });
+    fetchCategories();
+  };
+
   return (
-    <TabCategories
-      categories={categories}
-      onAddCategory={() => {}}
-      onEditCategory={() => {}}
-      onEditCategoryMargin={() => {}}
-      onDeleteCategory={() => {}}
-    />
+    <>
+      <TabCategories
+        categories={categories}
+        onAddCategory={handleAdd}
+        onEditCategory={handleEdit}
+        onDeleteCategory={handleDelete}
+      />
+
+      <CategoryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        category={selectedCategory}
+        onSuccess={handleSuccess}
+      />
+    </>
   );
 };
 

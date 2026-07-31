@@ -180,7 +180,10 @@ export const requestDigiflazzDeposit = (data: { amount: number; bank: string; ow
 
 
 /** Ambil seluruh daftar brand game dari Database untuk Admin Panel & Home */
-export const getAdminBrands = () => apiFetch<any[]>('/brands');
+export const getAdminBrands = () => apiFetch<any[]>('/admin/brands');
+export const createAdminCategory = (data: any) => apiFetch<any>('/admin/categories', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const updateAdminCategory = (id: number, data: any) => apiFetch<any>(`/admin/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const deleteAdminCategory = (id: number) => apiFetch<{ message: string }>(`/admin/categories/${id}`, { method: 'DELETE' });
 
 /** Ambil daftar metode pembayaran untuk publik (Checkout) */
 export const getPaymentMethods = () => apiFetch<any[]>('/payment-methods');
