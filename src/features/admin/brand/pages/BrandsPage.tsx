@@ -87,6 +87,13 @@ export const TabBrands: React.FC<TabBrandsProps> = ({
                 </TableCell>
               </TableRow>
             ))}
+            {brands.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-[var(--nb-text-muted)] font-bold">
+                  Belum ada brand yang ditambahkan atau tidak ditemukan.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
@@ -95,18 +102,24 @@ export const TabBrands: React.FC<TabBrandsProps> = ({
 };
 
 import { BrandModal } from '../components/BrandModal';
+import { useToast } from '../../../../components/ui/ToastContext';
+import { Input } from '../../../../components/ui/Input';
+import { Search } from 'lucide-react';
+import { deleteAdminBrand } from '../../../../utils/api';
 
 export const BrandsPage: React.FC = () => {
   const [brands, setBrands] = useState<BrandData[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeBrand, setActiveBrand] = useState<BrandData | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { addToast } = useToast();
 
   const fetchBrands = async () => {
     try {
       const data = await apiFetch<BrandData[]>('/admin/brands').catch(() => apiFetch<BrandData[]>('/brands'));
       setBrands(data || []);
     } catch (e) {
-      console.error('Failed fetching brands:', e);
+      addToast({ title: 'ERROR', message: 'Gagal mengambil data brands.', type: 'error' });
     }
   };
 
@@ -127,17 +140,36 @@ export const BrandsPage: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Yakin hapus Brand ini? Semua produk di dalamnya juga akan terhapus.')) return;
     try {
-      await apiFetch(`/admin/brands/${id}`, { method: 'DELETE' });
+      await deleteAdminBrand(id);
+      addToast({ title: 'SUKSES', message: 'Brand berhasil dihapus.', type: 'success' });
       fetchBrands();
-    } catch (e) {
-      alert('Gagal menghapus brand.');
+    } catch (err: any) {
+      addToast({ title: 'ERROR', message: err.message || 'Gagal menghapus brand.', type: 'error' });
     }
   };
 
+  const filteredBrands = brands.filter(b => 
+    b.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    b.publisher?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    b.googlePlayId?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 max-w-md">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Input 
+            placeholder="Cari Brand, Publisher, atau Google Play ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+      
       <TabBrands
-        brands={brands}
+        brands={filteredBrands}
         onAddBrand={handleAdd}
         onEditBrand={handleEdit}
         onDeleteBrand={handleDelete}
@@ -146,9 +178,12 @@ export const BrandsPage: React.FC = () => {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         brand={activeBrand}
-        onSuccess={fetchBrands}
+        onSuccess={() => {
+          addToast({ title: 'SUKSES', message: 'Brand berhasil disimpan.', type: 'success' });
+          fetchBrands();
+        }}
       />
-    </>
+    </div>
   );
 };
 

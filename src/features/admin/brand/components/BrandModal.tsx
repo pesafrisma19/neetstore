@@ -3,7 +3,8 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Save } from 'lucide-react';
-import { apiFetch } from '../../../../utils/api';
+import { apiFetch, createAdminBrand, updateAdminBrand } from '../../../../utils/api';
+import { useToast } from '../../../../components/ui/ToastContext';
 
 interface BrandModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
   });
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -92,15 +94,14 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
       };
 
       if (brand?.id) {
-        await apiFetch(`/admin/brands/${brand.id}`, { method: 'PATCH', body: payload as any });
+        await updateAdminBrand(brand.id, payload);
       } else {
-        await apiFetch(`/admin/brands`, { method: 'POST', body: payload as any });
+        await createAdminBrand(payload);
       }
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error('Error saving brand:', error);
-      alert('Gagal menyimpan Brand.');
+    } catch (error: any) {
+      addToast({ title: 'ERROR', message: error.message || 'Gagal menyimpan Brand.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -192,13 +193,13 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
               variant="purple"
               onClick={async () => {
                 if (!formData.googlePlayId) {
-                  alert('Masukkan Google Play ID dulu!');
+                  addToast({ title: 'PERHATIAN', message: 'Masukkan Google Play ID dulu!', type: 'error' });
                   return;
                 }
                 try {
                   const res = await apiFetch<any>('/admin/brands/scrape-playstore', {
                     method: 'POST',
-                    body: { appId: formData.googlePlayId } as any
+                    body: JSON.stringify({ appId: formData.googlePlayId })
                   });
                   if (res && res.name) {
                     setFormData({
@@ -215,12 +216,12 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
                       eventsAndOffers: res.eventsAndOffers || formData.eventsAndOffers,
                       ...((!brand && !formData.slug && res.name) && { slug: res.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') })
                     });
-                    alert('Berhasil Fetch dari Google Play! 🎉');
+                    addToast({ title: 'SUKSES', message: 'Berhasil Fetch dari Google Play! 🎉', type: 'success' });
                   } else {
-                    alert('Gagal mengambil data dari Google Play.');
+                    addToast({ title: 'ERROR', message: 'Gagal mengambil data dari Google Play.', type: 'error' });
                   }
-                } catch (e) {
-                  alert('Terjadi kesalahan saat fetch.');
+                } catch (e: any) {
+                  addToast({ title: 'ERROR', message: e.message || 'Terjadi kesalahan saat fetch.', type: 'error' });
                 }
               }}
               className="font-black uppercase border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] whitespace-nowrap"
