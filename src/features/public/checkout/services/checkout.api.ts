@@ -16,8 +16,12 @@ export const checkoutApi = {
     return res.data;
   },
 
-  checkoutPayment: async (data: any) => {
-    const res = await api.post('/transactions/checkout', data);
+  checkoutPayment: async (data: any, idempotencyKey: string) => {
+    const res = await api.post('/transactions/checkout', data, {
+      headers: {
+        'x-idempotency-key': idempotencyKey
+      }
+    });
     return res.data;
   },
 

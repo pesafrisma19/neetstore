@@ -164,6 +164,7 @@ export const CheckoutPage: React.FC = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>('');
 
   // Load Data dari API Database NETSTORE (100% Kontrol Admin)
   useEffect(() => {
@@ -325,6 +326,9 @@ export const CheckoutPage: React.FC = () => {
       });
       return;
     }
+    // Generate UUID pseudo-random sebagai Idempotency Key unik untuk transaksi ini
+    const newKey = `KEY-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+    setIdempotencyKey(newKey);
     setIsConfirmModalOpen(true);
   };
 
@@ -359,7 +363,7 @@ export const CheckoutPage: React.FC = () => {
         whatsapp,
       };
 
-      const res = await checkoutApi.checkoutPayment(payload);
+      const res = await checkoutApi.checkoutPayment(payload, idempotencyKey);
       
       if (res && res.success) {
         setToast({
