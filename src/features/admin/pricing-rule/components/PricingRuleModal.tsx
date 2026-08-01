@@ -177,30 +177,29 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value as any)}
                 disabled={Boolean(editingRule)}
-              >
-                <option value="GLOBAL">🌐 GLOBAL (SEMUA PRODUK)</option>
-                <option value="PROVIDER">📡 PER PROVIDER (Digiflazz, dll)</option>
-                <option value="CATEGORY">📁 PER KATEGORI (Games, Pulsa, dll)</option>
-                <option value="BRAND">🎮 PER BRAND (Mobile Legends, dll)</option>
-                <option value="PRODUCT">💎 PER PRODUK / SKU SPESIFIK</option>
-              </Select>
+                options={[
+                  { value: 'GLOBAL', label: '🌐 GLOBAL (SEMUA PRODUK)' },
+                  { value: 'PROVIDER', label: '📡 PER PROVIDER (Digiflazz, dll)' },
+                  { value: 'CATEGORY', label: '📁 PER KATEGORI (Games, Pulsa, dll)' },
+                  { value: 'BRAND', label: '🎮 PER BRAND (Mobile Legends, dll)' },
+                  { value: 'PRODUCT', label: '💎 PER PRODUK / SKU SPESIFIK' },
+                ]}
+              />
             </div>
 
             {targetType !== 'GLOBAL' && (
               <div>
                 <Label className="font-black mb-1 block">PILIH ITEM TARGET</Label>
                 <Select
-                  value={targetId}
+                  value={String(targetId)}
                   onChange={(e) => setTargetId(Number(e.target.value))}
                   disabled={Boolean(editingRule)}
                   required
-                >
-                  {targetOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name} (ID: {opt.id})
-                    </option>
-                  ))}
-                </Select>
+                  options={targetOptions.map((opt) => ({
+                    value: String(opt.id),
+                    label: `${opt.name} (ID: ${opt.id})`,
+                  }))}
+                />
               </div>
             )}
           </div>
