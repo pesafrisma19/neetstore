@@ -9,7 +9,7 @@ import {
   XCircle, 
   Search
 } from 'lucide-react';
-import { getAdminTransactions, updateAdminTransaction } from '../../../../utils/api';
+import { getAdminTransactions, updateAdminTransaction, checkAdminTransactionStatus } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export interface OrderItem {
@@ -39,6 +39,7 @@ export const OrdersPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL_ACTIVE');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [checkingIds, setCheckingIds] = useState<Set<number>>(new Set());
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -75,6 +76,30 @@ export const OrdersPage: React.FC = () => {
         message: err.message || 'Terjadi kesalahan saat mengubah status pesanan.',
         type: 'error',
       });
+    }
+  };
+
+  const handleCheckStatus = async (id: number) => {
+    setCheckingIds((prev) => new Set(prev).add(id));
+    try {
+      const result = await checkAdminTransactionStatus(id);
+      const newStatus = result?.orderStatus || result?.data?.orderStatus;
+      addToast({
+        title: newStatus === 'SUCCESS' ? '✅ TRANSAKSI SUKSES' : newStatus === 'FAILED' ? '❌ TRANSAKSI GAGAL' : '🔄 MASIH PENDING',
+        message: newStatus === 'PROCESS' || !newStatus
+          ? `Pesanan #ORD-${id} masih diproses oleh Digiflazz.`
+          : `Pesanan #ORD-${id} sekarang berstatus ${newStatus}.`,
+        type: newStatus === 'SUCCESS' ? 'success' : newStatus === 'FAILED' ? 'error' : 'info',
+      });
+      fetchOrders();
+    } catch (err: any) {
+      addToast({
+        title: 'GAGAL CEK STATUS',
+        message: err.message || 'Gagal menghubungi Digiflazz untuk cek status.',
+        type: 'error',
+      });
+    } finally {
+      setCheckingIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
   };
 
@@ -231,6 +256,18 @@ export const OrdersPage: React.FC = () => {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {o.orderStatus === 'PROCESS' && (
+                          <Button
+                            variant="yellow"
+                            size="sm"
+                            onClick={() => handleCheckStatus(o.id)}
+                            disabled={checkingIds.has(o.id)}
+                            className="font-black uppercase text-[10px] px-2 py-1"
+                            title="Cek Status ke Digiflazz"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 stroke-[3] ${checkingIds.has(o.id) ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
                         <Button
                           variant="mint"
                           size="sm"

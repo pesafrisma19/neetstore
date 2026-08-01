@@ -1,20 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../../../../utils/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { apiFetch, checkAdminTransactionStatus } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Search, Edit } from 'lucide-react';
+import { useToast } from '../../../../components/ui/ToastContext';
+import { Search, Edit, RefreshCw } from 'lucide-react';
 import type { TransactionData } from '../../types';
 
 interface TabTransactionsProps {
   transactions: TransactionData[];
   onOpenTxModal: (tx: TransactionData) => void;
+  onCheckStatus: (id: number) => void;
+  checkingIds: Set<number>;
 }
 
 export const TabTransactions: React.FC<TabTransactionsProps> = ({
   transactions,
   onOpenTxModal,
+  onCheckStatus,
+  checkingIds,
 }) => {
   const [txFilter, setTxFilter] = useState<'ALL' | 'SUCCESS' | 'PENDING' | 'FAILED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,10 +94,23 @@ export const TabTransactions: React.FC<TabTransactionsProps> = ({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="yellow" size="sm" onClick={() => onOpenTxModal(tx)}>
-                      <Edit className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>STATUS</span>
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {tx.orderStatus === 'PROCESS' && (
+                        <Button
+                          variant="yellow"
+                          size="sm"
+                          onClick={() => onCheckStatus(tx.id)}
+                          disabled={checkingIds.has(tx.id)}
+                          title="Cek Status ke Digiflazz"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 stroke-[3] ${checkingIds.has(tx.id) ? 'animate-spin' : ''}`} />
+                        </Button>
+                      )}
+                      <Button variant="yellow" size="sm" onClick={() => onOpenTxModal(tx)}>
+                        <Edit className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>STATUS</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -104,27 +122,56 @@ export const TabTransactions: React.FC<TabTransactionsProps> = ({
 };
 
 export const TransactionsPage: React.FC = () => {
+  const { addToast } = useToast();
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
+  const [checkingIds, setCheckingIds] = useState<Set<number>>(new Set());
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      const data = await apiFetch<TransactionData[]>('/admin/transactions')
+        .catch(() => apiFetch<TransactionData[]>('/transactions'))
+        .catch(() => null);
+      setTransactions(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Failed fetching transactions:', e);
+      setTransactions([]);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const data = await apiFetch<TransactionData[]>('/admin/transactions')
-          .catch(() => apiFetch<TransactionData[]>('/transactions'))
-          .catch(() => null);
-        setTransactions(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error('Failed fetching transactions:', e);
-        setTransactions([]);
-      }
-    };
     fetchTransactions();
-  }, []);
+  }, [fetchTransactions]);
+
+  const handleCheckStatus = async (id: number) => {
+    setCheckingIds((prev) => new Set(prev).add(id));
+    try {
+      const result = await checkAdminTransactionStatus(id);
+      const newStatus = result?.orderStatus || result?.data?.orderStatus;
+      addToast({
+        title: newStatus === 'SUCCESS' ? '✅ TRANSAKSI SUKSES' : newStatus === 'FAILED' ? '❌ TRANSAKSI GAGAL' : '🔄 MASIH PENDING',
+        message: newStatus === 'PROCESS' || !newStatus
+          ? `Transaksi #${id} masih diproses oleh Digiflazz.`
+          : `Transaksi #${id} sekarang berstatus ${newStatus}.`,
+        type: newStatus === 'SUCCESS' ? 'success' : newStatus === 'FAILED' ? 'error' : 'info',
+      });
+      fetchTransactions();
+    } catch (err: any) {
+      addToast({
+        title: 'GAGAL CEK STATUS',
+        message: err.message || 'Gagal menghubungi Digiflazz untuk cek status.',
+        type: 'error',
+      });
+    } finally {
+      setCheckingIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  };
 
   return (
     <TabTransactions
       transactions={transactions}
       onOpenTxModal={() => {}}
+      onCheckStatus={handleCheckStatus}
+      checkingIds={checkingIds}
     />
   );
 };

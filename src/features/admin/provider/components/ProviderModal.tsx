@@ -4,7 +4,7 @@ import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { updateAdminProvider } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
-import { ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, Copy, Check } from 'lucide-react';
 
 export interface ProviderData {
   id: number;
@@ -21,6 +21,8 @@ export interface ProviderData {
   };
 }
 
+const DIGIFLAZZ_WEBHOOK_PATH = '/api/digiflazz/webhook';
+
 interface ProviderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -32,12 +34,23 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({ isOpen, onClose, p
   const { addToast } = useToast();
   const [apiUsername, setApiUsername] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyWebhook = () => {
+    const fullUrl = `${window.location.origin}${DIGIFLAZZ_WEBHOOK_PATH}`;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (provider) {
       setApiUsername(provider.apiUsername || '');
       setApiKey(provider.apiKey || '');
+      setWebhookSecret((provider as any).webhookSecret || '');
     }
   }, [provider, isOpen]);
 
@@ -50,6 +63,7 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({ isOpen, onClose, p
       const res = await updateAdminProvider(provider.id, {
         apiUsername: apiUsername.trim(),
         apiKey: apiKey.trim(),
+        webhookSecret: webhookSecret.trim() || undefined,
       });
 
       if ((res as any)?.error) {
@@ -91,13 +105,21 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({ isOpen, onClose, p
           <p className="text-[11px] font-bold text-black opacity-90 leading-relaxed">
             Sesuai dokumentasi resmi Digiflazz, Anda <b>WAJIB</b> mendaftarkan IP statis server Anda pada menu <i>Koneksi API</i> di Dasbor Digiflazz agar tidak terkena error akses ditolak.
           </p>
-          <div className="mt-2.5 p-2 bg-black text-[var(--nb-mint)] font-mono text-[11px] border-2 border-black flex items-center justify-between">
-            <span>Webhook: <code>/api/digiflazz/webhook</code></span>
-            <span className="text-[9px] bg-[var(--nb-yellow)] text-black px-1.5 py-0.5 font-black uppercase">AUTO SYNC</span>
+          <div className="mt-2.5 p-2 bg-black text-[var(--nb-mint)] font-mono text-[11px] border-2 border-black flex items-center justify-between gap-2">
+            <span className="truncate">{window.location.origin}{DIGIFLAZZ_WEBHOOK_PATH}</span>
+            <button
+              type="button"
+              onClick={handleCopyWebhook}
+              title="Salin URL Webhook"
+              className="flex-shrink-0 flex items-center gap-1 text-[9px] bg-[var(--nb-yellow)] text-black px-1.5 py-0.5 font-black uppercase border border-black hover:bg-yellow-300 transition-colors"
+            >
+              {copied ? <Check className="w-3 h-3 stroke-[3]" /> : <Copy className="w-3 h-3 stroke-[3]" />}
+              {copied ? 'DISALIN!' : 'SALIN'}
+            </button>
           </div>
         </div>
 
-        {/* Input Fields (FIXED: Only Username and API Key) */}
+        {/* Input Fields */}
         <div className="space-y-4">
           <Input 
             label="Digiflazz Username" 
@@ -118,6 +140,19 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({ isOpen, onClose, p
             />
             <p className="text-[10px] font-bold text-neutral-500 mt-1 ml-1">
               *Gunakan Development Key untuk mode uji coba, atau Production Key untuk transaksi asli.
+            </p>
+          </div>
+
+          <div>
+            <Input 
+              label="Webhook Secret (dari panel Digiflazz)"
+              type="password"
+              placeholder="Contoh: Neetstore"
+              value={webhookSecret}
+              onChange={e => setWebhookSecret(e.target.value)}
+            />
+            <p className="text-[10px] font-bold text-neutral-500 mt-1 ml-1">
+              *Harus sama persis dengan Secret yang Anda daftarkan di panel Webhook Digiflazz.
             </p>
           </div>
         </div>
