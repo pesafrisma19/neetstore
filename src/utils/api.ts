@@ -38,10 +38,15 @@ export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<
 
     return res.data;
   } catch (error: any) {
+    // Jika ada response dari server (bukan network error murni), lempar ulang agar
+    // consumer bisa menangani error secara eksplisit (mis. 401, 403, 404, dll.)
+    // sehingga tidak ada kasus object error yang dikira array/data valid.
     if (error.response) {
-      return { success: false, error: error.response.data?.error || `Error ${error.response.status}` } as T;
+      const message = error.response.data?.error || error.response.data?.message || `Error ${error.response.status}`;
+      throw new Error(message);
     }
-    return null; // Graceful fallback on network failure
+    // Untuk network failure murni (no response), tetap return null
+    return null;
   }
 };
 
@@ -250,7 +255,7 @@ export const updateAdminUser = (id: number, data: any) => apiFetch<any>(`/admin/
 export const deleteAdminUser = (id: number) => apiFetch<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' });
 
 // === Mutations ===
-export const getAdminMutations = () => apiFetch<any[]>('/admin/users/mutations').catch(() => apiFetch<any[]>('/admin/mutations'));
+export const getAdminMutations = () => apiFetch<any[]>('/admin/users/mutations').catch(() => apiFetch<any[]>('/admin/mutations')).catch(() => null);
 
 // === Transactions ===
 export const getAdminTransactions = () => apiFetch<any[]>('/admin/transactions');

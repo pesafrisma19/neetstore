@@ -191,13 +191,14 @@ export const ProductsPage: React.FC = () => {
   const loadMetadata = async () => {
     try {
       const [catData, brandData, provData] = await Promise.all([
-        apiFetch<CategoryData[]>('/admin/categories').catch(() => apiFetch<CategoryData[]>('/categories')),
-        apiFetch<BrandData[]>('/admin/brands').catch(() => apiFetch<BrandData[]>('/brands')),
-        apiFetch<ProviderData[]>('/admin/providers').catch(() => apiFetch<ProviderData[]>('/providers')),
+        apiFetch<CategoryData[]>('/admin/categories').catch(() => apiFetch<CategoryData[]>('/categories')).catch(() => null),
+        apiFetch<BrandData[]>('/admin/brands').catch(() => apiFetch<BrandData[]>('/brands')).catch(() => null),
+        apiFetch<ProviderData[]>('/admin/providers').catch(() => apiFetch<ProviderData[]>('/providers')).catch(() => null),
       ]);
-      setCategories(catData || []);
-      setBrands(brandData || []);
-      setProviders(provData || []);
+      // Guard Array.isArray — mencegah TypeError jika semua endpoint gagal
+      setCategories(Array.isArray(catData) ? catData : []);
+      setBrands(Array.isArray(brandData) ? brandData : []);
+      setProviders(Array.isArray(provData) ? provData : []);
     } catch (e) {
       console.error('Failed fetching metadata:', e);
     }

@@ -67,10 +67,13 @@ export const VouchersPage: React.FC = () => {
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
-        const data = await apiFetch<VoucherData[]>('/admin/vouchers').catch(() => apiFetch<VoucherData[]>('/vouchers'));
-        setVouchers(data || []);
+        const data = await apiFetch<VoucherData[]>('/admin/vouchers')
+          .catch(() => apiFetch<VoucherData[]>('/vouchers'))
+          .catch(() => null);
+        setVouchers(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error('Failed fetching vouchers:', e);
+        setVouchers([]);
       }
     };
     fetchVouchers();

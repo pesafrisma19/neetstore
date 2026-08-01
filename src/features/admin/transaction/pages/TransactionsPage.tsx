@@ -109,10 +109,13 @@ export const TransactionsPage: React.FC = () => {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const data = await apiFetch<TransactionData[]>('/admin/transactions').catch(() => apiFetch<TransactionData[]>('/transactions'));
-        setTransactions(data || []);
+        const data = await apiFetch<TransactionData[]>('/admin/transactions')
+          .catch(() => apiFetch<TransactionData[]>('/transactions'))
+          .catch(() => null);
+        setTransactions(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error('Failed fetching transactions:', e);
+        setTransactions([]);
       }
     };
     fetchTransactions();

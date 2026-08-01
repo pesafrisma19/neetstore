@@ -116,9 +116,22 @@ export const BrandsPage: React.FC = () => {
 
   const fetchBrands = async () => {
     try {
-      const data = await apiFetch<BrandData[]>('/admin/brands').catch(() => apiFetch<BrandData[]>('/brands'));
-      setBrands(data || []);
+      let data: BrandData[] | null = null;
+      try {
+        // Coba admin endpoint dulu (butuh auth)
+        data = await apiFetch<BrandData[]>('/admin/brands');
+      } catch {
+        // Jika gagal (mis. 401), fallback ke public endpoint
+        try {
+          data = await apiFetch<BrandData[]>('/brands');
+        } catch {
+          data = null;
+        }
+      }
+      // Guard: pastikan selalu array sebelum di-set ke state
+      setBrands(Array.isArray(data) ? data : []);
     } catch (e) {
+      setBrands([]);
       addToast({ title: 'ERROR', message: 'Gagal mengambil data brands.', type: 'error' });
     }
   };

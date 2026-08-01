@@ -101,11 +101,14 @@ export const PaymentMethodsPage: React.FC = () => {
   const fetchAll = async () => {
     try {
       const [methodsData, gatewaysData] = await Promise.all([
-        apiFetch<PaymentMethodData[]>('/admin/payment-methods').catch(() => apiFetch<PaymentMethodData[]>('/payment-methods')),
-        apiFetch<PaymentGatewayData[]>('/admin/payment-gateways').catch(() => [])
+        apiFetch<PaymentMethodData[]>('/admin/payment-methods')
+          .catch(() => apiFetch<PaymentMethodData[]>('/payment-methods'))
+          .catch(() => null),
+        apiFetch<PaymentGatewayData[]>('/admin/payment-gateways').catch(() => null)
       ]);
-      setPaymentMethods(methodsData || []);
-      setGateways(gatewaysData || []);
+      // Guard Array.isArray — mencegah TypeError jika semua endpoint gagal
+      setPaymentMethods(Array.isArray(methodsData) ? methodsData : []);
+      setGateways(Array.isArray(gatewaysData) ? gatewaysData : []);
     } catch (e) {
       console.error('Failed fetching payment methods and gateways:', e);
     }
