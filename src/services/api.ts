@@ -27,7 +27,7 @@ let failedQueue: Array<{
 export const getIsRefreshing = () => isRefreshing;
 export const setIsRefreshing = (val: boolean) => { isRefreshing = val; };
 
-const processQueue = (error: any, token: string | null = null) => {
+export const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);

@@ -6,7 +6,7 @@ import { GameCard, type GameItem } from '../../home/components/GameCard';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { Display } from '../../../../components/ui/Display';
-import { getAdminBrands, getCategories } from '../../../../utils/api';
+import { apiFetch, getCategories } from '../../../../utils/api';
 import { Search, ArrowLeft, Gamepad2, AlertCircle } from 'lucide-react';
 
 export const SearchPage: React.FC = () => {
@@ -26,7 +26,7 @@ export const SearchPage: React.FC = () => {
       try {
         const [cats, dbBrands] = await Promise.all([
           getCategories(),
-          getAdminBrands(),
+          apiFetch<any[]>('/brands').catch(() => []),
         ]);
         const listToRender = dbBrands && dbBrands.length > 0 ? dbBrands : (cats || []);
         

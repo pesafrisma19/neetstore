@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { Input } from '../ui/Input';
-import { getAdminBrands } from '../../utils/api';
+import { apiFetch } from '../../utils/api';
 
 interface SearchBarProps {
   onCloseMobile?: () => void;
@@ -19,7 +19,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onCloseMobile, isMobile = 
   useEffect(() => {
     // Load search data once
     const loadSearchData = async () => {
-      const data = await getAdminBrands();
+      const data = await apiFetch<any[]>('/brands').catch(() => []);
       setSearchGames(data || []);
     };
     loadSearchData();

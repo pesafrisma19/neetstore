@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing } from '../services/api';
+import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing, processQueue } from '../services/api';
 
 export interface UserProfile {
   id: number;
@@ -58,10 +58,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Kunci flag sebelum memanggil refresh agar interceptor tidak memanggil bersamaan
       setIsRefreshing(true);
       const res = await api.post('/auth/refresh');
-      setAccessToken(res.data.token);
+      const newToken = res.data.token;
+      setAccessToken(newToken);
+      processQueue(null, newToken); // Bebaskan semua request yang antre
       setIsRefreshing(false);
-      await fetchProfile(); // Ambil profil dengan token baru
+      await fetchProfile();
     } catch (error) {
+      processQueue(error, null); // Tolak semua request yang antre
       setIsRefreshing(false);
       // Jika gagal, artinya memang belum login atau cookie kadaluarsa
       setIsLoading(false);

@@ -5,7 +5,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Display } from '../../../../components/ui/Display';
 import { Input } from '../../../../components/ui/Input';
-import { getAdminBrands, getBrandBySlug } from '../../../../utils/api';
+import { apiFetch, getBrandBySlug } from '../../../../utils/api';
 import { 
   Tag, Search, Gamepad2, ArrowRight, CheckCircle2, 
   AlertTriangle, Crown, Shield, Loader2 
@@ -78,7 +78,7 @@ export const PricingPage: React.FC = () => {
     const fetchInitialData = async () => {
       setLoadingBrands(true);
       try {
-        const dbBrands = await getAdminBrands();
+        const dbBrands = await apiFetch<any[]>('/brands').catch(() => null);
         if (dbBrands && dbBrands.length > 0) {
           const mapped: BrandItem[] = dbBrands.map((b: any) => ({
             id: b.id?.toString() || b.slug || Math.random().toString(),
