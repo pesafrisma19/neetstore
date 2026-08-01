@@ -297,7 +297,7 @@ export const Navbar: React.FC = () => {
                     <Avatar fallback={user.username.substring(0, 2).toUpperCase()} size="sm" variant="pink" />
                     <div className="flex flex-col leading-tight">
                       <span className="font-black text-sm uppercase text-[var(--nb-text)]">{user.username}</span>
-                      <span className="text-[10px] font-bold text-[var(--nb-text-muted)]">{user.email}</span>
+                      <span className="text-[10px] font-bold text-[var(--nb-text-muted)]">{user.phone || `ROLE: ${user.role}`}</span>
                     </div>
                   </div>
                   {userMenuItems.map((item, i) => (
