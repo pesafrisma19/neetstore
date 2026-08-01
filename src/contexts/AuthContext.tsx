@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { api, setAccessToken, getAccessToken } from '../services/api';
+import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing } from '../services/api';
 
 export interface UserProfile {
   id: number;
@@ -43,11 +43,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Tahap 4.4: Silent Refresh Bootstrap
   const bootstrapAuth = async () => {
     try {
-      // Coba refresh secara gaib menggunakan HttpOnly cookie
+      // Jika interceptor sudah sedang me-refresh (karena ada request lain yang 401),
+      // jangan panggil refresh kedua — tunggu sebentar dan gunakan token yang sudah di-set
+      if (getIsRefreshing()) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+        if (getAccessToken()) {
+          await fetchProfile();
+        } else {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Kunci flag sebelum memanggil refresh agar interceptor tidak memanggil bersamaan
+      setIsRefreshing(true);
       const res = await api.post('/auth/refresh');
       setAccessToken(res.data.token);
+      setIsRefreshing(false);
       await fetchProfile(); // Ambil profil dengan token baru
     } catch (error) {
+      setIsRefreshing(false);
       // Jika gagal, artinya memang belum login atau cookie kadaluarsa
       setIsLoading(false);
     }

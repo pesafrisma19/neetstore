@@ -23,6 +23,10 @@ let failedQueue: Array<{
   reject: (error: any) => void;
 }> = [];
 
+// Ekspor agar AuthContext bisa koordinasi saat bootstrapAuth berjalan
+export const getIsRefreshing = () => isRefreshing;
+export const setIsRefreshing = (val: boolean) => { isRefreshing = val; };
+
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {

@@ -15,7 +15,7 @@ import { Kbd } from '../../../../components/ui/Kbd';
 import { Code } from '../../../../components/ui/Code';
 import { Gamepad2, HelpCircle, Zap } from 'lucide-react';
 import { Input } from '../../../../components/ui/Input';
-import { getAdminBrands, getGPlayMeta, type GPlayMeta } from '../../../../utils/api';
+import { apiFetch, getGPlayMeta, type GPlayMeta } from '../../../../utils/api';
 
 // =====================================================
 // Skeleton Card — ditampilkan saat loading
@@ -80,7 +80,7 @@ export const Home: React.FC = () => {
     const load = async () => {
       setLoading(true);
 
-      const dbBrands = await getAdminBrands();
+      const dbBrands = await apiFetch<any[]>('/brands').catch(() => null);
 
       if (!dbBrands || dbBrands.length === 0) {
         // API gagal / DB kosong → pakai fallback statis
