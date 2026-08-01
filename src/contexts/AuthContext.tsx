@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing, processQueue } from '../services/api';
 
@@ -25,6 +25,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const bootstrapAttempted = useRef(false); // apakah bootstrap sudah pernah dijalankan
+  const hadSession = useRef(false);         // apakah user pernah login di sesi ini
 
   const fetchProfile = async () => {
     try {
@@ -62,11 +64,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAccessToken(newToken);
       processQueue(null, newToken); // Bebaskan semua request yang antre
       setIsRefreshing(false);
+      bootstrapAttempted.current = true;
+      hadSession.current = true;    // Berhasil → user punya sesi valid
       await fetchProfile();
     } catch (error) {
       processQueue(error, null); // Tolak semua request yang antre
       setIsRefreshing(false);
-      // Jika gagal, artinya memang belum login atau cookie kadaluarsa
+      bootstrapAttempted.current = true;
+      // hadSession tetap false jika sebelumnya memang belum login
       setIsLoading(false);
     }
   };
@@ -93,8 +98,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Listener 3: Auto refresh saat user kembali ke tab ini setelah lama pergi
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !getAccessToken()) {
-        // Jika kembali dan memory kosong, coba refresh lagi
-        bootstrapAuth();
+        // Hanya re-bootstrap jika user memang pernah punya sesi valid.
+        // Jika belum pernah login sama sekali, tidak perlu coba lagi.
+        if (hadSession.current) {
+          bootstrapAuth();
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -108,6 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loginUser = (token: string, isAdmin = false) => {
     setAccessToken(token, isAdmin);
+    hadSession.current = true; // User explicitly login
     setIsLoading(true);
     fetchProfile();
   };
@@ -120,7 +129,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setAccessToken(null);
       setUser(null);
-      
+      hadSession.current = false; // Reset sesi setelah logout
+
       // Beri tahu tab lain
       const bc = new BroadcastChannel('auth_channel');
       bc.postMessage({ type: 'LOGOUT' });
