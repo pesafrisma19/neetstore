@@ -25,6 +25,7 @@ import { MutationsPage } from '../features/admin/transaction/pages/MutationsPage
 import {
   ProductTypesPage,
   RegionsPage,
+  ProductCategoriesPage,
   OrdersPage,
   DepositsPage,
   PaymentGatewaysPage,
@@ -78,6 +79,7 @@ export const AppRoutes = () => {
         <Route path="brands" element={<BrandsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="regions" element={<RegionsPage />} />
+        <Route path="product-categories" element={<ProductCategoriesPage />} />
         <Route path="product-types" element={<ProductTypesPage />} />
         <Route path="products" element={<ProductsPage />} />
         

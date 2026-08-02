@@ -138,11 +138,12 @@ export const AdminSidebar: React.FC = () => {
           title="Layanan"
           emoji="📁"
           color="mint"
-          count={6}
+          count={7}
           defaultOpen={isPathActive([
             '/secret-admin-dashboard/categories',
             '/secret-admin-dashboard/brands',
             '/secret-admin-dashboard/regions',
+            '/secret-admin-dashboard/product-categories',
             '/secret-admin-dashboard/product-types',
             '/secret-admin-dashboard/products',
             '/secret-admin-dashboard/providers',
@@ -159,6 +160,10 @@ export const AdminSidebar: React.FC = () => {
           <SidebarItem
             to="/secret-admin-dashboard/regions"
             label="Region"
+          />
+          <SidebarItem
+            to="/secret-admin-dashboard/product-categories"
+            label="Product Category"
           />
           <SidebarItem
             to="/secret-admin-dashboard/product-types"
