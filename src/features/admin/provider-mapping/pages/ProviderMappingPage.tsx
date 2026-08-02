@@ -7,9 +7,12 @@ import {
   getAdminProductCategories,
   createAdminProviderMapping,
   updateAdminProviderMapping,
+  previewAdminProviderMapping,
+  applyAdminProviderMapping,
   type AuditItemData,
   type RegionData,
   type ProductCategoryData,
+  type MappingPreviewData,
 } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -19,7 +22,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Checkbox } from '../../../../components/ui/Checkbox';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Plus, Edit, Search, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit, Search, ShieldAlert, CheckCircle2, Eye, Zap } from 'lucide-react';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const ProviderMappingPage: React.FC = () => {
@@ -36,7 +39,7 @@ export const ProviderMappingPage: React.FC = () => {
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [selectedProvider, setSelectedProvider] = useState('ALL');
 
-  // Modal Dialog Form States
+  // Rule Modal Dialog Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeAuditItem, setActiveAuditItem] = useState<AuditItemData | null>(null);
   const [formProviderId, setFormProviderId] = useState<string>('');
@@ -47,6 +50,13 @@ export const ProviderMappingPage: React.FC = () => {
   const [formPriority, setFormPriority] = useState<number>(10);
   const [formIsActive, setFormIsActive] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Phase 4B: Preview Drawer & Bulk Apply States
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<MappingPreviewData | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
 
   // Toast Context
   const { addToast } = useToast();
@@ -176,6 +186,57 @@ export const ProviderMappingPage: React.FC = () => {
     }
   };
 
+  // Phase 4B: Open Preview Drawer
+  const handleOpenPreview = async (item: AuditItemData) => {
+    if (!item.rule || !item.rule.id) {
+      addToast({
+        title: 'PERINGATAN',
+        message: 'Buat aturan pemetaan terlebih dahulu sebelum melihat Preview Impact',
+        type: 'error',
+      });
+      return;
+    }
+
+    setActiveAuditItem(item);
+    setSelectedRuleId(item.rule.id);
+    setPreviewLoading(true);
+    setIsPreviewOpen(true);
+
+    try {
+      const res = await previewAdminProviderMapping({ ruleId: item.rule.id });
+      setPreviewData(res);
+    } catch (err: any) {
+      addToast({ title: 'ERROR PREVIEW', message: err.message || 'Gagal memuat Preview Impact SKU', type: 'error' });
+      setPreviewData(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // Phase 4B: Execute Atomic Bulk Apply
+  const handleExecuteBulkApply = async () => {
+    if (!selectedRuleId || !activeAuditItem) return;
+
+    const confirmText = `Apakah Anda yakin ingin mengeksekusi Bulk Apply untuk Provider Value "${activeAuditItem.providerValue}"?\n\nSistem akan secara atomik memperbarui ${previewData?.totalImpacted || 0} produk SKU di Database.`;
+    if (!window.confirm(confirmText)) return;
+
+    setApplyLoading(true);
+    try {
+      const res = await applyAdminProviderMapping({ ruleId: selectedRuleId });
+      addToast({
+        title: 'BULK APPLY SUKSES',
+        message: res.message || `Berhasil memperbarui ${res.updated} SKU produk scara atomik!`,
+        type: 'success',
+      });
+      setIsPreviewOpen(false);
+      fetchAuditView();
+    } catch (err: any) {
+      addToast({ title: 'ERROR BULK APPLY', message: err.message || 'Gagal mengeksekusi Bulk Apply', type: 'error' });
+    } finally {
+      setApplyLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card variant="white" shadow="xl" borderWidth="4" className="text-left">
@@ -300,17 +361,18 @@ export const ProviderMappingPage: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {item.isMapped ? (
-                          <Button variant="purple" size="sm" onClick={() => handleOpenModalForRule(item)}>
-                            <Edit className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>EDIT ATURAN</span>
+                        <div className="flex items-center justify-end gap-2">
+                          {item.isMapped && (
+                            <Button variant="mint" size="sm" onClick={() => handleOpenPreview(item)}>
+                              <Eye className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>PREVIEW IMPACT</span>
+                            </Button>
+                          )}
+                          <Button variant={item.isMapped ? 'purple' : 'yellow'} size="sm" onClick={() => handleOpenModalForRule(item)}>
+                            {item.isMapped ? <Edit className="w-3.5 h-3.5 stroke-[3]" /> : <Plus className="w-3.5 h-3.5 stroke-[3]" />}
+                            <span>{item.isMapped ? 'EDIT ATURAN' : 'BUAT ATURAN'}</span>
                           </Button>
-                        ) : (
-                          <Button variant="yellow" size="sm" onClick={() => handleOpenModalForRule(item)}>
-                            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>BUAT ATURAN</span>
-                          </Button>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -355,9 +417,6 @@ export const ProviderMappingPage: React.FC = () => {
                 ...regions.map((r) => ({ value: String(r.id), label: `${r.name} (${r.code || 'GL'})` })),
               ]}
             />
-            <span className="text-[10px] text-[var(--nb-text-muted)] font-bold mt-1 block">
-              Produk dengan nilai ini akan dikelompokkan ke Region Server yang dipilih.
-            </span>
           </div>
 
           <div>
@@ -373,9 +432,6 @@ export const ProviderMappingPage: React.FC = () => {
                 ...productCategories.map((c) => ({ value: String(c.id), label: c.name })),
               ]}
             />
-            <span className="text-[10px] text-[var(--nb-text-muted)] font-bold mt-1 block">
-              Produk dengan nilai ini akan dikelompokkan ke Tab Kategori yang dipilih.
-            </span>
           </div>
 
           <div>
@@ -406,6 +462,86 @@ export const ProviderMappingPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      {/* Phase 4B: Modal Dialog Preview Impact & Atomic Bulk Apply */}
+      <Dialog
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title={`PREVIEW IMPACT: "${activeAuditItem?.providerValue || ''}"`}
+      >
+        <div className="space-y-4 text-left">
+          {previewLoading ? (
+            <div className="text-center py-8 font-black uppercase text-[var(--nb-text-muted)]">
+              Memuat data preview impact SKU...
+            </div>
+          ) : !previewData ? (
+            <div className="text-center py-6 font-bold text-red-500">
+              Gagal memuat data preview impact.
+            </div>
+          ) : (
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 bg-[var(--nb-surface-alt)] border-2 border-black rounded-lg">
+                  <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block">TOTAL IMPACT SKU</span>
+                  <span className="text-lg font-mono font-black text-blue-600">{previewData.totalImpacted} Produk</span>
+                </div>
+                <div className="p-3 bg-[var(--nb-surface-alt)] border-2 border-black rounded-lg">
+                  <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block">TARGET REGION</span>
+                  <span className="text-sm font-bold">{previewData.targetRegion ? previewData.targetRegion.name : '(Bebas)'}</span>
+                </div>
+                <div className="p-3 bg-[var(--nb-surface-alt)] border-2 border-black rounded-lg">
+                  <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block">TARGET KATEGORI</span>
+                  <span className="text-sm font-bold">{previewData.targetCategory ? previewData.targetCategory.name : '(Bebas)'}</span>
+                </div>
+              </div>
+
+              {/* SKU List Table */}
+              <div className="max-h-60 overflow-y-auto border-2 border-black rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>NAMA PRODUK</TableHead>
+                      <TableHead>PERUBAHAN REGION</TableHead>
+                      <TableHead>PERUBAHAN KATEGORI</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {previewData.products.map((prod) => (
+                      <TableRow key={prod.id}>
+                        <TableCell className="font-mono text-xs font-bold">{prod.sku}</TableCell>
+                        <TableCell className="font-bold text-xs">{prod.name}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          <span className="text-gray-400">{prod.currentRegion}</span>
+                          <span className="mx-1 font-bold text-blue-600">→</span>
+                          <span className="font-bold text-green-600">{prod.targetRegion}</span>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          <span className="text-gray-400">{prod.currentCategory}</span>
+                          <span className="mx-1 font-bold text-blue-600">→</span>
+                          <span className="font-bold text-yellow-600">{prod.targetCategory}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t-2 border-black">
+                <Button variant="white" type="button" onClick={() => setIsPreviewOpen(false)} disabled={applyLoading}>
+                  BATAL
+                </Button>
+                <Button variant="yellow" type="button" onClick={handleExecuteBulkApply} disabled={applyLoading || previewData.totalImpacted === 0}>
+                  <Zap className="w-4 h-4 stroke-[3] fill-black" />
+                  <span>{applyLoading ? 'MENJALANKAN BULK APPLY...' : 'EKSEKUSI BULK APPLY SEKARANG'}</span>
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </Dialog>
     </div>
   );
