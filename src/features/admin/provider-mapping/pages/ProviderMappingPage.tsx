@@ -223,13 +223,17 @@ export const ProviderMappingPage: React.FC = () => {
     setApplyLoading(true);
     try {
       const res = await applyAdminProviderMapping({ ruleId: selectedRuleId });
-      addToast({
-        title: 'BULK APPLY SUKSES',
-        message: res.message || `Berhasil memperbarui ${res.updated} SKU produk scara atomik!`,
-        type: 'success',
-      });
-      setIsPreviewOpen(false);
-      fetchAuditView();
+      if (res) {
+        addToast({
+          title: 'BULK APPLY SUKSES',
+          message: res.message || `Berhasil memperbarui ${res.updated} SKU produk scara atomik!`,
+          type: 'success',
+        });
+        setIsPreviewOpen(false);
+        fetchAuditView();
+      } else {
+        throw new Error('Gagal terhubung ke server');
+      }
     } catch (err: any) {
       addToast({ title: 'ERROR BULK APPLY', message: err.message || 'Gagal mengeksekusi Bulk Apply', type: 'error' });
     } finally {
