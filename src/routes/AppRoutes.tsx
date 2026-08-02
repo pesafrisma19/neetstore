@@ -24,6 +24,7 @@ import { UsersPage } from '../features/admin/user/pages/UsersPage';
 import { MutationsPage } from '../features/admin/transaction/pages/MutationsPage';
 import {
   ProductTypesPage,
+  RegionsPage,
   OrdersPage,
   DepositsPage,
   PaymentGatewaysPage,
@@ -76,6 +77,7 @@ export const AppRoutes = () => {
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="brands" element={<BrandsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
+        <Route path="regions" element={<RegionsPage />} />
         <Route path="product-types" element={<ProductTypesPage />} />
         <Route path="products" element={<ProductsPage />} />
         
