@@ -151,6 +151,10 @@ export const CheckoutPage: React.FC = () => {
   const [userId, setUserId] = useState('');
   const [serverId, setServerId] = useState('');
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  // Phase 5: Dynamic 5-Level Region & ProductCategory States
+  const [selectedRegionId, setSelectedRegionId] = useState<number | 'ALL'>('ALL');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'ALL'>('ALL');
   
   // Dynamic Payment Methods
   const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([]);
@@ -194,6 +198,33 @@ export const CheckoutPage: React.FC = () => {
 
     loadGameData();
   }, [slug]);
+
+  // Phase 5: Sorted Regions & Categories from backend
+  const availableRegions = React.useMemo(() => {
+    if (!brandData?.regions || !Array.isArray(brandData.regions)) return [];
+    return [...brandData.regions].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [brandData]);
+
+  const availableCategories = React.useMemo(() => {
+    if (!brandData?.productCategories || !Array.isArray(brandData.productCategories)) return [];
+    return [...brandData.productCategories].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [brandData]);
+
+  // Phase 5: Filtered Product Grid based on Region & Category
+  const filteredProducts = React.useMemo(() => {
+    return products.filter((p) => {
+      const matchRegion = selectedRegionId === 'ALL' || p.regionId === selectedRegionId;
+      const matchCat = selectedCategoryId === 'ALL' || p.productCategoryId === selectedCategoryId;
+      return matchRegion && matchCat;
+    });
+  }, [products, selectedRegionId, selectedCategoryId]);
+
+  // Phase 5: Safe Selected Product Handling (Reset safely if current selection is filtered out)
+  useEffect(() => {
+    if (selectedItem && !filteredProducts.some((p) => p.id === selectedItem.id)) {
+      setSelectedItem(filteredProducts.length > 0 ? filteredProducts[0] : null);
+    }
+  }, [filteredProducts, selectedItem]);
 
   // Daftar Gambar untuk Auto Slider Banner Header
   const headerBanners: string[] = React.useMemo(() => {
@@ -613,6 +644,43 @@ export const CheckoutPage: React.FC = () => {
                   </CardContent>
                 </Card>
 
+                {/* Phase 5: Step 1.5 - PILIH REGION SERVER GAME (Tampil Hanya Jika Region Tersedia) */}
+                {availableRegions.length > 0 && (
+                  <Card variant="white" shadow="lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                        <span className="w-7 h-7 bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] rounded-none flex items-center justify-center text-sm font-black">1.5</span>
+                        <span>PILIH REGION SERVER GAME</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2.5">
+                        <Button
+                          type="button"
+                          variant={selectedRegionId === 'ALL' ? 'yellow' : 'white'}
+                          size="sm"
+                          onClick={() => setSelectedRegionId('ALL')}
+                          className="font-black text-xs uppercase"
+                        >
+                          SEMUA REGION
+                        </Button>
+                        {availableRegions.map((reg: any) => (
+                          <Button
+                            key={reg.id}
+                            type="button"
+                            variant={selectedRegionId === reg.id ? 'yellow' : 'white'}
+                            size="sm"
+                            onClick={() => setSelectedRegionId(reg.id)}
+                            className="font-black text-xs uppercase"
+                          >
+                            {reg.name} {reg.code ? `(${reg.code})` : ''}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Step 2: Nominal Products */}
                 <Card variant="white" shadow="lg">
                   <CardHeader>
@@ -622,45 +690,78 @@ export const CheckoutPage: React.FC = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {products.map((item) => {
-                        const isSelected = selectedItem?.id === item.id;
-                        const priceVal = item.price || item.priceUser || 0;
-                        const itemTheme = productThemes[item.id] || 'yellow';
-                        const shadowColor = `var(--nb-shadow-${itemTheme})`;
-
-                        return (
-                          <Card
-                            key={item.id}
-                            variant={isSelected ? itemTheme : 'white'}
-                            shadow="none"
-                            style={{
-                              boxShadow: isSelected ? `4px 4px 0px 0px ${shadowColor}` : `2px 2px 0px 0px ${shadowColor}`,
-                            }}
-                            className={`p-3 text-left flex flex-col justify-between transition-all select-none cursor-pointer relative ${
-                              isSelected ? '-translate-y-1' : 'hover:bg-[var(--nb-surface-alt)]'
-                            }`}
-                            onClick={() => setSelectedItem(item)}
+                    {/* Phase 5: Dynamic ProductCategory Filter Tabs (Tampil Hanya Jika Tersedia) */}
+                    {availableCategories.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b-2 border-black/10">
+                        <Button
+                          type="button"
+                          variant={selectedCategoryId === 'ALL' ? 'purple' : 'white'}
+                          size="sm"
+                          onClick={() => setSelectedCategoryId('ALL')}
+                          className="text-xs font-bold uppercase"
+                        >
+                          SEMUA KATEGORI
+                        </Button>
+                        {availableCategories.map((cat: any) => (
+                          <Button
+                            key={cat.id}
+                            type="button"
+                            variant={selectedCategoryId === cat.id ? 'purple' : 'white'}
+                            size="sm"
+                            onClick={() => setSelectedCategoryId(cat.id)}
+                            className="text-xs font-bold uppercase"
                           >
-                            {item.isPopular && (
-                              <span className="absolute -top-2 -right-1 bg-[var(--nb-pink)] text-[var(--nb-dark-text)] text-[9px] font-black uppercase px-1.5 py-0.2 border-[1.5px] border-[var(--nb-border)]">
-                                BEST SELLER
-                              </span>
-                            )}
-                            <div>
-                              <span className={`text-xs font-black uppercase leading-tight block ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
-                                {item.name}
-                              </span>
-                            </div>
-                            <div className="mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
-                              <span className={`text-xs font-black ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
-                                Rp {priceVal.toLocaleString('id-ID')}
-                              </span>
-                              {isSelected && <Check className="w-4 h-4 stroke-[4] text-[#000000]" />}
-                            </div>
-                          </Card>
-                        );
-                      })}
+                            {cat.name}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {filteredProducts.length === 0 ? (
+                        <div className="col-span-full text-center py-8 font-bold text-[var(--nb-text-muted)] uppercase">
+                          Tidak ada produk SKU yang tersedia untuk pilihan Region & Kategori ini.
+                        </div>
+                      ) : (
+                        filteredProducts.map((item) => {
+                          const isSelected = selectedItem?.id === item.id;
+                          const priceVal = item.price || item.priceUser || 0;
+                          const itemTheme = productThemes[item.id] || 'yellow';
+                          const shadowColor = `var(--nb-shadow-${itemTheme})`;
+
+                          return (
+                            <Card
+                              key={item.id}
+                              variant={isSelected ? itemTheme : 'white'}
+                              shadow="none"
+                              style={{
+                                boxShadow: isSelected ? `4px 4px 0px 0px ${shadowColor}` : `2px 2px 0px 0px ${shadowColor}`,
+                              }}
+                              className={`p-3 text-left flex flex-col justify-between transition-all select-none cursor-pointer relative ${
+                                isSelected ? '-translate-y-1' : 'hover:bg-[var(--nb-surface-alt)]'
+                              }`}
+                              onClick={() => setSelectedItem(item)}
+                            >
+                              {item.isPopular && (
+                                <span className="absolute -top-2 -right-1 bg-[var(--nb-pink)] text-[var(--nb-dark-text)] text-[9px] font-black uppercase px-1.5 py-0.2 border-[1.5px] border-[var(--nb-border)]">
+                                  BEST SELLER
+                                </span>
+                              )}
+                              <div>
+                                <span className={`text-xs font-black uppercase leading-tight block ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
+                                  {item.name}
+                                </span>
+                              </div>
+                              <div className="mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
+                                <span className={`text-xs font-black ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
+                                  Rp {priceVal.toLocaleString('id-ID')}
+                                </span>
+                                {isSelected && <Check className="w-4 h-4 stroke-[4] text-[#000000]" />}
+                              </div>
+                            </Card>
+                          );
+                        })
+                      )}
                     </div>
                   </CardContent>
                 </Card>
