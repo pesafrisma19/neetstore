@@ -28,5 +28,10 @@ export const checkoutApi = {
   getTransaction: async (invoiceNumber: string) => {
     const res = await api.get(`/transactions/${invoiceNumber}`);
     return res.data;
+  },
+
+  validateNeetflixAccount: async (brandId: number, userId: string, zoneId?: string) => {
+    const res = await api.post('/neetflix/validate', { brandId, userId, zoneId });
+    return res.data;
   }
 };

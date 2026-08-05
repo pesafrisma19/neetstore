@@ -17,6 +17,7 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../../../../components/ui/ToastContext';
+import { COUNTRIES } from '../../../../utils/countries';
 
 export const RegionsPage: React.FC = () => {
   const [regions, setRegions] = useState<RegionData[]>([]);
@@ -38,6 +39,9 @@ export const RegionsPage: React.FC = () => {
   const [formName, setFormName] = useState('');
   const [formCode, setFormCode] = useState('');
   const [formSortOrder, setFormSortOrder] = useState<number>(0);
+  const [formMappingMode, setFormMappingMode] = useState<'ALLOW' | 'BLOCK'>('ALLOW');
+  const [formMappingCountries, setFormMappingCountries] = useState<string[]>([]);
+  const [countrySearch, setCountrySearch] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -104,6 +108,9 @@ export const RegionsPage: React.FC = () => {
     setFormName('');
     setFormCode('');
     setFormSortOrder(0);
+    setFormMappingMode('ALLOW');
+    setFormMappingCountries([]);
+    setCountrySearch('');
     setFormIsActive(true);
     if (brands.length > 0) {
       setFormBrandId(selectedBrand !== 'ALL' ? selectedBrand : String(brands[0].id));
@@ -117,6 +124,13 @@ export const RegionsPage: React.FC = () => {
     setFormName(region.name);
     setFormCode(region.code || '');
     setFormSortOrder(region.sortOrder || 0);
+    setFormMappingMode(region.mappingMode || 'ALLOW');
+    try {
+      setFormMappingCountries(Array.isArray(region.mappingCountries) ? region.mappingCountries : []);
+    } catch {
+      setFormMappingCountries([]);
+    }
+    setCountrySearch('');
     setFormIsActive(region.isActive);
     setIsModalOpen(true);
   };
@@ -139,6 +153,8 @@ export const RegionsPage: React.FC = () => {
         name: formName.trim(),
         code: formCode.trim() || null,
         sortOrder: Number(formSortOrder) || 0,
+        mappingMode: formMappingMode,
+        mappingCountries: formMappingCountries,
         isActive: formIsActive,
       };
 
@@ -383,6 +399,58 @@ export const RegionsPage: React.FC = () => {
             <span className="text-[10px] text-[var(--nb-text-muted)] font-bold mt-1 block">
               Angka lebih kecil akan tampil lebih awal di Halaman Checkout.
             </span>
+          </div>
+
+          <div className="p-3 bg-neutral-100 border-[3px] border-black space-y-3">
+            <label className="block text-xs font-black uppercase">
+              MODE PEMETAAN NEGARA (AUTO-LOCK REGION)
+            </label>
+            <Select
+              value={formMappingMode}
+              onChange={(e) => setFormMappingMode(e.target.value as 'ALLOW' | 'BLOCK')}
+              fullWidth
+              options={[
+                { value: 'ALLOW', label: '⚪ KHUSUS (Whitelist) - Hanya negara dicentang yang diizinkan' },
+                { value: 'BLOCK', label: '⚫ BLOKIR (Blacklist) - Semua diizinkan KECUALI yang dicentang' },
+              ]}
+            />
+            
+            <div className="space-y-2 mt-2">
+              <label className="block text-xs font-black uppercase text-neutral-600">
+                PILIH NEGARA
+              </label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <Input
+                  placeholder="Cari negara (misal: Indonesia)..."
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  className="pl-8 py-1.5 text-xs bg-white"
+                />
+              </div>
+              
+              <div className="max-h-40 overflow-y-auto border-2 border-black bg-white p-2 space-y-1">
+                {COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).length === 0 ? (
+                  <div className="text-xs text-center text-neutral-500 py-2 font-bold">Negara tidak ditemukan</div>
+                ) : (
+                  COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).map(country => (
+                    <div key={country.code} className="flex items-center gap-2 hover:bg-neutral-100 p-1 rounded">
+                      <Checkbox
+                        checked={formMappingCountries.includes(country.code)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormMappingCountries(prev => [...prev, country.code]);
+                          } else {
+                            setFormMappingCountries(prev => prev.filter(c => c !== country.code));
+                          }
+                        }}
+                      />
+                      <span className="text-xs font-bold uppercase">{country.name} ({country.code})</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="pt-2">

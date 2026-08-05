@@ -160,6 +160,12 @@ export const CheckoutPage: React.FC = () => {
   const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<number | string>('');
 
+  // Phase 4: Neetflix Validation States
+  const [nickname, setNickname] = useState('');
+  const [detectedRegionCode, setDetectedRegionCode] = useState('');
+  const [isCheckingId, setIsCheckingId] = useState(false);
+  const [firstTopupTiers, setFirstTopupTiers] = useState<any[]>([]);
+
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [appliedDiscountType, setAppliedDiscountType] = useState('FLAT');
@@ -317,6 +323,40 @@ export const CheckoutPage: React.FC = () => {
         title: 'ERROR JARINGAN',
         message: 'Gagal memvalidasi promo.',
       });
+    }
+  };
+
+  const handleCheckId = async () => {
+    if (!userId.trim()) {
+      setToast({ type: 'warning', title: 'USER ID KOSONG', message: 'Silakan isi User ID kamu!' });
+      return;
+    }
+
+    setIsCheckingId(true);
+    setNickname('');
+    setDetectedRegionCode('');
+    setFirstTopupTiers([]);
+    try {
+      const res = await checkoutApi.validateNeetflixAccount(brandData.id, userId, serverId);
+      if (res.success && res.data) {
+        setNickname(res.data.nickname);
+        if (res.data.matchedRegionId) {
+          setSelectedRegionId(res.data.matchedRegionId); // Auto-Lock Region
+        }
+        if (res.data.detectedRegionCode) {
+          setDetectedRegionCode(res.data.detectedRegionCode);
+        }
+        if (res.data.firstTopupTiers && Array.isArray(res.data.firstTopupTiers)) {
+          setFirstTopupTiers(res.data.firstTopupTiers);
+        }
+        setToast({ type: 'success', title: 'AKUN DITEMUKAN', message: `Halo, ${res.data.nickname}!` });
+      } else {
+        setToast({ type: 'error', title: 'ID TIDAK VALID', message: res.message || 'User ID tidak ditemukan.' });
+      }
+    } catch (err: any) {
+      setToast({ type: 'error', title: 'GAGAL CEK ID', message: err.message || 'Sistem sedang gangguan.' });
+    } finally {
+      setIsCheckingId(false);
     }
   };
 
@@ -638,6 +678,37 @@ export const CheckoutPage: React.FC = () => {
                       )}
                     </div>
 
+                    {/* Phase 4: Tombol Cek ID (Hanya Muncul Jika Game Mendukung Validasi Neetflix) */}
+                    {brandData?.validationGameCode && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        <Button
+                          type="button"
+                          variant="purple"
+                          size="sm"
+                          onClick={handleCheckId}
+                          disabled={isCheckingId || !userId.trim()}
+                          className="w-full sm:w-auto self-start font-black text-xs uppercase"
+                        >
+                          <ShieldCheck className="w-4 h-4 stroke-[3]" />
+                          {isCheckingId ? 'MEMERIKSA ID...' : 'CEK ID & PROMO'}
+                        </Button>
+                        
+                        {nickname && (
+                          <div className="p-3 bg-[var(--nb-cyan)] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Check className="w-5 h-5 bg-black text-white p-0.5 rounded-full" />
+                              <span className="font-black text-sm uppercase">NICKNAME: {nickname}</span>
+                            </div>
+                            {detectedRegionCode && (
+                              <Badge variant="yellow" size="sm" className="font-black uppercase shadow-[2px_2px_0px_0px_#000]">
+                                REGION: {detectedRegionCode}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <p className="text-[10px] sm:text-[11px] font-semibold text-[var(--nb-text-muted)] m-0">
                       *User ID dan Zone ID bisa dilihat pada menu Profil di dalam aplikasi game.
                     </p>
@@ -729,34 +800,69 @@ export const CheckoutPage: React.FC = () => {
                           const itemTheme = productThemes[item.id] || 'yellow';
                           const shadowColor = `var(--nb-shadow-${itemTheme})`;
 
+                          // Phase 4: Matching logic for First Topup 2X Diamond
+                          const sanitizeForMatch = (str: string) => (str || '').replace(/💎/g, '').replace(/\s+/g, '').toLowerCase();
+                          const tierMatch = firstTopupTiers.find(t => {
+                            const safeTier = sanitizeForMatch(t.name);
+                            const safeItem = sanitizeForMatch(item.name);
+                            return safeTier && safeItem.includes(safeTier);
+                          });
+
+                          const isTierDisabled = tierMatch && tierMatch.available === false;
+                          const isTierAvailable = tierMatch && tierMatch.available === true;
+                          const isCardDisabled = isTierDisabled; // can be extended later
+                          
+                          // override isSelected if disabled to prevent accidental buys
+                          const effectivelySelected = isSelected && !isCardDisabled;
+
                           return (
                             <Card
                               key={item.id}
-                              variant={isSelected ? itemTheme : 'white'}
+                              variant={isCardDisabled ? 'cream' : (effectivelySelected ? itemTheme : 'white')}
                               shadow="none"
                               style={{
-                                boxShadow: isSelected ? `4px 4px 0px 0px ${shadowColor}` : `2px 2px 0px 0px ${shadowColor}`,
+                                boxShadow: effectivelySelected ? `4px 4px 0px 0px ${shadowColor}` : (isCardDisabled ? `2px 2px 0px 0px var(--nb-shadow-cream)` : `2px 2px 0px 0px ${shadowColor}`),
                               }}
-                              className={`p-3 text-left flex flex-col justify-between transition-all select-none cursor-pointer relative ${
-                                isSelected ? '-translate-y-1' : 'hover:bg-[var(--nb-surface-alt)]'
+                              className={`p-3 text-left flex flex-col justify-between transition-all select-none relative ${
+                                isCardDisabled 
+                                  ? 'opacity-60 cursor-not-allowed grayscale-[50%]' 
+                                  : `cursor-pointer ${effectivelySelected ? '-translate-y-1' : 'hover:bg-[var(--nb-surface-alt)]'}`
                               }`}
-                              onClick={() => setSelectedItem(item)}
+                              onClick={() => {
+                                if (!isCardDisabled) setSelectedItem(item);
+                              }}
                             >
-                              {item.isPopular && (
+                              {isTierDisabled && (
+                                <div className="absolute inset-0 bg-black/5 z-10 pointer-events-none rounded-[inherit]" />
+                              )}
+                              
+                              {isTierDisabled && (
+                                <span className="absolute -top-2 -right-1 bg-neutral-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-black z-20 whitespace-nowrap">
+                                  BATAS PEMBELIAN TERCAPAI
+                                </span>
+                              )}
+
+                              {isTierAvailable && (
+                                <span className="absolute -top-2 -right-1 bg-[var(--nb-cyan)] text-black text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-black z-20 animate-pulse whitespace-nowrap">
+                                  ✨ PROMO 2X TERSEDIA
+                                </span>
+                              )}
+
+                              {item.isPopular && !tierMatch && (
                                 <span className="absolute -top-2 -right-1 bg-[var(--nb-pink)] text-[var(--nb-dark-text)] text-[9px] font-black uppercase px-1.5 py-0.2 border-[1.5px] border-[var(--nb-border)]">
                                   BEST SELLER
                                 </span>
                               )}
-                              <div>
-                                <span className={`text-xs font-black uppercase leading-tight block ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
+                              <div className="relative z-20">
+                                <span className={`text-xs font-black uppercase leading-tight block ${effectivelySelected ? 'text-[#000000]' : (isCardDisabled ? 'text-neutral-500 line-through' : 'text-[var(--nb-text)]')}`}>
                                   {item.name}
                                 </span>
                               </div>
-                              <div className="mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
-                                <span className={`text-xs font-black ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
+                              <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
+                                <span className={`text-xs font-black ${effectivelySelected ? 'text-[#000000]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
                                   Rp {priceVal.toLocaleString('id-ID')}
                                 </span>
-                                {isSelected && <Check className="w-4 h-4 stroke-[4] text-[#000000]" />}
+                                {effectivelySelected && <Check className="w-4 h-4 stroke-[4] text-[#000000]" />}
                               </div>
                             </Card>
                           );

@@ -3,7 +3,7 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { Save, Server, Key, ShieldCheck } from 'lucide-react';
-import { getAdminSettings, updateAdminSettings } from '../../../../utils/api';
+import { getAdminSettings, updateAdminSettings, testNeetflixConnection } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const SettingsApiPage: React.FC = () => {
@@ -11,6 +11,7 @@ export const SettingsApiPage: React.FC = () => {
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testingNeetflix, setTestingNeetflix] = useState(false);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -43,12 +44,33 @@ export const SettingsApiPage: React.FC = () => {
         smtp_host: settings.smtp_host,
         smtp_port: settings.smtp_port,
         smtp_user: settings.smtp_user,
+        neetflix_api_key: settings.neetflix_api_key,
       });
       addToast({ title: 'KREDENSIAL API DISIMPAN', message: 'API & Integration Settings berhasil diperbarui.', type: 'success' });
     } catch (err: any) {
       addToast({ title: 'GAGAL MENYIMPAN', message: err.message, type: 'error' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestNeetflix = async () => {
+    setTestingNeetflix(true);
+    try {
+      const res = await testNeetflixConnection();
+      if (res?.success) {
+        addToast({ 
+          title: '✅ KONEKSI AKTIF (System Operational)', 
+          message: `Koneksi Neetflix API berhasil. Game Didukung: ${res.data?.supportedGamesCount || 0}`, 
+          type: 'success' 
+        });
+      } else {
+        addToast({ title: 'KONEKSI GAGAL', message: 'Respons API tidak valid.', type: 'error' });
+      }
+    } catch (err: any) {
+      addToast({ title: 'KONEKSI GAGAL', message: err.message || 'API Key salah atau server sedang gangguan.', type: 'error' });
+    } finally {
+      setTestingNeetflix(false);
     }
   };
 
@@ -105,6 +127,37 @@ export const SettingsApiPage: React.FC = () => {
                   type="password"
                   value={settings.digiflazz_api_key || ''}
                   onChange={(e) => handleChange('digiflazz_api_key', e.target.value)}
+                  className="w-full p-2.5 bg-white border-[2px] border-black font-mono font-bold focus:bg-yellow-50 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* NEETFLIX VALIDATION API */}
+          <div className="p-4 bg-purple-50 border-[3px] border-black space-y-4">
+            <div className="flex items-center justify-between border-b-[2px] border-black pb-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-purple-700 stroke-[2.5]" />
+                <h3 className="text-base font-black uppercase text-purple-800">NEETflix API (Account Validation & 2X Diamond)</h3>
+              </div>
+              <Button 
+                variant="dark" 
+                size="sm" 
+                onClick={handleTestNeetflix} 
+                disabled={testingNeetflix}
+                className="shadow-[2px_2px_0px_0px_#000]"
+              >
+                {testingNeetflix ? 'MENGUJI...' : '🧪 TEST KONEKSI API KEY'}
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-xs font-black uppercase mb-1 text-purple-900">API Key Validator (nv_live_...)</label>
+                <input
+                  type="password"
+                  value={settings.neetflix_api_key || ''}
+                  onChange={(e) => handleChange('neetflix_api_key', e.target.value)}
+                  placeholder="nv_live_xxxxxxxxxxx"
                   className="w-full p-2.5 bg-white border-[2px] border-black font-mono font-bold focus:bg-yellow-50 outline-none"
                 />
               </div>

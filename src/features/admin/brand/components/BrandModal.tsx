@@ -23,6 +23,7 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
     description: '',
     googlePlayId: '',
     bannerUrl: '',
+    validationGameCode: '',
     whatsNew: '',
     releasedOn: '',
     updatedOn: '',
@@ -54,6 +55,7 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
           description: brand.description || '',
           googlePlayId: brand.googlePlayId || '',
           bannerUrl: brand.bannerUrl || '',
+          validationGameCode: brand.validationGameCode || '',
           whatsNew: brand.whatsNew || '',
           releasedOn: brand.releasedOn || '',
           updatedOn: brand.updatedOn || '',
@@ -72,6 +74,7 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
           description: '',
           googlePlayId: '',
           bannerUrl: '',
+          validationGameCode: '',
           whatsNew: '',
           releasedOn: '',
           updatedOn: '',
@@ -230,6 +233,17 @@ export const BrandModal: React.FC<BrandModalProps> = ({ isOpen, onClose, brand, 
             </Button>
           </div>
           <p className="text-xs font-bold text-neutral-500">Gunakan untuk auto-fetch icon & deskripsi via Play Store.</p>
+        </div>
+
+        <div className="space-y-2 p-4 bg-purple-50 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <label className="text-sm font-black uppercase text-purple-900">Kode Validasi NEETflix (Opsional)</label>
+          <Input
+            value={formData.validationGameCode}
+            onChange={(e) => setFormData({ ...formData, validationGameCode: e.target.value })}
+            className="border-[3px] border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            placeholder="Contoh: mobile-legends, free-fire"
+          />
+          <p className="text-xs font-bold text-purple-800">Digunakan untuk auto-cek nickname dan kuota 2X Diamond.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

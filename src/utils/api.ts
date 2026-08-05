@@ -274,6 +274,7 @@ export const checkoutPayment = (data: any) => apiFetch<any>('/checkout', { metho
 // === Settings ===
 export const getAdminSettings = () => apiFetch<any>('/admin/settings');
 export const updateAdminSettings = (data: any) => apiFetch<any>('/admin/settings', { method: 'POST', body: data });
+export const testNeetflixConnection = () => apiFetch<any>('/neetflix/test-connection', { method: 'GET' });
 
 // === Logs ===
 export const getAdminActivityLogs = () => apiFetch<any[]>('/admin/logs/activity');
@@ -289,6 +290,8 @@ export interface RegionData {
   slug: string;
   code: string | null;
   sortOrder: number;
+  mappingMode: 'ALLOW' | 'BLOCK';
+  mappingCountries: any;
   isActive: boolean;
   brand?: { id: number; name: string; slug: string };
   _count?: { products: number };
