@@ -247,6 +247,24 @@ export const CheckoutPage: React.FC = () => {
     return [...brandData.productCategories].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }, [brandData, selectedRegionId]);
 
+  // Auto-select first available region when availableRegions updates
+  useEffect(() => {
+    if (availableRegions.length > 0) {
+      if (selectedRegionId === 'ALL' || !availableRegions.some((r: any) => r.id === selectedRegionId)) {
+        setSelectedRegionId(availableRegions[0].id);
+      }
+    }
+  }, [availableRegions]);
+
+  // Auto-select first available category when availableCategories updates
+  useEffect(() => {
+    if (availableCategories.length > 0) {
+      if (selectedCategoryId === 'ALL' || !availableCategories.some((c: any) => c.id === selectedCategoryId)) {
+        setSelectedCategoryId(availableCategories[0].id);
+      }
+    }
+  }, [availableCategories]);
+
   // Phase 5: Filtered Product Grid based on Region & Category
   const filteredProducts = React.useMemo(() => {
     return products.filter((p) => {
@@ -799,26 +817,8 @@ export const CheckoutPage: React.FC = () => {
                               {showAllRegionsOverride ? '✓ SEMUA REGION TERBUKA' : '⚙ UBAH REGION'}
                             </button>
                           )}
-                             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                          {(!isRegionLocked || showAllRegionsOverride) && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedRegionId('ALL')}
-                              style={{
-                                boxShadow: selectedRegionId === 'ALL'
-                                  ? '2px 2px 0px 0px var(--nb-shadow-yellow)'
-                                  : '2px 2px 0px 0px var(--nb-shadow)',
-                              }}
-                              className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-[2px] border-[var(--nb-border)] transition-all ${
-                                selectedRegionId === 'ALL'
-                                  ? 'bg-[var(--nb-yellow)] text-black'
-                                  : 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:bg-[var(--nb-surface-alt)]'
-                              }`}
-                            >
-                              🌐 SEMUA
-                            </button>
-                          )}
-
+                        </div>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                           {visibleRegions.map((reg: any) => {
                             const isSelected = selectedRegionId === reg.id;
                             const flag = getCountryFlagEmoji(reg.code || '');
@@ -852,21 +852,12 @@ export const CheckoutPage: React.FC = () => {
                               </button>
                             );
                           })}
-                        </div>                        </div>
+                        </div>
                       </div>
                     )}
                     {/* Phase 5: Dynamic ProductCategory Filter Tabs (Tampil Hanya Jika Tersedia) */}
                     {availableCategories.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b-2 border-black/10">
-                        <Button
-                          type="button"
-                          variant={selectedCategoryId === 'ALL' ? 'purple' : 'white'}
-                          size="sm"
-                          onClick={() => setSelectedCategoryId('ALL')}
-                          className="text-xs font-bold uppercase"
-                        >
-                          SEMUA KATEGORI
-                        </Button>
                         {availableCategories.map((cat: any) => (
                           <Button
                             key={cat.id}
