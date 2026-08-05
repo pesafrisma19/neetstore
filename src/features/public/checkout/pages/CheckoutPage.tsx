@@ -921,33 +921,42 @@ export const CheckoutPage: React.FC = () => {
                                 <div className="absolute inset-0 bg-black/5 z-10 pointer-events-none rounded-[inherit]" />
                               )}
                               
-                              {isTierDisabled && (
-                                <span className="absolute -top-2 -right-1 bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-[var(--nb-border)] z-20 whitespace-nowrap">
-                                  BATAS PEMBELIAN TERCAPAI
-                                </span>
+                              {/* Top Badge Bar inside card padding (No clipping!) */}
+                              {(isTierDisabled || isTierAvailable || (item.isPopular && !tierMatch)) && (
+                                <div className="mb-2 flex items-center justify-between gap-1">
+                                  {isTierDisabled && (
+                                    <Badge variant="dark" size="sm" className="text-[9px] py-0.5 px-1.5 font-black uppercase">
+                                      BATAS TERCAPAI
+                                    </Badge>
+                                  )}
+                                  {isTierAvailable && (
+                                    <Badge variant="cyan" size="sm" className="text-[9px] py-0.5 px-1.5 font-black uppercase animate-pulse">
+                                      ✨ PROMO 2X
+                                    </Badge>
+                                  )}
+                                  {item.isPopular && !tierMatch && (
+                                    <Badge variant="pink" size="sm" className="text-[9px] py-0.5 px-1.5 font-black uppercase">
+                                      BEST SELLER
+                                    </Badge>
+                                  )}
+                                </div>
                               )}
 
-                              {isTierAvailable && (
-                                <span className="absolute -top-2 -right-1 bg-[var(--nb-cyan)] text-[var(--nb-text-on-accent)] text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-[var(--nb-border)] z-20 animate-pulse whitespace-nowrap">
-                                  ✨ PROMO 2X TERSEDIA
-                                </span>
-                              )}
-
-                              {item.isPopular && !tierMatch && (
-                                <span className="absolute -top-2 -right-1 bg-[var(--nb-pink)] text-[var(--nb-dark-text)] text-[9px] font-black uppercase px-1.5 py-0.2 border-[1.5px] border-[var(--nb-border)]">
-                                  BEST SELLER
-                                </span>
-                              )}
-                              <div className="relative z-20">
+                              <div className="relative z-20 flex-1">
                                 <span className={`text-xs font-black uppercase leading-tight block ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500 line-through' : 'text-[var(--nb-text)]')}`}>
                                   {item.name}
                                 </span>
                               </div>
+
                               <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
                                 <span className={`text-xs font-black ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
                                   Rp {priceVal.toLocaleString('id-ID')}
                                 </span>
-                                {effectivelySelected && <Check className="w-4 h-4 stroke-[4] text-[var(--nb-text-on-accent)]" />}
+                                {effectivelySelected && (
+                                  <div className="w-5 h-5 bg-black text-white border-[1.5px] border-[var(--nb-border)] rounded-full flex items-center justify-center shadow-[1px_1px_0px_0px_var(--nb-shadow)] shrink-0">
+                                    <Check className="w-3 h-3 stroke-[3.5]" />
+                                  </div>
+                                )}
                               </div>
                             </Card>
                           );
