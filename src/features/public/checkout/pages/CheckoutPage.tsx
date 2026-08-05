@@ -747,7 +747,7 @@ export const CheckoutPage: React.FC = () => {
                           <label className="flex items-center gap-2 text-xs font-black cursor-pointer select-none">
                             <Checkbox
                               checked={showAllRegionsOverride}
-                              onCheckedChange={(checked) => setShowAllRegionsOverride(!!checked)}
+                              onChange={(e) => setShowAllRegionsOverride(e.target.checked)}
                             />
                             <span>Tampilkan semua region (Saya memahami risikonya)</span>
                           </label>
