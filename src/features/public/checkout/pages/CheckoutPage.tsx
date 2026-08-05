@@ -160,11 +160,13 @@ export const CheckoutPage: React.FC = () => {
   const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<number | string>('');
 
-  // Phase 4: Neetflix Validation States
+  // Phase 4: Neetflix Validation States & Region Lock UX
   const [nickname, setNickname] = useState('');
   const [detectedRegionCode, setDetectedRegionCode] = useState('');
   const [isCheckingId, setIsCheckingId] = useState(false);
   const [firstTopupTiers, setFirstTopupTiers] = useState<any[]>([]);
+  const [isRegionLocked, setIsRegionLocked] = useState(false);
+  const [showAllRegionsOverride, setShowAllRegionsOverride] = useState(false);
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
@@ -212,9 +214,18 @@ export const CheckoutPage: React.FC = () => {
   }, [brandData]);
 
   const availableCategories = React.useMemo(() => {
+    if (!brandData) return [];
+
+    if (typeof selectedRegionId === 'number') {
+      const selectedReg = brandData.regions?.find((r: any) => r.id === selectedRegionId);
+      if (selectedReg?.availableCategories && Array.isArray(selectedReg.availableCategories)) {
+        return [...selectedReg.availableCategories].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      }
+    }
+
     if (!brandData?.productCategories || !Array.isArray(brandData.productCategories)) return [];
     return [...brandData.productCategories].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  }, [brandData]);
+  }, [brandData, selectedRegionId]);
 
   // Phase 5: Filtered Product Grid based on Region & Category
   const filteredProducts = React.useMemo(() => {
@@ -342,6 +353,8 @@ export const CheckoutPage: React.FC = () => {
         setNickname(res.data.nickname);
         if (res.data.matchedRegionId) {
           setSelectedRegionId(res.data.matchedRegionId); // Auto-Lock Region
+          setIsRegionLocked(true);
+          setShowAllRegionsOverride(false);
         }
         if (res.data.detectedRegionCode) {
           setDetectedRegionCode(res.data.detectedRegionCode);
@@ -724,30 +737,54 @@ export const CheckoutPage: React.FC = () => {
                         <span>PILIH REGION SERVER GAME</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2.5">
-                        <Button
-                          type="button"
-                          variant={selectedRegionId === 'ALL' ? 'yellow' : 'white'}
-                          size="sm"
-                          onClick={() => setSelectedRegionId('ALL')}
-                          className="font-black text-xs uppercase"
-                        >
-                          SEMUA REGION
-                        </Button>
-                        {availableRegions.map((reg: any) => (
+                    <CardContent className="flex flex-col gap-4">
+                      {isRegionLocked && (
+                        <div className="flex flex-col gap-3">
+                          <div className="p-3 bg-[var(--nb-cyan)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-bold leading-relaxed">
+                            💡 <strong>Region terdeteksi otomatis: {detectedRegionCode || 'Match Account'}</strong> berdasarkan ID game yang Anda masukkan. Pilihan region telah dikunci untuk memastikan transaksi sukses.
+                          </div>
+
+                          <label className="flex items-center gap-2 text-xs font-black cursor-pointer select-none">
+                            <Checkbox
+                              checked={showAllRegionsOverride}
+                              onCheckedChange={(checked) => setShowAllRegionsOverride(!!checked)}
+                            />
+                            <span>Tampilkan semua region (Saya memahami risikonya)</span>
+                          </label>
+
+                          {showAllRegionsOverride && (
+                            <div className="p-3 bg-red-100 border-[2.5px] border-red-500 text-red-700 shadow-[3px_3px_0px_0px_rgba(239,68,68,1)] text-xs font-bold leading-relaxed">
+                              ⚠️ <strong>Peringatan:</strong> Region yang terdeteksi dari ID akun Anda adalah <strong>{detectedRegionCode || 'Match Account'}</strong>. Jika Anda memilih region lain, transaksi dapat gagal atau produk tidak masuk. Pastikan Anda memahami risikonya sebelum melanjutkan.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {(!isRegionLocked || showAllRegionsOverride) && (
+                        <div className="flex flex-wrap gap-2.5">
                           <Button
-                            key={reg.id}
                             type="button"
-                            variant={selectedRegionId === reg.id ? 'yellow' : 'white'}
+                            variant={selectedRegionId === 'ALL' ? 'yellow' : 'white'}
                             size="sm"
-                            onClick={() => setSelectedRegionId(reg.id)}
+                            onClick={() => setSelectedRegionId('ALL')}
                             className="font-black text-xs uppercase"
                           >
-                            {reg.name} {reg.code ? `(${reg.code})` : ''}
+                            SEMUA REGION
                           </Button>
-                        ))}
-                      </div>
+                          {availableRegions.map((reg: any) => (
+                            <Button
+                              key={reg.id}
+                              type="button"
+                              variant={selectedRegionId === reg.id ? 'yellow' : 'white'}
+                              size="sm"
+                              onClick={() => setSelectedRegionId(reg.id)}
+                              className="font-black text-xs uppercase"
+                            >
+                              {reg.name} {reg.code ? `(${reg.code})` : ''}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
