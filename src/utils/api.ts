@@ -232,6 +232,8 @@ export const getAdminProducts = (params?: {
   search?: string;
   categoryId?: string;
   brandId?: string;
+  productCategoryId?: string;
+  status?: string;
 }) => {
   const query = new URLSearchParams();
   if (params?.page) query.append('page', String(params.page));
@@ -239,6 +241,8 @@ export const getAdminProducts = (params?: {
   if (params?.search) query.append('search', params.search);
   if (params?.categoryId && params.categoryId !== 'ALL') query.append('categoryId', params.categoryId);
   if (params?.brandId && params.brandId !== 'ALL') query.append('brandId', params.brandId);
+  if (params?.productCategoryId && params.productCategoryId !== 'ALL') query.append('productCategoryId', params.productCategoryId);
+  if (params?.status && params.status !== 'ALL') query.append('status', params.status);
   const queryString = query.toString();
   return apiFetch<any[]>(`/admin/products${queryString ? `?${queryString}` : ''}`);
 };

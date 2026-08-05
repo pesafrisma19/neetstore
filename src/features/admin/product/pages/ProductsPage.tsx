@@ -82,17 +82,10 @@ export const ProductsPage: React.FC = () => {
         search: searchQuery || undefined,
         categoryId: filterCat,
         brandId: filterBrand,
+        productCategoryId: filterProductCat,
+        status: filterStatus,
       });
       let list: ProductData[] = prodData || [];
-
-      // Client-side filter untuk productCategory & status (belum ada endpoint filter server-side)
-      if (filterProductCat !== 'ALL') {
-        list = list.filter((p: any) => String(p.productCategoryId) === filterProductCat);
-      }
-      if (filterStatus !== 'ALL') {
-        const isActive = filterStatus === 'active';
-        list = list.filter((p: any) => p.isActive === isActive);
-      }
 
       setProducts(list);
       const meta = (prodData as any)?._meta;
