@@ -1010,7 +1010,9 @@ export const CheckoutPage: React.FC = () => {
                                 </div>
                                 <RadioGroupItem value={String(method.id)} id={String(method.id)} className="sr-only" />
                                 {isSelected && (
-                                  <Badge variant="cyan" size="sm"><Check className="w-3 h-3 mr-1 inline" /> AKTIF</Badge>
+                                  <div className="w-5 h-5 bg-black text-white border-[1.5px] border-[var(--nb-border)] rounded-full flex items-center justify-center shadow-[1px_1px_0px_0px_var(--nb-shadow)] shrink-0">
+                                    <Check className="w-3 h-3 stroke-[3.5]" />
+                                  </div>
                                 )}
                               </div>
                               <div className="mt-2 text-xs font-bold bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] py-1 px-2 rounded w-fit uppercase">
