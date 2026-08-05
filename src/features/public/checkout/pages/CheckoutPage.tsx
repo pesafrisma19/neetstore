@@ -167,6 +167,7 @@ export const CheckoutPage: React.FC = () => {
   const [firstTopupTiers, setFirstTopupTiers] = useState<any[]>([]);
   const [isRegionLocked, setIsRegionLocked] = useState(false);
   const [showAllRegionsOverride, setShowAllRegionsOverride] = useState(false);
+  const [validMatchedRegionIds, setValidMatchedRegionIds] = useState<number[]>([]);
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
@@ -207,11 +208,19 @@ export const CheckoutPage: React.FC = () => {
     loadGameData();
   }, [slug]);
 
-  // Phase 5: Sorted Regions & Categories from backend
   const availableRegions = React.useMemo(() => {
     if (!brandData?.regions || !Array.isArray(brandData.regions)) return [];
     return [...brandData.regions].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }, [brandData]);
+
+  // Filter visible regions based on Rule Engine matches when locked
+  const visibleRegions = React.useMemo(() => {
+    if (!availableRegions) return [];
+    if (!isRegionLocked || showAllRegionsOverride || validMatchedRegionIds.length === 0) {
+      return availableRegions;
+    }
+    return availableRegions.filter((reg: any) => validMatchedRegionIds.includes(reg.id));
+  }, [availableRegions, isRegionLocked, showAllRegionsOverride, validMatchedRegionIds]);
 
   const availableCategories = React.useMemo(() => {
     if (!brandData) return [];
@@ -351,10 +360,16 @@ export const CheckoutPage: React.FC = () => {
       const res = await checkoutApi.validateNeetflixAccount(brandData.id, userId, serverId);
       if (res.success && res.data) {
         setNickname(res.data.nickname);
-        if (res.data.matchedRegionId) {
-          setSelectedRegionId(res.data.matchedRegionId); // Auto-Lock Region
+        const targetRegionId = res.data.recommendedRegionId || res.data.matchedRegionId;
+        if (targetRegionId) {
+          setSelectedRegionId(targetRegionId); // Auto-Lock Recommended Region
           setIsRegionLocked(true);
           setShowAllRegionsOverride(false);
+        }
+        if (res.data.matchedRegionIds && Array.isArray(res.data.matchedRegionIds)) {
+          setValidMatchedRegionIds(res.data.matchedRegionIds);
+        } else if (targetRegionId) {
+          setValidMatchedRegionIds([targetRegionId]);
         }
         if (res.data.detectedRegionCode) {
           setDetectedRegionCode(res.data.detectedRegionCode);
@@ -760,8 +775,8 @@ export const CheckoutPage: React.FC = () => {
                         </div>
                       )}
 
-                      {(!isRegionLocked || showAllRegionsOverride) && (
-                        <div className="flex flex-wrap gap-2.5">
+                      <div className="flex flex-wrap gap-2.5">
+                        {(!isRegionLocked || showAllRegionsOverride) && (
                           <Button
                             type="button"
                             variant={selectedRegionId === 'ALL' ? 'yellow' : 'white'}
@@ -771,20 +786,20 @@ export const CheckoutPage: React.FC = () => {
                           >
                             SEMUA REGION
                           </Button>
-                          {availableRegions.map((reg: any) => (
-                            <Button
-                              key={reg.id}
-                              type="button"
-                              variant={selectedRegionId === reg.id ? 'yellow' : 'white'}
-                              size="sm"
-                              onClick={() => setSelectedRegionId(reg.id)}
-                              className="font-black text-xs uppercase"
-                            >
-                              {reg.name} {reg.code ? `(${reg.code})` : ''}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
+                        )}
+                        {visibleRegions.map((reg: any) => (
+                          <Button
+                            key={reg.id}
+                            type="button"
+                            variant={selectedRegionId === reg.id ? 'yellow' : 'white'}
+                            size="sm"
+                            onClick={() => setSelectedRegionId(reg.id)}
+                            className="font-black text-xs uppercase"
+                          >
+                            {reg.name} {reg.code ? `(${reg.code})` : ''}
+                          </Button>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
                 )}
