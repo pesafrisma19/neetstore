@@ -922,13 +922,13 @@ export const CheckoutPage: React.FC = () => {
                               )}
                               
                               {isTierDisabled && (
-                                <span className="absolute -top-2 -right-1 bg-neutral-600 text-white text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-black z-20 whitespace-nowrap">
+                                <span className="absolute -top-2 -right-1 bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-[var(--nb-border)] z-20 whitespace-nowrap">
                                   BATAS PEMBELIAN TERCAPAI
                                 </span>
                               )}
 
                               {isTierAvailable && (
-                                <span className="absolute -top-2 -right-1 bg-[var(--nb-cyan)] text-black text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-black z-20 animate-pulse whitespace-nowrap">
+                                <span className="absolute -top-2 -right-1 bg-[var(--nb-cyan)] text-[var(--nb-text-on-accent)] text-[9px] font-black uppercase px-1.5 py-0.5 border-[1.5px] border-[var(--nb-border)] z-20 animate-pulse whitespace-nowrap">
                                   ✨ PROMO 2X TERSEDIA
                                 </span>
                               )}
@@ -939,15 +939,15 @@ export const CheckoutPage: React.FC = () => {
                                 </span>
                               )}
                               <div className="relative z-20">
-                                <span className={`text-xs font-black uppercase leading-tight block ${effectivelySelected ? 'text-[#000000]' : (isCardDisabled ? 'text-neutral-500 line-through' : 'text-[var(--nb-text)]')}`}>
+                                <span className={`text-xs font-black uppercase leading-tight block ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500 line-through' : 'text-[var(--nb-text)]')}`}>
                                   {item.name}
                                 </span>
                               </div>
                               <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
-                                <span className={`text-xs font-black ${effectivelySelected ? 'text-[#000000]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
+                                <span className={`text-xs font-black ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
                                   Rp {priceVal.toLocaleString('id-ID')}
                                 </span>
-                                {effectivelySelected && <Check className="w-4 h-4 stroke-[4] text-[#000000]" />}
+                                {effectivelySelected && <Check className="w-4 h-4 stroke-[4] text-[var(--nb-text-on-accent)]" />}
                               </div>
                             </Card>
                           );
@@ -995,7 +995,7 @@ export const CheckoutPage: React.FC = () => {
                                   ) : (
                                     <span className="text-xl">💳</span>
                                   )}
-                                  <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-[#000000]' : 'text-[var(--nb-text)]'}`}>
+                                  <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-[var(--nb-text-on-accent)]' : 'text-[var(--nb-text)]'}`}>
                                     {method.name}
                                   </span>
                                 </div>
