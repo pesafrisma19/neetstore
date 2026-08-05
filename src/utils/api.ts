@@ -301,12 +301,10 @@ export interface RegionData {
 
 export interface ProductCategoryData {
   id: number;
-  brandId: number;
   name: string;
   slug: string;
   sortOrder: number;
   isActive: boolean;
-  brand?: { id: number; name: string; slug: string };
   _count?: { products: number };
   createdAt?: string;
   updatedAt?: string;
@@ -409,9 +407,8 @@ export const deleteAdminRegion = (id: number) =>
 // =====================================================
 // PRODUCT CATEGORY API WRAPPERS
 // =====================================================
-export const getAdminProductCategories = (params?: { brandId?: number; search?: string; page?: number; pageSize?: number; active?: boolean }) => {
+export const getAdminProductCategories = (params?: { search?: string; page?: number; pageSize?: number; active?: boolean }) => {
   const query = new URLSearchParams();
-  if (params?.brandId) query.append('brandId', String(params.brandId));
   if (params?.search) query.append('search', params.search);
   if (params?.page) query.append('page', String(params.page));
   if (params?.pageSize) query.append('pageSize', String(params.pageSize));

@@ -112,7 +112,7 @@ export const ProviderMappingPage: React.FC = () => {
     try {
       const [regRes, catRes] = await Promise.all([
         getAdminRegions({ brandId: bId, active: true }),
-        getAdminProductCategories({ brandId: bId, active: true }),
+        getAdminProductCategories({ active: true }),
       ]);
       setRegions(regRes?.items || []);
       setProductCategories(catRes?.items || []);

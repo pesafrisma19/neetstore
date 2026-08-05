@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   getAdminProductCategories,
-  getAdminBrands,
   createAdminProductCategory,
   updateAdminProductCategory,
   deleteAdminProductCategory,
@@ -20,12 +19,10 @@ import { useToast } from '../../../../components/ui/ToastContext';
 
 export const ProductCategoriesPage: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategoryData[]>([]);
-  const [brands, setBrands] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filter & Pagination States
   const [search, setSearch] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -34,7 +31,6 @@ export const ProductCategoriesPage: React.FC = () => {
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategoryData | null>(null);
-  const [formBrandId, setFormBrandId] = useState<string>('');
   const [formName, setFormName] = useState('');
   const [formSortOrder, setFormSortOrder] = useState<number>(0);
   const [formIsActive, setFormIsActive] = useState(true);
@@ -43,26 +39,10 @@ export const ProductCategoriesPage: React.FC = () => {
   // Toast Context
   const { addToast } = useToast();
 
-  const fetchBrands = async () => {
-    try {
-      const data = await getAdminBrands();
-      if (Array.isArray(data)) {
-        setBrands(data.map((b) => ({ id: b.id, name: b.name })));
-        if (data.length > 0 && !formBrandId) {
-          setFormBrandId(String(data[0].id));
-        }
-      }
-    } catch (err) {
-      console.error('Gagal memuat brand:', err);
-    }
-  };
-
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const brandId = selectedBrand !== 'ALL' ? parseInt(selectedBrand) : undefined;
       const res = await getAdminProductCategories({
-        brandId,
         search: search.trim() || undefined,
         page: currentPage,
         pageSize,
@@ -91,27 +71,23 @@ export const ProductCategoriesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchBrands();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
     fetchCategories();
-  }, [selectedBrand, currentPage, search]);
+  }, [currentPage, search]);
 
   const handleOpenAddModal = () => {
     setEditingCategory(null);
     setFormName('');
     setFormSortOrder(0);
     setFormIsActive(true);
-    if (brands.length > 0) {
-      setFormBrandId(selectedBrand !== 'ALL' ? selectedBrand : String(brands[0].id));
-    }
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (cat: ProductCategoryData) => {
     setEditingCategory(cat);
-    setFormBrandId(String(cat.brandId));
     setFormName(cat.name);
     setFormSortOrder(cat.sortOrder || 0);
     setFormIsActive(cat.isActive);
@@ -132,7 +108,6 @@ export const ProductCategoriesPage: React.FC = () => {
     setSubmitting(true);
     try {
       const payload = {
-        brandId: parseInt(formBrandId),
         name: formName.trim(),
         sortOrder: Number(formSortOrder) || 0,
         isActive: formIsActive,
@@ -206,20 +181,6 @@ export const ProductCategoriesPage: React.FC = () => {
                 className="pl-9 text-sm py-1.5"
               />
             </div>
-
-            <Select
-              value={selectedBrand}
-              onChange={(e) => {
-                setSelectedBrand(e.target.value);
-                setCurrentPage(1);
-              }}
-              fullWidth={false}
-              className="w-full sm:w-64"
-              options={[
-                { value: 'ALL', label: 'SEMUA BRAND GAME' },
-                ...brands.map((b) => ({ value: String(b.id), label: b.name })),
-              ]}
-            />
           </div>
 
           {/* Table Container */}
@@ -229,7 +190,6 @@ export const ProductCategoriesPage: React.FC = () => {
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
                   <TableHead>NAMA KATEGORI PRODUK</TableHead>
-                  <TableHead>BRAND GAME</TableHead>
                   <TableHead className="text-center">URUTAN (SORT)</TableHead>
                   <TableHead className="text-center">STATUS</TableHead>
                   <TableHead className="text-right">AKSI</TableHead>
@@ -259,9 +219,6 @@ export const ProductCategoriesPage: React.FC = () => {
                         <span className="block text-[10px] font-mono text-[var(--nb-text-muted)] font-normal">
                           slug: {cat.slug}
                         </span>
-                      </TableCell>
-                      <TableCell className="font-bold text-xs">
-                        {cat.brand ? cat.brand.name : `Brand #${cat.brandId}`}
                       </TableCell>
                       <TableCell className="text-center font-mono font-bold">
                         {cat.sortOrder}
@@ -327,18 +284,6 @@ export const ProductCategoriesPage: React.FC = () => {
         title={editingCategory ? 'EDIT KATEGORI PRODUK' : 'TAMBAH KATEGORI PRODUK BARU'}
       >
         <form onSubmit={handleSubmitForm} className="space-y-4 text-left">
-          <div>
-            <label className="block text-xs font-black uppercase mb-1.5">
-              BRAND GAME <span className="text-red-500">*</span>
-            </label>
-            <Select
-              value={formBrandId}
-              onChange={(e) => setFormBrandId(e.target.value)}
-              fullWidth
-              options={brands.map((b) => ({ value: String(b.id), label: b.name }))}
-            />
-          </div>
-
           <div>
             <label className="block text-xs font-black uppercase mb-1.5">
               NAMA KATEGORI PRODUK <span className="text-red-500">*</span>
