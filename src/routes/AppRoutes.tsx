@@ -23,10 +23,8 @@ import { VouchersPage } from '../features/admin/voucher/pages/VouchersPage';
 import { UsersPage } from '../features/admin/user/pages/UsersPage';
 import { MutationsPage } from '../features/admin/transaction/pages/MutationsPage';
 import {
-  ProductTypesPage,
   RegionsPage,
   ProductCategoriesPage,
-  ProviderMappingPage,
   OrdersPage,
   DepositsPage,
   PaymentGatewaysPage,
@@ -81,8 +79,6 @@ export const AppRoutes = () => {
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="regions" element={<RegionsPage />} />
         <Route path="product-categories" element={<ProductCategoriesPage />} />
-        <Route path="provider-mappings" element={<ProviderMappingPage />} />
-        <Route path="product-types" element={<ProductTypesPage />} />
         <Route path="products" element={<ProductsPage />} />
         
         {/* 3. Pricing */}

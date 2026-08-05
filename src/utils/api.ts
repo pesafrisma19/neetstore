@@ -310,66 +310,6 @@ export interface ProductCategoryData {
   updatedAt?: string;
 }
 
-export interface ProviderMappingData {
-  id: number;
-  providerId: number;
-  brandId: number;
-  providerProductType: string;
-  providerCategory?: string | null;
-  regionId?: number | null;
-  productCategoryId?: number | null;
-  priority: number;
-  isActive: boolean;
-  matchedProductCount?: number;
-  lastMatchedAt?: string | null;
-  brand?: { id: number; name: string };
-  provider?: { id: number; name: string };
-  region?: { id: number; name: string; code?: string | null } | null;
-  productCategory?: { id: number; name: string } | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface AuditItemData {
-  brandId: number;
-  brandName: string;
-  providerId: number;
-  providerValue: string;
-  productCount: number;
-  isMapped: boolean;
-  rule: {
-    id: number;
-    region?: { id: number; name: string; code?: string | null } | null;
-    productCategory?: { id: number; name: string } | null;
-    priority: number;
-    isActive: boolean;
-  } | null;
-}
-
-export interface MappingPreviewData {
-  totalImpacted: number;
-  targetRegion: { id: number; name: string } | null;
-  targetCategory: { id: number; name: string } | null;
-  products: {
-    id: number;
-    name: string;
-    sku: string;
-    digiflazzSku: string;
-    currentRegion: string;
-    targetRegion: string;
-    currentCategory: string;
-    targetCategory: string;
-  }[];
-}
-
-export interface MappingApplyResultData {
-  success: boolean;
-  updated: number;
-  skipped: number;
-  failed: number;
-  message?: string;
-  timestamp: string;
-}
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -427,42 +367,6 @@ export const deleteAdminProductCategory = (id: number) =>
   apiFetch<{ message: string }>(`/admin/product-categories/${id}`, { method: 'DELETE' });
 
 // =====================================================
-// PROVIDER MAPPING API WRAPPERS
-// =====================================================
-export const getAdminProviderMappingAudit = (params?: { brandId?: number; providerId?: number; search?: string }) => {
-  const query = new URLSearchParams();
-  if (params?.brandId) query.append('brandId', String(params.brandId));
-  if (params?.providerId) query.append('providerId', String(params.providerId));
-  if (params?.search) query.append('search', params.search);
-  const queryString = query.toString();
-  return apiFetch<AuditItemData[]>(`/admin/provider-mappings/audit${queryString ? `?${queryString}` : ''}`);
-};
-
-export const getAdminProviderMappings = (params?: { brandId?: number; providerId?: number; search?: string; page?: number; pageSize?: number }) => {
-  const query = new URLSearchParams();
-  if (params?.brandId) query.append('brandId', String(params.brandId));
-  if (params?.providerId) query.append('providerId', String(params.providerId));
-  if (params?.search) query.append('search', params.search);
-  if (params?.page) query.append('page', String(params.page));
-  if (params?.pageSize) query.append('pageSize', String(params.pageSize));
-  const queryString = query.toString();
-  return apiFetch<PaginatedResult<ProviderMappingData>>(`/admin/provider-mappings${queryString ? `?${queryString}` : ''}`);
-};
-
-export const createAdminProviderMapping = (data: Partial<ProviderMappingData>) =>
-  apiFetch<ProviderMappingData>('/admin/provider-mappings', { method: 'POST', body: JSON.stringify(data) });
-
-export const updateAdminProviderMapping = (id: number, data: Partial<ProviderMappingData>) =>
-  apiFetch<ProviderMappingData>(`/admin/provider-mappings/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
-
-export const deleteAdminProviderMapping = (id: number) =>
-  apiFetch<{ message: string }>(`/admin/provider-mappings/${id}`, { method: 'DELETE' });
-
-export const previewAdminProviderMapping = (data: { ruleId?: number; providerId?: number; brandId?: number; providerProductType?: string; regionId?: number; productCategoryId?: number }) =>
-  apiFetch<MappingPreviewData>('/admin/provider-mappings/preview', { method: 'POST', body: JSON.stringify(data) });
-
-export const applyAdminProviderMapping = (data: { ruleId?: number; providerId?: number; brandId?: number; providerProductType?: string; regionId?: number; productCategoryId?: number }) =>
-  apiFetch<MappingApplyResultData>('/admin/provider-mappings/apply', { method: 'POST', body: JSON.stringify(data) });
 
 export const getAdminErrorLogs = () => apiFetch<any[]>('/admin/logs/error');
 export const getAdminDashboardStats = () => apiFetch<any>('/admin/dashboard/stats');

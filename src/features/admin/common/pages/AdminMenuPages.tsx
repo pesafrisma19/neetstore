@@ -1,19 +1,14 @@
 
 
-import { ProductTypesPage as RealProductTypesPage } from '../../product/pages/ProductTypesPage';
 import { RegionsPage as RealRegionsPage } from '../../region/pages/RegionsPage';
 import { ProductCategoriesPage as RealProductCategoriesPage } from '../../product-category/pages/ProductCategoriesPage';
-import { ProviderMappingPage as RealProviderMappingPage } from '../../provider-mapping/pages/ProviderMappingPage';
-import { OrdersPage as RealOrdersPage } from '../../transaction/pages/OrdersPage';
-import { DepositsPage as RealDepositsPage } from '../../deposit/pages/DepositsPage';
-
 // 2. Layanan
-export const ProductTypesPage = RealProductTypesPage;
 export const RegionsPage = RealRegionsPage;
 export const ProductCategoriesPage = RealProductCategoriesPage;
-export const ProviderMappingPage = RealProviderMappingPage;
 
 // 4. Transactions
+import { OrdersPage as RealOrdersPage } from '../../transaction/pages/OrdersPage';
+import { DepositsPage as RealDepositsPage } from '../../deposit/pages/DepositsPage';
 export const OrdersPage = RealOrdersPage;
 export const DepositsPage = RealDepositsPage;
 
