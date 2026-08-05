@@ -214,7 +214,7 @@ export const RegionsPage: React.FC = () => {
         <CardHeader headerBg="#00F0FF" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle className="text-base text-[var(--nb-text)] uppercase font-black">
-              LEVEL 3: SERVER REGION GAME (INDONESIA, BRAZIL, TURKEY, GLOBAL)
+              SERVER REGION GAME
             </CardTitle>
             <p className="text-xs text-[var(--nb-text-muted)] font-bold mt-1 uppercase">
               Kelola daftar region server publik per Brand Game
@@ -311,7 +311,7 @@ export const RegionsPage: React.FC = () => {
                         <TableCell className="font-bold text-xs">
                           <div className="flex flex-col gap-1 items-start">
                             <Badge variant={mode === 'BLOCK' ? 'pink' : 'mint'} size="sm" className="font-black">
-                              {mode === 'BLOCK' ? 'BLOKIR (BLOCK)' : 'KHUSUS (ALLOW)'}
+                              {mode === 'BLOCK' ? 'BLOKIR' : 'KHUSUS'}
                             </Badge>
                             {countryList.length > 0 ? (
                               <div className="flex flex-wrap gap-1 max-w-[280px] items-center">
@@ -459,11 +459,11 @@ export const RegionsPage: React.FC = () => {
               onChange={(e) => setFormMappingMode(e.target.value as 'ALLOW' | 'BLOCK')}
               fullWidth
               options={[
-                { value: 'ALLOW', label: 'KHUSUS (Whitelist) - Hanya negara dicentang yang diizinkan' },
-                { value: 'BLOCK', label: 'BLOKIR (Blacklist) - Semua diizinkan KECUALI yang dicentang' },
+                { value: 'ALLOW', label: 'KHUSUS - Hanya negara dicentang yang diizinkan' },
+                { value: 'BLOCK', label: 'BLOKIR - Semua diizinkan KECUALI yang dicentang' },
               ]}
             />
-            
+
             {/* Box Ringkasan Negara Terpilih (Persistent Badges) */}
             {formMappingCountries.length > 0 && (
               <div className="space-y-1.5 p-2.5 bg-[var(--nb-surface)] border-[2px] border-[var(--nb-border)] rounded-md">
@@ -518,7 +518,7 @@ export const RegionsPage: React.FC = () => {
                   className="pl-8 py-1.5 text-xs bg-[var(--nb-surface)]"
                 />
               </div>
-              
+
               <div className="max-h-40 overflow-y-auto border-2 border-[var(--nb-border)] bg-[var(--nb-surface)] p-2 space-y-1 rounded-md">
                 {COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).length === 0 ? (
                   <div className="text-xs text-center text-[var(--nb-text-muted)] py-2 font-bold">Negara tidak ditemukan</div>
