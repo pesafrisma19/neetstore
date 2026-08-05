@@ -53,6 +53,11 @@ export const RegionsPage: React.FC = () => {
   const [countrySearch, setCountrySearch] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedCountries, setExpandedCountries] = useState<Record<number, boolean>>({});
+
+  const toggleExpandCountries = (id: number) => {
+    setExpandedCountries((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Toast Context
   const { addToast } = useToast();
@@ -259,7 +264,6 @@ export const RegionsPage: React.FC = () => {
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
                   <TableHead>NAMA REGION</TableHead>
-                  <TableHead>KODE</TableHead>
                   <TableHead>BRAND GAME</TableHead>
                   <TableHead>PEMETAAN NEGARA</TableHead>
                   <TableHead className="text-center">URUTAN (SORT)</TableHead>
@@ -270,13 +274,13 @@ export const RegionsPage: React.FC = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 font-black uppercase text-[var(--nb-text-muted)]">
+                    <TableCell colSpan={7} className="text-center py-8 font-black uppercase text-[var(--nb-text-muted)]">
                       Memuat data region...
                     </TableCell>
                   </TableRow>
                 ) : regions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 font-bold text-[var(--nb-text-muted)]">
+                    <TableCell colSpan={7} className="text-center py-8 font-bold text-[var(--nb-text-muted)]">
                       Belum ada Region server yang ditambahkan.
                     </TableCell>
                   </TableRow>
@@ -284,19 +288,22 @@ export const RegionsPage: React.FC = () => {
                   regions.map((reg, idx) => {
                     const countryList = Array.isArray(reg.mappingCountries) ? reg.mappingCountries : [];
                     const mode = reg.mappingMode || 'ALLOW';
+                    const isExpanded = !!expandedCountries[reg.id];
+                    const visibleList = isExpanded ? countryList : countryList.slice(0, 4);
+
                     return (
                       <TableRow key={reg.id}>
                         <TableCell className="font-mono text-xs font-bold">
                           {(currentPage - 1) * pageSize + idx + 1}
                         </TableCell>
                         <TableCell className="font-black text-[var(--nb-text)]">
-                          {reg.name}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{reg.name}</span>
+                            {reg.code && <Badge variant="white" size="sm" className="font-mono">{reg.code}</Badge>}
+                          </div>
                           <span className="block text-[10px] font-mono text-[var(--nb-text-muted)] font-normal">
                             slug: {reg.slug}
                           </span>
-                        </TableCell>
-                        <TableCell className="font-mono font-bold">
-                          {reg.code ? <Badge variant="white">{reg.code}</Badge> : '-'}
                         </TableCell>
                         <TableCell className="font-bold text-xs">
                           {reg.brand ? reg.brand.name : `Brand #${reg.brandId}`}
@@ -304,20 +311,24 @@ export const RegionsPage: React.FC = () => {
                         <TableCell className="font-bold text-xs">
                           <div className="flex flex-col gap-1 items-start">
                             <Badge variant={mode === 'BLOCK' ? 'pink' : 'mint'} size="sm" className="font-black">
-                              {mode === 'BLOCK' ? '⚫ BLOKIR' : '⚪ KHUSUS'}
+                              {mode === 'BLOCK' ? 'BLOKIR (BLOCK)' : 'KHUSUS (ALLOW)'}
                             </Badge>
                             {countryList.length > 0 ? (
-                              <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                {countryList.slice(0, 4).map((code) => (
+                              <div className="flex flex-wrap gap-1 max-w-[280px] items-center">
+                                {visibleList.map((code) => (
                                   <span key={code} className="inline-flex items-center gap-0.5 text-[10px] font-black px-1 py-0.2 bg-[var(--nb-surface-alt)] border border-[var(--nb-border)] rounded">
                                     <span>{getCountryFlagEmoji(code)}</span>
                                     <span>{code}</span>
                                   </span>
                                 ))}
                                 {countryList.length > 4 && (
-                                  <span className="text-[10px] font-black text-[var(--nb-text-muted)]">
-                                    +{countryList.length - 4} lagi
-                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpandCountries(reg.id)}
+                                    className="text-[10px] font-black text-[var(--nb-purple)] hover:text-[var(--nb-pink)] underline cursor-pointer ml-1 select-none"
+                                  >
+                                    {isExpanded ? '▲ Sembunyikan' : `+${countryList.length - 4} lagi (Lihat Semua)`}
+                                  </button>
                                 )}
                               </div>
                             ) : (
@@ -448,8 +459,8 @@ export const RegionsPage: React.FC = () => {
               onChange={(e) => setFormMappingMode(e.target.value as 'ALLOW' | 'BLOCK')}
               fullWidth
               options={[
-                { value: 'ALLOW', label: '⚪ KHUSUS (Whitelist) - Hanya negara dicentang yang diizinkan' },
-                { value: 'BLOCK', label: '⚫ BLOKIR (Blacklist) - Semua diizinkan KECUALI yang dicentang' },
+                { value: 'ALLOW', label: 'KHUSUS (Whitelist) - Hanya negara dicentang yang diizinkan' },
+                { value: 'BLOCK', label: 'BLOKIR (Blacklist) - Semua diizinkan KECUALI yang dicentang' },
               ]}
             />
             
