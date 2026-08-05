@@ -19,6 +19,15 @@ import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-re
 import { useToast } from '../../../../components/ui/ToastContext';
 import { COUNTRIES } from '../../../../utils/countries';
 
+const getCountryFlagEmoji = (countryCode: string) => {
+  if (!countryCode || countryCode.length !== 2) return '🌐';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
 export const RegionsPage: React.FC = () => {
   const [regions, setRegions] = useState<RegionData[]>([]);
   const [brands, setBrands] = useState<{ id: number; name: string }[]>([]);
@@ -252,6 +261,7 @@ export const RegionsPage: React.FC = () => {
                   <TableHead>NAMA REGION</TableHead>
                   <TableHead>KODE</TableHead>
                   <TableHead>BRAND GAME</TableHead>
+                  <TableHead>PEMETAAN NEGARA</TableHead>
                   <TableHead className="text-center">URUTAN (SORT)</TableHead>
                   <TableHead className="text-center">STATUS</TableHead>
                   <TableHead className="text-right">AKSI</TableHead>
@@ -260,55 +270,83 @@ export const RegionsPage: React.FC = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 font-black uppercase text-[var(--nb-text-muted)]">
+                    <TableCell colSpan={8} className="text-center py-8 font-black uppercase text-[var(--nb-text-muted)]">
                       Memuat data region...
                     </TableCell>
                   </TableRow>
                 ) : regions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 font-bold text-[var(--nb-text-muted)]">
+                    <TableCell colSpan={8} className="text-center py-8 font-bold text-[var(--nb-text-muted)]">
                       Belum ada Region server yang ditambahkan.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  regions.map((reg, idx) => (
-                    <TableRow key={reg.id}>
-                      <TableCell className="font-mono text-xs font-bold">
-                        {(currentPage - 1) * pageSize + idx + 1}
-                      </TableCell>
-                      <TableCell className="font-black text-[var(--nb-text)]">
-                        {reg.name}
-                        <span className="block text-[10px] font-mono text-[var(--nb-text-muted)] font-normal">
-                          slug: {reg.slug}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-mono font-bold">
-                        {reg.code ? <Badge variant="white">{reg.code}</Badge> : '-'}
-                      </TableCell>
-                      <TableCell className="font-bold text-xs">
-                        {reg.brand ? reg.brand.name : `Brand #${reg.brandId}`}
-                      </TableCell>
-                      <TableCell className="text-center font-mono font-bold">
-                        {reg.sortOrder}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={reg.isActive ? 'mint' : 'pink'} size="sm">
-                          {reg.isActive ? 'AKTIF' : 'NON-AKTIF'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="purple" size="sm" onClick={() => handleOpenEditModal(reg)}>
-                            <Edit className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>EDIT</span>
-                          </Button>
-                          <Button variant="pink" size="sm" onClick={() => handleDelete(reg.id, reg.name)}>
-                            <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  regions.map((reg, idx) => {
+                    const countryList = Array.isArray(reg.mappingCountries) ? reg.mappingCountries : [];
+                    const mode = reg.mappingMode || 'ALLOW';
+                    return (
+                      <TableRow key={reg.id}>
+                        <TableCell className="font-mono text-xs font-bold">
+                          {(currentPage - 1) * pageSize + idx + 1}
+                        </TableCell>
+                        <TableCell className="font-black text-[var(--nb-text)]">
+                          {reg.name}
+                          <span className="block text-[10px] font-mono text-[var(--nb-text-muted)] font-normal">
+                            slug: {reg.slug}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-mono font-bold">
+                          {reg.code ? <Badge variant="white">{reg.code}</Badge> : '-'}
+                        </TableCell>
+                        <TableCell className="font-bold text-xs">
+                          {reg.brand ? reg.brand.name : `Brand #${reg.brandId}`}
+                        </TableCell>
+                        <TableCell className="font-bold text-xs">
+                          <div className="flex flex-col gap-1 items-start">
+                            <Badge variant={mode === 'BLOCK' ? 'pink' : 'mint'} size="sm" className="font-black">
+                              {mode === 'BLOCK' ? '⚫ BLOKIR' : '⚪ KHUSUS'}
+                            </Badge>
+                            {countryList.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {countryList.slice(0, 4).map((code) => (
+                                  <span key={code} className="inline-flex items-center gap-0.5 text-[10px] font-black px-1 py-0.2 bg-[var(--nb-surface-alt)] border border-[var(--nb-border)] rounded">
+                                    <span>{getCountryFlagEmoji(code)}</span>
+                                    <span>{code}</span>
+                                  </span>
+                                ))}
+                                {countryList.length > 4 && (
+                                  <span className="text-[10px] font-black text-[var(--nb-text-muted)]">
+                                    +{countryList.length - 4} lagi
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-[var(--nb-text-muted)] italic font-semibold">Semua negara</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-mono font-bold">
+                          {reg.sortOrder}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={reg.isActive ? 'mint' : 'pink'} size="sm">
+                            {reg.isActive ? 'AKTIF' : 'NON-AKTIF'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="purple" size="sm" onClick={() => handleOpenEditModal(reg)}>
+                              <Edit className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>EDIT</span>
+                            </Button>
+                            <Button variant="pink" size="sm" onClick={() => handleDelete(reg.id, reg.name)}>
+                              <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -401,8 +439,8 @@ export const RegionsPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="p-3 bg-neutral-100 border-[3px] border-black space-y-3">
-            <label className="block text-xs font-black uppercase">
+          <div className="p-3 bg-[var(--nb-surface-alt)] border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] space-y-3 rounded-lg">
+            <label className="block text-xs font-black uppercase text-[var(--nb-text)]">
               MODE PEMETAAN NEGARA (AUTO-LOCK REGION)
             </label>
             <Select
@@ -415,26 +453,67 @@ export const RegionsPage: React.FC = () => {
               ]}
             />
             
+            {/* Box Ringkasan Negara Terpilih (Persistent Badges) */}
+            {formMappingCountries.length > 0 && (
+              <div className="space-y-1.5 p-2.5 bg-[var(--nb-surface)] border-[2px] border-[var(--nb-border)] rounded-md">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase text-[var(--nb-text-muted)]">
+                  <span>NEGARA TERPILIH ({formMappingCountries.length})</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormMappingCountries([])}
+                    className="text-red-500 hover:underline cursor-pointer font-bold"
+                  >
+                    Hapus Semua
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {formMappingCountries.map((code) => {
+                    const found = COUNTRIES.find((c) => c.code === code);
+                    const name = found ? found.name : code;
+                    const flag = getCountryFlagEmoji(code);
+                    return (
+                      <Badge
+                        key={code}
+                        variant={formMappingMode === 'BLOCK' ? 'pink' : 'cyan'}
+                        size="sm"
+                        className="flex items-center gap-1 text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_var(--nb-shadow)]"
+                      >
+                        <span>{flag}</span>
+                        <span>{name} ({code})</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormMappingCountries((prev) => prev.filter((c) => c !== code))}
+                          className="ml-1 font-extrabold hover:text-red-600 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2 mt-2">
-              <label className="block text-xs font-black uppercase text-neutral-600">
+              <label className="block text-xs font-black uppercase text-[var(--nb-text-muted)]">
                 PILIH NEGARA
               </label>
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--nb-text-muted)]" />
                 <Input
                   placeholder="Cari negara (misal: Indonesia)..."
                   value={countrySearch}
                   onChange={(e) => setCountrySearch(e.target.value)}
-                  className="pl-8 py-1.5 text-xs bg-white"
+                  className="pl-8 py-1.5 text-xs bg-[var(--nb-surface)]"
                 />
               </div>
               
-              <div className="max-h-40 overflow-y-auto border-2 border-black bg-white p-2 space-y-1">
+              <div className="max-h-40 overflow-y-auto border-2 border-[var(--nb-border)] bg-[var(--nb-surface)] p-2 space-y-1 rounded-md">
                 {COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).length === 0 ? (
-                  <div className="text-xs text-center text-neutral-500 py-2 font-bold">Negara tidak ditemukan</div>
+                  <div className="text-xs text-center text-[var(--nb-text-muted)] py-2 font-bold">Negara tidak ditemukan</div>
                 ) : (
                   COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.toLowerCase().includes(countrySearch.toLowerCase())).map(country => (
-                    <div key={country.code} className="flex items-center gap-2 hover:bg-neutral-100 p-1 rounded">
+                    <div key={country.code} className="flex items-center gap-2 hover:bg-[var(--nb-surface-alt)] p-1 rounded">
                       <Checkbox
                         checked={formMappingCountries.includes(country.code)}
                         onChange={(e) => {
@@ -445,7 +524,9 @@ export const RegionsPage: React.FC = () => {
                           }
                         }}
                       />
-                      <span className="text-xs font-bold uppercase">{country.name} ({country.code})</span>
+                      <span className="text-xs font-bold uppercase text-[var(--nb-text)]">
+                        {getCountryFlagEmoji(country.code)} {country.name} ({country.code})
+                      </span>
                     </div>
                   ))
                 )}
