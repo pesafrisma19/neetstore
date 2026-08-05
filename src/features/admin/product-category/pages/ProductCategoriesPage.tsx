@@ -9,7 +9,6 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
-import { Select } from '../../../../components/ui/Select';
 import { Badge } from '../../../../components/ui/Badge';
 import { Checkbox } from '../../../../components/ui/Checkbox';
 import { Dialog } from '../../../../components/ui/Dialog';
@@ -100,10 +99,7 @@ export const ProductCategoriesPage: React.FC = () => {
       addToast({ title: 'VALIDASI', message: 'Nama Kategori Produk wajib diisi', type: 'error' });
       return;
     }
-    if (!formBrandId) {
-      addToast({ title: 'VALIDASI', message: 'Brand wajib dipilih', type: 'error' });
-      return;
-    }
+
 
     setSubmitting(true);
     try {
