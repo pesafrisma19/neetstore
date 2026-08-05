@@ -297,6 +297,15 @@ export const CheckoutPage: React.FC = () => {
     return map;
   }, [paymentMethodsList]);
 
+  const regionThemes = React.useMemo(() => {
+    const themes = ['yellow', 'pink', 'mint', 'purple', 'cyan'] as const;
+    const map: Record<string, typeof themes[number]> = {};
+    availableRegions.forEach((r: any) => {
+      map[r.id] = themes[Math.floor(Math.random() * themes.length)];
+    });
+    return map;
+  }, [availableRegions]);
+
   // Generate warna acak untuk kotak Ringkasan Pesanan (Promo button, Total Pembayaran box, Submit button)
   const { promoButtonTheme, totalBoxTheme, submitButtonTheme } = React.useMemo(() => {
     const themes = ['yellow', 'pink', 'mint', 'purple', 'cyan'] as const;
@@ -790,17 +799,20 @@ export const CheckoutPage: React.FC = () => {
                               {showAllRegionsOverride ? '✓ SEMUA REGION TERBUKA' : '⚙ UBAH REGION'}
                             </button>
                           )}
-                        </div>
-
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                           {(!isRegionLocked || showAllRegionsOverride) && (
                             <button
                               type="button"
                               onClick={() => setSelectedRegionId('ALL')}
-                              className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                              style={{
+                                boxShadow: selectedRegionId === 'ALL'
+                                  ? '2px 2px 0px 0px var(--nb-shadow-yellow)'
+                                  : '2px 2px 0px 0px var(--nb-shadow)',
+                              }}
+                              className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-[2px] border-[var(--nb-border)] transition-all ${
                                 selectedRegionId === 'ALL'
                                   ? 'bg-[var(--nb-yellow)] text-black'
-                                  : 'bg-[var(--nb-surface)] text-black hover:bg-[var(--nb-yellow)]/30'
+                                  : 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:bg-[var(--nb-surface-alt)]'
                               }`}
                             >
                               🌐 SEMUA
@@ -810,15 +822,29 @@ export const CheckoutPage: React.FC = () => {
                           {visibleRegions.map((reg: any) => {
                             const isSelected = selectedRegionId === reg.id;
                             const flag = getCountryFlagEmoji(reg.code || '');
+                            const regTheme = regionThemes[reg.id] || 'yellow';
+                            const themeShadow = `var(--nb-shadow-${regTheme})`;
+                            const themeBgClasses: Record<string, string> = {
+                              yellow: 'bg-[var(--nb-yellow)] text-black',
+                              pink: 'bg-[var(--nb-pink)] text-white',
+                              mint: 'bg-[var(--nb-mint)] text-black',
+                              purple: 'bg-[var(--nb-purple)] text-black',
+                              cyan: 'bg-[var(--nb-cyan)] text-black',
+                            };
                             return (
                               <button
                                 key={reg.id}
                                 type="button"
                                 onClick={() => setSelectedRegionId(reg.id)}
-                                className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1.5 ${
+                                style={{
+                                  boxShadow: isSelected
+                                    ? `2px 2px 0px 0px ${themeShadow}`
+                                    : '2px 2px 0px 0px var(--nb-shadow)',
+                                }}
+                                className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-[2px] border-[var(--nb-border)] transition-all flex items-center gap-1.5 ${
                                   isSelected
-                                    ? 'bg-[var(--nb-yellow)] text-black'
-                                    : 'bg-[var(--nb-surface)] text-black hover:bg-[var(--nb-yellow)]/30'
+                                    ? (themeBgClasses[regTheme] || 'bg-[var(--nb-yellow)] text-black')
+                                    : 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:bg-[var(--nb-surface-alt)]'
                                 }`}
                               >
                                 <span>{flag}</span>
@@ -826,7 +852,7 @@ export const CheckoutPage: React.FC = () => {
                               </button>
                             );
                           })}
-                        </div>
+                        </div>                        </div>
                       </div>
                     )}
                     {/* Phase 5: Dynamic ProductCategory Filter Tabs (Tampil Hanya Jika Tersedia) */}
