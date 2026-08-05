@@ -27,6 +27,15 @@ const optimizeGoogleBanner = (url: string) => {
   return url + '=w1920-h1080-rw';
 };
 
+const getCountryFlagEmoji = (countryCode: string) => {
+  if (!countryCode || countryCode.length !== 2) return '🌐';
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
+
 // Verified Starburst Badge SVG
 export const VerifiedBadgeIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={`shrink-0 ${className}`}>
@@ -168,6 +177,8 @@ export const CheckoutPage: React.FC = () => {
   const [isRegionLocked, setIsRegionLocked] = useState(false);
   const [showAllRegionsOverride, setShowAllRegionsOverride] = useState(false);
   const [validMatchedRegionIds, setValidMatchedRegionIds] = useState<number[]>([]);
+  const [checkIdError, setCheckIdError] = useState('');
+  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
@@ -356,6 +367,7 @@ export const CheckoutPage: React.FC = () => {
     setNickname('');
     setDetectedRegionCode('');
     setFirstTopupTiers([]);
+    setCheckIdError('');
     try {
       const res = await checkoutApi.validateNeetflixAccount(brandData.id, userId, serverId);
       if (res.success && res.data) {
@@ -379,10 +391,14 @@ export const CheckoutPage: React.FC = () => {
         }
         setToast({ type: 'success', title: 'AKUN DITEMUKAN', message: `Halo, ${res.data.nickname}!` });
       } else {
-        setToast({ type: 'error', title: 'ID TIDAK VALID', message: res.message || 'User ID tidak ditemukan.' });
+        const errMsg = res.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
+        setCheckIdError(errMsg);
+        setToast({ type: 'error', title: 'ID TIDAK VALID', message: errMsg });
       }
     } catch (err: any) {
-      setToast({ type: 'error', title: 'GAGAL CEK ID', message: err.message || 'Sistem sedang gangguan.' });
+      const errMsg = err.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
+      setCheckIdError(errMsg);
+      setToast({ type: 'error', title: 'GAGAL CEK ID', message: errMsg });
     } finally {
       setIsCheckingId(false);
     }
@@ -722,16 +738,23 @@ export const CheckoutPage: React.FC = () => {
                         </Button>
                         
                         {nickname && (
-                          <div className="p-3 bg-[var(--nb-cyan)] border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
+                          <div className="p-2.5 bg-[var(--nb-cyan)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                              <Check className="w-5 h-5 bg-black text-white p-0.5 rounded-full" />
-                              <span className="font-black text-sm uppercase">NICKNAME: {nickname}</span>
+                              <Check className="w-4 h-4 bg-black text-white p-0.5 rounded-full shrink-0" />
+                              <span className="font-black text-xs sm:text-sm uppercase truncate">NICKNAME: {nickname}</span>
                             </div>
                             {detectedRegionCode && (
-                              <Badge variant="yellow" size="sm" className="font-black uppercase shadow-[2px_2px_0px_0px_#000]">
-                                REGION: {detectedRegionCode}
+                              <Badge variant="yellow" size="sm" className="font-black uppercase shadow-[1.5px_1.5px_0px_0px_#000] flex items-center gap-1 shrink-0">
+                                <span>{getCountryFlagEmoji(detectedRegionCode)}</span>
+                                <span>REGION: {detectedRegionCode}</span>
                               </Badge>
                             )}
+                          </div>
+                        )}
+
+                        {checkIdError && (
+                          <div className="p-2.5 bg-[var(--nb-yellow)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase text-black">
+                            ⚠️ {checkIdError}
                           </div>
                         )}
                       </div>
@@ -743,68 +766,7 @@ export const CheckoutPage: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Phase 5: Step 1.5 - PILIH REGION SERVER GAME (Tampil Hanya Jika Region Tersedia) */}
-                {availableRegions.length > 0 && (
-                  <Card variant="white" shadow="lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                        <span className="w-7 h-7 bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] rounded-none flex items-center justify-center text-sm font-black">1.5</span>
-                        <span>PILIH REGION SERVER GAME</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                      {isRegionLocked && (
-                        <div className="flex flex-col gap-3">
-                          <div className="p-3 bg-[var(--nb-cyan)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-bold leading-relaxed">
-                            💡 <strong>Region terdeteksi otomatis: {detectedRegionCode || 'Match Account'}</strong> berdasarkan ID game yang Anda masukkan. Pilihan region telah dikunci untuk memastikan transaksi sukses.
-                          </div>
-
-                          <label className="flex items-center gap-2 text-xs font-black cursor-pointer select-none">
-                            <Checkbox
-                              checked={showAllRegionsOverride}
-                              onChange={(e) => setShowAllRegionsOverride(e.target.checked)}
-                            />
-                            <span>Tampilkan semua region (Saya memahami risikonya)</span>
-                          </label>
-
-                          {showAllRegionsOverride && (
-                            <div className="p-3 bg-red-100 border-[2.5px] border-red-500 text-red-700 shadow-[3px_3px_0px_0px_rgba(239,68,68,1)] text-xs font-bold leading-relaxed">
-                              ⚠️ <strong>Peringatan:</strong> Region yang terdeteksi dari ID akun Anda adalah <strong>{detectedRegionCode || 'Match Account'}</strong>. Jika Anda memilih region lain, transaksi dapat gagal atau produk tidak masuk. Pastikan Anda memahami risikonya sebelum melanjutkan.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap gap-2.5">
-                        {(!isRegionLocked || showAllRegionsOverride) && (
-                          <Button
-                            type="button"
-                            variant={selectedRegionId === 'ALL' ? 'yellow' : 'white'}
-                            size="sm"
-                            onClick={() => setSelectedRegionId('ALL')}
-                            className="font-black text-xs uppercase"
-                          >
-                            SEMUA REGION
-                          </Button>
-                        )}
-                        {visibleRegions.map((reg: any) => (
-                          <Button
-                            key={reg.id}
-                            type="button"
-                            variant={selectedRegionId === reg.id ? 'yellow' : 'white'}
-                            size="sm"
-                            onClick={() => setSelectedRegionId(reg.id)}
-                            className="font-black text-xs uppercase"
-                          >
-                            {reg.name} {reg.code ? `(${reg.code})` : ''}
-                          </Button>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Step 2: Nominal Products */}
+                {/* Step 2: Nominal Products (Region Chips -> Category Tabs -> Products Grid) */}
                 <Card variant="white" shadow="lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -812,7 +774,61 @@ export const CheckoutPage: React.FC = () => {
                       <span>PILIH NOMINAL TOP UP</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex flex-col gap-4">
+
+                    {/* Sub-bagian 1: Region Server Game (Scroll Horisontal 1 Baris Chips) */}
+                    {availableRegions.length > 0 && (
+                      <div className="flex flex-col gap-2 pb-3 border-b-2 border-black/10">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] sm:text-xs font-black uppercase text-[var(--nb-text)]">REGION SERVER</label>
+                          {isRegionLocked && (
+                            <button
+                              type="button"
+                              onClick={() => setIsOverrideModalOpen(true)}
+                              className="text-[10px] sm:text-[11px] font-black text-[var(--nb-text-muted)] hover:text-black uppercase underline"
+                            >
+                              {showAllRegionsOverride ? '✓ SEMUA REGION TERBUKA' : '⚙ UBAH REGION'}
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                          {(!isRegionLocked || showAllRegionsOverride) && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRegionId('ALL')}
+                              className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                                selectedRegionId === 'ALL'
+                                  ? 'bg-[var(--nb-yellow)] text-black'
+                                  : 'bg-[var(--nb-surface)] text-black hover:bg-[var(--nb-yellow)]/30'
+                              }`}
+                            >
+                              🌐 SEMUA
+                            </button>
+                          )}
+
+                          {visibleRegions.map((reg: any) => {
+                            const isSelected = selectedRegionId === reg.id;
+                            const flag = getCountryFlagEmoji(reg.code || '');
+                            return (
+                              <button
+                                key={reg.id}
+                                type="button"
+                                onClick={() => setSelectedRegionId(reg.id)}
+                                className={`shrink-0 px-3 py-1.5 text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-1.5 ${
+                                  isSelected
+                                    ? 'bg-[var(--nb-yellow)] text-black'
+                                    : 'bg-[var(--nb-surface)] text-black hover:bg-[var(--nb-yellow)]/30'
+                                }`}
+                              >
+                                <span>{flag}</span>
+                                <span>{reg.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {/* Phase 5: Dynamic ProductCategory Filter Tabs (Tampil Hanya Jika Tersedia) */}
                     {availableCategories.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b-2 border-black/10">
@@ -1249,6 +1265,40 @@ export const CheckoutPage: React.FC = () => {
                     <ArrowRight className="w-4 h-4 stroke-[3]" />
                   </>
                 )}
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+
+        {/* Modal Override Region */}
+        <Dialog isOpen={isOverrideModalOpen} onClose={() => setIsOverrideModalOpen(false)} title="MENGUBAH REGION">
+          <div className="flex flex-col gap-4 text-left">
+            <p className="text-xs font-bold leading-relaxed text-[var(--nb-text)] m-0">
+              Anda akan membuka seluruh pilihan region.<br /><br />
+              Region yang dipilih otomatis berdasarkan hasil validasi akun untuk mengurangi risiko transaksi gagal.<br /><br />
+              Jika Anda memilih region lain, pastikan Anda memahami risikonya.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-black/10">
+              <Button
+                type="button"
+                variant="white"
+                size="sm"
+                onClick={() => setIsOverrideModalOpen(false)}
+                className="font-black text-xs uppercase"
+              >
+                BATAL
+              </Button>
+              <Button
+                type="button"
+                variant="yellow"
+                size="sm"
+                onClick={() => {
+                  setShowAllRegionsOverride(true);
+                  setIsOverrideModalOpen(false);
+                }}
+                className="font-black text-xs uppercase"
+              >
+                YA, TAMPILKAN SEMUA REGION
               </Button>
             </div>
           </div>
