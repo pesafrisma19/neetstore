@@ -4,7 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Sparkles, Check, Calendar, MapPin, Zap, Music, Smile, Star } from 'lucide-react';
+import { 
+  Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, 
+  AlertTriangle, ShieldCheck, Sparkles, Check, Calendar, MapPin, 
+  ExternalLink, Receipt, Tag, ShieldAlert
+} from 'lucide-react';
 
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
@@ -13,6 +17,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
+import type { PublicInvoiceResponse } from '../types/invoice.types';
 
 export const InvoicePage: React.FC = () => {
   const { orderId } = useParams();
@@ -23,7 +28,7 @@ export const InvoicePage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   // --- Auto Polling React Query ---
-  const { data: transaction, isLoading, isError, error } = useQuery({
+  const { data: transaction, isLoading, isError, error, refetch } = useQuery<PublicInvoiceResponse>({
     queryKey: ['invoice', invoiceNumber],
     queryFn: async () => {
       const data = await checkoutApi.getTransaction(invoiceNumber);
@@ -37,8 +42,8 @@ export const InvoicePage: React.FC = () => {
       const isTerminal =
         data.orderStatus === 'SUCCESS' ||
         data.orderStatus === 'FAILED' ||
-        data.orderStatus === 'CANCELED' ||
         data.paymentStatus === 'EXPIRED' ||
+        data.paymentStatus === 'FAILED' ||
         data.paymentStatus === 'REFUND';
 
       return isTerminal ? false : 10000;
@@ -52,21 +57,29 @@ export const InvoicePage: React.FC = () => {
       return;
     }
 
-    const expiredDate = transaction.expiredAt ? new Date(transaction.expiredAt) : new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000);
+    const expiredDate = transaction.expiredAt
+      ? new Date(transaction.expiredAt)
+      : new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000);
 
     const calculateTimeLeft = () => {
       const secondsLeft = differenceInSeconds(expiredDate, new Date());
-      setTimeLeft(secondsLeft > 0 ? secondsLeft : 0);
+      if (secondsLeft <= 0) {
+        setTimeLeft(0);
+        refetch();
+      } else {
+        setTimeLeft(secondsLeft);
+      }
     };
 
     calculateTimeLeft();
     const timer = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(timer);
-  }, [transaction]);
+  }, [transaction, refetch]);
 
-  const handleCopy = (text: string, id: string) => {
+  const handleCopy = (text: string, copyId: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
-    setCopied(id);
+    setCopied(copyId);
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -75,7 +88,11 @@ export const InvoicePage: React.FC = () => {
   };
 
   const formatFullDate = (dateStr: string) => {
-    return format(new Date(dateStr), "dd MMMM yyyy, HH:mm", { locale: id });
+    try {
+      return format(new Date(dateStr), "dd MMMM yyyy, HH:mm 'WIB'", { locale: id });
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -88,7 +105,7 @@ export const InvoicePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)] items-center justify-center">
-        <span className="font-black text-xl uppercase animate-pulse">Mencari Data Transaksi...</span>
+        <span className="font-black text-xl uppercase animate-pulse">Memuat Invoice...</span>
       </div>
     );
   }
@@ -101,7 +118,7 @@ export const InvoicePage: React.FC = () => {
           <Card variant="purple" shadow="xl" className="max-w-md w-full p-6 text-center border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl">
             <h1 className="text-2xl font-black text-white mb-3 uppercase">Tidak Ditemukan</h1>
             <p className="text-sm font-bold text-gray-200 mb-6">
-              Invoice ID {invoiceNumber} tidak valid atau belum terdaftar.
+              Invoice {invoiceNumber} tidak valid atau belum terdaftar.
               {(error as any)?.message ? ` (${(error as any).message})` : ''}
             </p>
             <Link to="/">
@@ -118,25 +135,26 @@ export const InvoicePage: React.FC = () => {
   const ordStatus = transaction.orderStatus;
 
   const isPaid = payStatus === 'PAID';
-  const isUnpaid = payStatus === 'UNPAID';
-  const isExpired = payStatus === 'EXPIRED';
-  const isFailed = ordStatus === 'FAILED' || payStatus === 'FAILED' || payStatus === 'REFUND';
+  const isExpired = payStatus === 'EXPIRED' || (payStatus === 'UNPAID' && timeLeft === 0);
+  const isRefund = payStatus === 'REFUND';
+  const isUnpaid = payStatus === 'UNPAID' && !isExpired;
+  const isFailed = ordStatus === 'FAILED' || payStatus === 'FAILED' || isRefund;
+
+  // Presisi Deteksi QRIS & Payment Link
+  const isQris = transaction.paymentType === 'QRIS' || 
+                 (transaction.paymentCode && transaction.paymentCode.toLowerCase().includes('qris')) ||
+                 (transaction.paymentMethod && transaction.paymentMethod.toUpperCase().includes('QRIS'));
+
+  const isHttpUrl = transaction.paymentUrl && (transaction.paymentUrl.startsWith('http://') || transaction.paymentUrl.startsWith('https://'));
 
   // 5-Step Progress Steps
   const steps = [
     { label: 'Dibuat', completed: true },
-    { label: 'Bayar', completed: isPaid || isFailed, active: isUnpaid && !isExpired && !isFailed, failed: isExpired && isUnpaid },
-    { label: 'Lunas', completed: isPaid, active: false, failed: isFailed && payStatus === 'REFUND' },
+    { label: 'Bayar', completed: isPaid, active: isUnpaid, failed: isExpired || (isFailed && !isPaid) },
+    { label: 'Lunas', completed: isPaid, active: false, failed: isRefund },
     { label: 'Diproses', completed: ordStatus === 'PROCESS' || ordStatus === 'SUCCESS', active: isPaid && ordStatus === 'PENDING' },
     { label: ordStatus === 'SUCCESS' ? 'Selesai' : isFailed ? 'Gagal' : 'Selesai', completed: ordStatus === 'SUCCESS', active: ordStatus === 'PROCESS', failed: isFailed }
   ];
-
-  const gameName = transaction.product?.brand?.name || transaction.product?.category?.name || 'Topup Game';
-  const rawProductName = transaction.product?.name || 'TOPUP GAME';
-  // Clean product name if it repeats brand name
-  const cleanProductName = rawProductName.toLowerCase().startsWith(gameName.toLowerCase())
-    ? rawProductName.slice(gameName.length).replace(/^[\s:\-]+/, '')
-    : rawProductName;
 
   const expiredDateFormatted = transaction.expiredAt
     ? formatFullDate(transaction.expiredAt)
@@ -196,16 +214,12 @@ export const InvoicePage: React.FC = () => {
 
         {/* ========================================================================= */}
         {/* BLOK 2: AREA STATUS DINAMIS                                               */}
-        {/* Redesain: banner sekarang cuma jadi "header" tipis (judul + deskripsi).   */}
-        {/* QR / timer / tombol dikumpulkan jadi satu panel putih terpisah di bawah   */}
-        {/* judul, supaya semua elemen brutalist (border tebal + shadow) konsisten   */}
-        {/* dan nggak numpuk ngambang di atas background kuning polos.               */}
         {/* ========================================================================= */}
         <Card
-          variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'}
+          variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isRefund ? 'purple' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'}
           className="p-0 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
         >
-          {isUnpaid && !isExpired && (
+          {isUnpaid && (
             <div className="flex flex-col">
               {/* Header row */}
               <div className="flex items-center gap-3.5 p-4 sm:p-5 pb-3 sm:pb-4">
@@ -222,19 +236,33 @@ export const InvoicePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action panel — putih solid + border-top tebal, kontras tegas dari header kuning.
-                  Semua item shrink-to-content (bukan flex-1) supaya nggak ada box kosong melompong,
-                  row-nya di-center jadi tetap rapi walau total lebar konten < lebar container. */}
+              {/* Action panel — QRIS / Payment Link / Countdown / Copy Nominal */}
               <div className="border-t-4 border-black bg-white p-3 sm:p-4">
-                <div className="flex flex-wrap items-stretch justify-center gap-3">
-                  {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
-                    <div className="flex items-center justify-center bg-white p-2 border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] shrink-0">
-                      <QRCodeSVG value={transaction.paymentUrl} size={72} level="M" />
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {/* QRIS Renderer */}
+                  {isQris && transaction.paymentUrl && !isHttpUrl && (
+                    <div className="flex flex-col items-center gap-2 bg-white p-3 border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] shrink-0">
+                      <QRCodeSVG value={transaction.paymentUrl} size={140} level="M" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-black">Scan QRIS</span>
                     </div>
                   )}
 
+                  {/* HTTP Payment Link CTA */}
+                  {isHttpUrl && (
+                    <a
+                      href={transaction.paymentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-[#FDE047] hover:bg-yellow-300 text-black border-2 border-black rounded-xl px-5 py-3 font-black text-sm uppercase shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 shrink-0"
+                    >
+                      <ExternalLink className="w-4 h-4 stroke-[3]" />
+                      <span>Buka Pembayaran</span>
+                    </a>
+                  )}
+
+                  {/* Countdown Box */}
                   {timeLeft !== null && (
-                    <div className="bg-white px-6 py-2 border-2 border-black rounded-xl text-center flex flex-col items-center justify-center gap-0.5 shadow-[3px_3px_0px_0px_#000] shrink-0">
+                    <div className="bg-white px-5 py-2.5 border-2 border-black rounded-xl text-center flex flex-col items-center justify-center gap-0.5 shadow-[3px_3px_0px_0px_#000] shrink-0">
                       <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-500">Sisa Waktu Pembayaran</span>
                       <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight text-red-600 whitespace-nowrap">
                         {formatTime(timeLeft)}
@@ -242,11 +270,12 @@ export const InvoicePage: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Salin Nominal CTA */}
                   <Button
                     variant="white"
                     size="sm"
                     onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
-                    className="font-black border-2 border-black text-xs px-5 shadow-[3px_3px_0px_0px_#000] shrink-0 h-auto"
+                    className="font-black border-2 border-black text-xs px-4 py-2.5 shadow-[3px_3px_0px_0px_#000] shrink-0 h-auto"
                   >
                     <Copy className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
                     {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
@@ -282,24 +311,24 @@ export const InvoicePage: React.FC = () => {
                   TOPUP BERHASIL! 🎉
                 </h1>
                 <p className="text-xs font-bold text-black/80 mt-0.5 m-0">
-                  Produk / Diamond sudah masuk ke akun Anda. Silakan cek aplikasi game Anda.
+                  Produk / Item sudah berhasil dikirim ke akun Anda. Terima kasih atas kepercayaan Anda!
                 </p>
               </div>
             </div>
           )}
 
-          {(isFailed || isExpired) && (
+          {isRefund && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left p-4 sm:p-5">
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                  <AlertTriangle className="w-6 h-6 text-red-600 stroke-[3]" />
+                  <ShieldAlert className="w-6 h-6 text-purple-600 stroke-[3]" />
                 </div>
                 <div>
                   <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
-                    {isExpired ? 'PEMBAYARAN KEDALUWARSA' : 'TRANSAKSI GAGAL'}
+                    SALDO DIKEMBALIKAN (REFUND)
                   </h1>
                   <p className="text-xs font-semibold text-black/80 mt-0.5 m-0">
-                    {isExpired ? 'Waktu pembayaran telah habis. Silakan buat pesanan baru.' : 'Transaksi ini tidak dapat diproses oleh provider.'}
+                    Transaksi ini tidak dapat diproses oleh supplier. Saldo akun telah dikembalikan secara otomatis.
                   </p>
                 </div>
               </div>
@@ -310,172 +339,192 @@ export const InvoicePage: React.FC = () => {
               </Link>
             </div>
           )}
+
+          {(isFailed && !isRefund) || isExpired ? (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left p-4 sm:p-5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                  <AlertTriangle className="w-6 h-6 text-red-600 stroke-[3]" />
+                </div>
+                <div>
+                  <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                    {isExpired ? 'PEMBAYARAN KEDALUWARSA' : 'TRANSAKSI GAGAL'}
+                  </h1>
+                  <p className="text-xs font-semibold text-black/80 mt-0.5 m-0">
+                    {isExpired ? 'Batas waktu pembayaran telah habis. Silakan buat pesanan baru.' : 'Transaksi ini dibatalkan atau gagal diproses.'}
+                  </p>
+                </div>
+              </div>
+              <Link to="/" className="shrink-0">
+                <Button variant="yellow" size="sm" className="font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
+                  Buat Pesanan Baru
+                </Button>
+              </Link>
+            </div>
+          ) : null}
         </Card>
 
         {/* ========================================================================= */}
-        {/* BLOK 3: POP-ART TICKET STUB                                               */}
-        {/* FIX: divider tengah sekarang position:absolute (bukan grid item), dan     */}
-        {/* kedua kolom pakai col-start eksplisit. Sebelumnya divider tanpa col-span  */}
-        {/* ikut "makan" 1 kolom grid, bikin kolom kanan auto-wrap ke row baru dan    */}
-        {/* nyisain blank space gede di kanan (bug yang bikin QRIS/stub keluar dari   */}
-        {/* posisi seharusnya).                                                       */}
+        {/* BLOK 3: POP-ART TICKET STUB + PRICE BREAKDOWN                             */}
         {/* ========================================================================= */}
         <div className="w-full relative">
-
-          {/* Main Ticket Shell */}
           <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_#000] rounded-[24px] sm:rounded-[28px] overflow-hidden relative">
-
-            {/* Main Ticket Inner Grid — 12 kolom eksplisit, tanpa item "siluman" */}
             <div className="grid grid-cols-1 md:grid-cols-12 relative">
 
-              {/* ================= LEFT SECTION OF TICKET (col 1-7) ================= */}
+              {/* LEFT SECTION (col 1-7): Item & Account Details */}
               <div className="md:col-start-1 md:col-span-7 p-5 sm:p-7 flex flex-col justify-between gap-5 relative min-h-[300px]">
-
-                {/* Top Row: Pink Live Badge + Sparkle + Purple Starburst Sticker */}
+                
+                {/* Top Row Badges */}
                 <div className="flex items-start justify-between gap-2 relative z-10">
                   <div className="flex items-center gap-2">
                     <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-2.5 py-0.5 flex items-center gap-1.5 font-black text-[11px] uppercase shadow-[2px_2px_0px_0px_#000]">
-                      <span className="w-2 h-2 rounded-full bg-[#E11D48] animate-pulse" />
-                      <span>{isPaid ? 'PAID' : isUnpaid ? 'LIVE' : 'INVOICE'}</span>
+                      <span className={`w-2 h-2 rounded-full ${isPaid ? 'bg-emerald-500' : isUnpaid ? 'bg-amber-500 animate-pulse' : 'bg-red-500'}`} />
+                      <span>{isPaid ? 'PAID' : isUnpaid ? 'UNPAID' : payStatus}</span>
                     </div>
                     <Sparkles className="w-5 h-5 text-[#0284C7] fill-[#38BDF8] stroke-black stroke-[2]" />
                   </div>
 
-                  <div className="relative">
-                    <div className="bg-[#C084FC] border-2 border-black px-2.5 py-1 rounded-lg shadow-[2px_2px_0px_0px_#000] transform rotate-3 flex items-center justify-center">
-                      <span className="font-black text-[10px] uppercase text-black leading-tight text-center block">
-                        SEE YOU THERE!
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1.5 bg-white border-2 border-black px-2.5 py-1 rounded-lg shadow-[2px_2px_0px_0px_#000]">
+                    <Receipt className="w-3.5 h-3.5 text-black" />
+                    <span className="font-mono font-black text-xs text-black">{transaction.invoiceId}</span>
+                    <button
+                      onClick={() => handleCopy(transaction.invoiceId, 'invoiceId')}
+                      className="ml-1 text-gray-600 hover:text-black focus:outline-none"
+                      title="Salin No. Invoice"
+                    >
+                      {copied === 'invoiceId' ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                 </div>
 
-                {/* Logo & Big Bold Headline */}
+                {/* Game & Product Headline */}
                 <div className="my-1 relative z-10">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-6 h-6 rounded-lg bg-[#FFB7D5] border-2 border-black flex items-center justify-center font-black text-xs shadow-[2px_2px_0px_0px_#000]">
                       ⚡
                     </div>
                     <span className="font-black text-sm sm:text-base uppercase tracking-wider text-black">
-                      {gameName}
+                      {transaction.game.name}
                     </span>
                   </div>
 
-                  <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-black leading-tight m-0 break-words">
-                    {cleanProductName || rawProductName}
+                  <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-black leading-tight m-0 break-words">
+                    {transaction.product.cleanName || transaction.product.name}
                   </h1>
 
                   <div className="w-20 sm:w-28 h-2 bg-[#FFB7D5] border-2 border-black rounded-full mt-2 shadow-[2px_2px_0px_0px_#000]" />
                 </div>
 
-                {/* Music Note Embellishment */}
-                <div className="absolute right-6 top-20 hidden sm:block">
-                  <Music className="w-7 h-7 text-[#E086D3] fill-[#F472B6] stroke-black stroke-[2] transform -rotate-12" />
+                {/* Target Account Breakdown Box */}
+                <div className="bg-white border-2 border-black rounded-xl p-3 shadow-[3px_3px_0px_0px_#000] relative z-10 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between border-b border-gray-200 pb-1">
+                    <span className="font-bold text-gray-500 uppercase text-[10px]">User ID / Account:</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono font-black text-black">{transaction.targetAccount}</span>
+                      <button onClick={() => handleCopy(transaction.targetAccount, 'accId')} className="text-gray-500 hover:text-black">
+                        {copied === 'accId' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {transaction.targetZone && (
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-1">
+                      <span className="font-bold text-gray-500 uppercase text-[10px]">Zone / Server ID:</span>
+                      <span className="font-mono font-bold text-black">{transaction.targetZone}</span>
+                    </div>
+                  )}
+
+                  {transaction.nickname && (
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-gray-500 uppercase text-[10px]">Nickname Game:</span>
+                      <span className="font-extrabold text-emerald-700">{transaction.nickname}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Bottom Row */}
-                <div className="flex flex-wrap items-center justify-between gap-2.5 relative z-10 pt-1">
-                  <div className="w-9 h-9 rounded-full bg-[#FDE047] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                    <Smile className="w-5 h-5 text-black stroke-[2.5]" />
+                {/* Serial Number Section (If Success & SN Available) */}
+                {ordStatus === 'SUCCESS' && transaction.sn && (
+                  <div className="bg-[#A7F3D0] border-2 border-black rounded-xl p-3 shadow-[3px_3px_0px_0px_#000] relative z-10 flex items-center justify-between">
+                    <div>
+                      <span className="font-extrabold text-[10px] uppercase text-emerald-900 block leading-none">Serial Number (SN):</span>
+                      <span className="font-mono font-black text-xs text-black tracking-wide mt-1 block">{transaction.sn}</span>
+                    </div>
+                    <button
+                      onClick={() => handleCopy(transaction.sn!, 'sn')}
+                      className="bg-white border-2 border-black rounded-lg px-2.5 py-1 text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1"
+                    >
+                      {copied === 'sn' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied === 'sn' ? 'Tersalin' : 'Salin SN'}</span>
+                    </button>
                   </div>
-
-                  <div className="flex-1 bg-[#A7F3D0] border-2 border-black rounded-full px-3.5 py-1.5 flex items-center justify-center font-extrabold text-xs sm:text-sm text-black shadow-[2px_2px_0px_0px_#000] text-center min-w-[180px]">
-                    <span className="truncate">
-                      ID: {transaction.targetAccount} {transaction.targetZone ? `• Zone: ${transaction.targetZone}` : ''} {transaction.nickname ? `• ${transaction.nickname}` : ''}
-                    </span>
-                  </div>
-
-                  <div className="w-8 h-8 rounded-xl bg-[#38BDF8] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                    <Zap className="w-4 h-4 text-black fill-yellow-300 stroke-[2.5]" />
-                  </div>
-                </div>
-
-                {/* Halftone Dots */}
-                <div className="absolute bottom-2 right-14 hidden sm:grid grid-cols-4 gap-1 opacity-50">
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                </div>
+                )}
 
               </div>
 
-              {/* ================= NOTCH CUTOUTS + DASHED DIVIDER ================= */}
-              {/* Absolute, bukan grid item -> tidak lagi ikut "makan" kolom grid */}
+              {/* NOTCH CUTOUTS + DASHED DIVIDER */}
               <div className="hidden md:block absolute top-0 bottom-0 left-[58.333%] -translate-x-1/2 z-20 pointer-events-none">
                 <div className="absolute -top-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
                 <div className="absolute top-0 bottom-0 left-0 border-r-3 border-dashed border-black" />
                 <div className="absolute -bottom-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
               </div>
 
-              {/* Mobile Tear Line (Horizontal) */}
               <div className="md:hidden col-span-1 border-b-3 border-dashed border-black" />
 
-              {/* ================= RIGHT SECTION OF TICKET (STUB) (col 8-12) ================= */}
+              {/* RIGHT SECTION (STUB) (col 8-12): Price Breakdown & Date */}
               <div className="md:col-start-8 md:col-span-5 p-5 sm:p-7 flex flex-col justify-between gap-4 bg-[#FAF5E9] relative z-10">
 
-                {/* Row Items with Square Colored Icon Boxes */}
-                <div className="space-y-2.5">
+                <div className="space-y-2 text-xs">
                   <div className="flex items-center gap-3 border-b border-black/15 pb-2">
-                    <div className="w-9 h-9 rounded-xl bg-[#BBF7D0] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                    <div className="w-8 h-8 rounded-xl bg-[#BBF7D0] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                       <Calendar className="w-4 h-4 text-black stroke-[2.5]" />
                     </div>
                     <div>
-                      <span className="font-black text-xs sm:text-sm uppercase block leading-tight text-black">{dateShort}</span>
-                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">DATE</span>
+                      <span className="font-black text-xs uppercase block leading-tight text-black">{dateShort} • {timeShort}</span>
+                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">TANGGAL & WAKTU</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 border-b border-black/15 pb-2">
-                    <div className="w-9 h-9 rounded-xl bg-[#E9D5FF] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <Clock className="w-4 h-4 text-black stroke-[2.5]" />
-                    </div>
-                    <div>
-                      <span className="font-black text-xs sm:text-sm uppercase block leading-tight text-black">{timeShort}</span>
-                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">TIME</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pb-1">
-                    <div className="w-9 h-9 rounded-xl bg-[#FEF08A] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                    <div className="w-8 h-8 rounded-xl bg-[#FEF08A] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                       <MapPin className="w-4 h-4 text-black stroke-[2.5]" />
                     </div>
                     <div>
-                      <span className="font-black text-xs sm:text-sm uppercase block leading-tight text-black">
-                        {transaction.paymentMethod} • {formatRupiah(transaction.amount)}
+                      <span className="font-black text-xs uppercase block leading-tight text-black">{transaction.paymentMethod}</span>
+                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">METODE BAYAR</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price Breakdown Table */}
+                <div className="bg-white border-2 border-black rounded-xl p-3 shadow-[3px_3px_0px_0px_#000] space-y-1.5 text-xs">
+                  <span className="font-black text-[10px] uppercase text-gray-500 block border-b border-gray-200 pb-1">Rincian Pembayaran</span>
+                  
+                  <div className="flex justify-between font-medium text-gray-700">
+                    <span>Harga Produk:</span>
+                    <span className="font-mono font-bold">{formatRupiah(transaction.basePrice)}</span>
+                  </div>
+
+                  {transaction.discountAmount > 0 && (
+                    <div className="flex justify-between font-medium text-emerald-700">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> Diskon {transaction.voucherCode ? `(${transaction.voucherCode})` : ''}:
                       </span>
-                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">VENUE & PRICE</span>
+                      <span className="font-mono font-bold">- {formatRupiah(transaction.discountAmount)}</span>
                     </div>
+                  )}
+
+                  <div className="flex justify-between font-medium text-gray-700">
+                    <span>Biaya Admin:</span>
+                    <span className="font-mono font-bold">{formatRupiah(transaction.feeAmount)}</span>
+                  </div>
+
+                  <div className="border-t-2 border-black pt-1.5 flex justify-between items-center">
+                    <span className="font-black uppercase text-xs text-black">Total Bayar:</span>
+                    <span className="font-mono font-black text-sm text-black">{formatRupiah(transaction.amount)}</span>
                   </div>
                 </div>
 
-                {/* Middle Barcode Section */}
-                <div className="my-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-full bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] flex flex-col items-center">
-                    <div className="flex items-center justify-center gap-1 w-full h-8 px-2 overflow-hidden">
-                      <div className="w-1 h-full bg-black" />
-                      <div className="w-2 h-full bg-black" />
-                      <div className="w-0.5 h-full bg-black" />
-                      <div className="w-1.5 h-full bg-black" />
-                      <div className="w-1 h-full bg-black" />
-                      <div className="w-3 h-full bg-black" />
-                      <div className="w-0.5 h-full bg-black" />
-                      <div className="w-2 h-full bg-black" />
-                      <div className="w-1 h-full bg-black" />
-                      <div className="w-1.5 h-full bg-black" />
-                      <div className="w-0.5 h-full bg-black" />
-                      <div className="w-2 h-full bg-black" />
-                    </div>
-
-                    <div className="flex items-center justify-center gap-1 mt-1 text-[11px] font-mono font-black text-black">
-                      <Star className="w-2.5 h-2.5 fill-black text-black" />
-                      <span className="truncate max-w-[170px]">{transaction.providerRef || `TRX-${transaction.id}`}</span>
-                      <Star className="w-2.5 h-2.5 fill-black text-black" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Pink Pill CTA Button */}
+                {/* Bottom Copy CTA */}
                 <button
                   type="button"
                   onClick={() => handleCopy(transaction.amount.toString(), 'ticketCta')}
@@ -486,38 +535,39 @@ export const InvoicePage: React.FC = () => {
                 </button>
 
               </div>
-
             </div>
-
           </div>
-
         </div>
 
         {/* ========================================================================= */}
         {/* BLOK 4: ADMIN DEBUG PANEL (KHUSUS ROLE ADMIN)                             */}
         {/* ========================================================================= */}
-        {user?.role === 'ADMIN' && (
+        {user?.role === 'ADMIN' && transaction.adminDebug && (
           <Card variant="purple" className="p-0 overflow-hidden border-4 border-black rounded-2xl shadow-[5px_5px_0px_0px_#000]">
             <div className="bg-yellow-400 p-2.5 border-b-2 border-black flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
-              <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW</h2>
+              <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW (RESTRICTED DTO)</h2>
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-white text-xs">
               <div>
                 <span className="text-[10px] font-bold text-gray-300 block">Digiflazz SKU</span>
-                <span className="font-mono">{transaction.product?.digiflazzSku || '-'}</span>
+                <span className="font-mono">{transaction.adminDebug.digiflazzSku || '-'}</span>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-gray-300 block">Provider Ref</span>
-                <span className="font-mono">{transaction.providerRef || '-'}</span>
+                <span className="font-mono">{transaction.adminDebug.providerRef || '-'}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-gray-300 block">Serial Number (SN)</span>
-                <span className="font-mono text-emerald-400">{transaction.sn || '-'}</span>
+                <span className="text-[10px] font-bold text-gray-300 block">Harga Modal Provider</span>
+                <span className="font-mono text-amber-300">{transaction.adminDebug.providerPrice ? formatRupiah(transaction.adminDebug.providerPrice) : '-'}</span>
               </div>
               <div>
+                <span className="text-[10px] font-bold text-gray-300 block">Profit Bersih</span>
+                <span className="font-mono text-emerald-300">{transaction.adminDebug.profit ? formatRupiah(transaction.adminDebug.profit) : '-'}</span>
+              </div>
+              <div className="sm:col-span-2">
                 <span className="text-[10px] font-bold text-gray-300 block">Provider Message</span>
-                <span className="font-mono text-red-300">{transaction.providerMessage || '-'}</span>
+                <span className="font-mono text-red-300">{transaction.adminDebug.providerMessage || '-'}</span>
               </div>
             </div>
           </Card>
