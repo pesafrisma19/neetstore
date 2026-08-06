@@ -132,6 +132,12 @@ export const InvoicePage: React.FC = () => {
   ];
 
   const gameName = transaction.product?.brand?.name || transaction.product?.category?.name || 'Topup Game';
+  const rawProductName = transaction.product?.name || 'TOPUP GAME';
+  // Clean product name if it repeats brand name
+  const cleanProductName = rawProductName.toLowerCase().startsWith(gameName.toLowerCase())
+    ? rawProductName.slice(gameName.length).replace(/^[\s:\-]+/, '')
+    : rawProductName;
+
   const expiredDateFormatted = transaction.expiredAt 
     ? formatFullDate(transaction.expiredAt) 
     : formatFullDate(new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString());
@@ -162,7 +168,7 @@ export const InvoicePage: React.FC = () => {
         {/* ========================================================================= */}
         {/* BLOK 1: SLEEK BORDERLESS TIMELINE INDICATOR                               */}
         {/* ========================================================================= */}
-        <div className="w-full px-2 py-3">
+        <div className="w-full px-2 py-2">
           <div className="flex items-center justify-between relative max-w-2xl mx-auto">
             <div className="absolute top-3.5 left-6 right-6 h-0.5 bg-gray-300 dark:bg-gray-700 -z-0" />
             {steps.map((st, idx) => (
@@ -195,35 +201,35 @@ export const InvoicePage: React.FC = () => {
         {/* ========================================================================= */}
         <Card 
           variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'} 
-          className="p-5 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
+          className="p-4 sm:p-5 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
         >
           {isUnpaid && !isExpired && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 text-center sm:text-left">
-                <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                  <Clock className="w-6 h-6 text-black stroke-[3] animate-pulse" />
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                  <Clock className="w-5 h-5 text-black stroke-[3] animate-pulse" />
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                  <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
                     MENUNGGU PEMBAYARAN
                   </h1>
-                  <p className="text-xs font-semibold text-black/80 mt-1 m-0">
+                  <p className="text-xs font-semibold text-black/80 mt-0.5 m-0">
                     Bayar sebelum: <span className="font-bold">{expiredDateFormatted}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
-                  <div className="bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] inline-block shrink-0">
-                    <QRCodeSVG value={transaction.paymentUrl} size={90} level="H" />
+                  <div className="bg-white p-1.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+                    <QRCodeSVG value={transaction.paymentUrl} size={70} level="M" />
                   </div>
                 )}
                 
                 {timeLeft !== null && (
-                  <div className="bg-white px-4 py-2 border-2 border-black rounded-xl text-center shrink-0 shadow-[3px_3px_0px_0px_#000]">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
-                    <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight text-red-600">
+                  <div className="bg-white px-3 py-1.5 border-2 border-black rounded-xl text-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                    <span className="text-[9px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
+                    <span className="text-lg sm:text-xl font-black tabular-nums tracking-tight text-red-600">
                       {formatTime(timeLeft)}
                     </span>
                   </div>
@@ -233,7 +239,7 @@ export const InvoicePage: React.FC = () => {
                   variant="white" 
                   size="sm" 
                   onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
-                  className="font-black border-2 border-black text-xs py-1.5 px-3 shadow-[2px_2px_0px_0px_#000]"
+                  className="font-black border-2 border-black text-xs py-2 px-3 shadow-[2px_2px_0px_0px_#000]"
                 >
                   <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
                   {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
@@ -244,14 +250,14 @@ export const InvoicePage: React.FC = () => {
 
           {(ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')) && (
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+              <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                 <Clock className="w-6 h-6 text-amber-600 stroke-[3] animate-spin" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
                   PEMBAYARAN DITERIMA
                 </h1>
-                <p className="text-xs font-bold text-black/80 mt-1 m-0">
+                <p className="text-xs font-bold text-black/80 mt-0.5 m-0">
                   Provider sedang memproses pesanan Anda. Biasanya selesai dalam &lt; 1 menit.
                 </p>
               </div>
@@ -260,14 +266,14 @@ export const InvoicePage: React.FC = () => {
 
           {ordStatus === 'SUCCESS' && (
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+              <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                 <CheckCircle className="w-7 h-7 text-emerald-600 stroke-[3] animate-bounce" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
                   TOPUP BERHASIL! 🎉
                 </h1>
-                <p className="text-xs font-bold text-black/80 mt-1 m-0">
+                <p className="text-xs font-bold text-black/80 mt-0.5 m-0">
                   Produk / Diamond sudah masuk ke akun Anda. Silakan cek aplikasi game Anda.
                 </p>
               </div>
@@ -277,14 +283,14 @@ export const InvoicePage: React.FC = () => {
           {(isFailed || isExpired) && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                   <AlertTriangle className="w-6 h-6 text-red-600 stroke-[3]" />
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                  <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
                     {isExpired ? 'PEMBAYARAN KEDALUWARSA' : 'TRANSAKSI GAGAL'}
                   </h1>
-                  <p className="text-xs font-semibold text-black/80 mt-1 m-0">
+                  <p className="text-xs font-semibold text-black/80 mt-0.5 m-0">
                     {isExpired ? 'Waktu pembayaran telah habis. Silakan buat pesanan baru.' : 'Transaksi ini tidak dapat diproses oleh provider.'}
                   </p>
                 </div>
@@ -299,101 +305,81 @@ export const InvoicePage: React.FC = () => {
         </Card>
 
         {/* ========================================================================= */}
-        {/* BLOK 3: POP-ART TICKET STUB (EXACT REPLICA FROM REFERENCE MOCKUP IMAGE)   */}
+        {/* BLOK 3: POP-ART TICKET STUB (RESPONSIVE 2-COLUMN POP-ART TICKET)          */}
         {/* ========================================================================= */}
         <div className="w-full relative">
           
           {/* Main Ticket Shell */}
-          <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_#000] rounded-[28px] overflow-hidden relative">
+          <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_#000] rounded-[24px] sm:rounded-[28px] overflow-hidden relative">
             
-            {/* Main Ticket Inner Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 relative">
+            {/* Main Ticket Inner Grid (Always 2 Columns on md/lg, responsive stacked with tear lines) */}
+            <div className="grid grid-cols-1 md:grid-cols-12 relative">
               
               {/* ================= LEFT SECTION OF TICKET (7/12 Cols) ================= */}
-              <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between gap-6 relative min-h-[320px]">
+              <div className="md:col-span-7 p-5 sm:p-7 flex flex-col justify-between gap-5 relative min-h-[300px]">
                 
                 {/* Top Row: Pink Live Badge + Four-point Star Sparkle + Purple Starburst Sticker */}
                 <div className="flex items-start justify-between gap-2 relative z-10">
-                  
                   <div className="flex items-center gap-2">
-                    {/* Pink Live Pill Badge */}
-                    <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-3 py-1 flex items-center gap-2 font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48] animate-pulse" />
+                    <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-2.5 py-0.5 flex items-center gap-1.5 font-black text-[11px] uppercase shadow-[2px_2px_0px_0px_#000]">
+                      <span className="w-2 h-2 rounded-full bg-[#E11D48] animate-pulse" />
                       <span>{isPaid ? 'PAID' : isUnpaid ? 'LIVE' : 'INVOICE'}</span>
                     </div>
-
-                    {/* Blue 4-point Sparkle */}
-                    <Sparkles className="w-6 h-6 text-[#0284C7] fill-[#38BDF8] stroke-black stroke-[2]" />
+                    <Sparkles className="w-5 h-5 text-[#0284C7] fill-[#38BDF8] stroke-black stroke-[2]" />
                   </div>
 
-                  {/* Purple Starburst Jagged Sticker */}
                   <div className="relative">
-                    <div className="bg-[#C084FC] border-2 border-black px-3 py-1.5 rounded-lg shadow-[3px_3px_0px_0px_#000] transform rotate-3 flex items-center justify-center">
-                      <span className="font-black text-[10px] sm:text-xs uppercase text-black leading-tight text-center block">
+                    <div className="bg-[#C084FC] border-2 border-black px-2.5 py-1 rounded-lg shadow-[2px_2px_0px_0px_#000] transform rotate-3 flex items-center justify-center">
+                      <span className="font-black text-[10px] uppercase text-black leading-tight text-center block">
                         SEE YOU THERE!
                       </span>
                     </div>
                   </div>
-
                 </div>
 
                 {/* Logo & Big Bold Headline */}
-                <div className="my-2 relative z-10">
-                  {/* Brand/Game Name with Logo Graphic */}
+                <div className="my-1 relative z-10">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-7 h-7 rounded-lg bg-[#FFB7D5] border-2 border-black flex items-center justify-center font-black text-xs shadow-[2px_2px_0px_0px_#000]">
+                    <div className="w-6 h-6 rounded-lg bg-[#FFB7D5] border-2 border-black flex items-center justify-center font-black text-xs shadow-[2px_2px_0px_0px_#000]">
                       ⚡
                     </div>
-                    <span className="font-black text-base sm:text-lg uppercase tracking-wider text-black">
+                    <span className="font-black text-sm sm:text-base uppercase tracking-wider text-black">
                       {gameName}
                     </span>
                   </div>
 
-                  {/* Hero Headline: Big Bold Product Name */}
-                  <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-black leading-none m-0">
-                    {transaction.product?.name || 'TOPUP GAME'}
+                  {/* Clean Headline Product Name */}
+                  <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-black leading-tight m-0 break-words">
+                    {cleanProductName || rawProductName}
                   </h1>
 
-                  {/* Pink Underline Bar */}
-                  <div className="w-24 sm:w-32 h-2.5 bg-[#FFB7D5] border-2 border-black rounded-full mt-2 shadow-[2px_2px_0px_0px_#000]" />
+                  <div className="w-20 sm:w-28 h-2 bg-[#FFB7D5] border-2 border-black rounded-full mt-2 shadow-[2px_2px_0px_0px_#000]" />
                 </div>
 
-                {/* Music Note Embellishment Near Right of Headline */}
-                <div className="absolute right-8 top-24 hidden sm:block">
-                  <div className="relative">
-                    <Music className="w-8 h-8 text-[#E086D3] fill-[#F472B6] stroke-black stroke-[2] transform -rotate-12" />
-                    <div className="absolute -top-1 -right-2 text-xs font-black text-black">/\</div>
-                  </div>
+                {/* Music Note Embellishment */}
+                <div className="absolute right-6 top-20 hidden sm:block">
+                  <Music className="w-7 h-7 text-[#E086D3] fill-[#F472B6] stroke-black stroke-[2] transform -rotate-12" />
                 </div>
 
                 {/* Bottom Row of Left Ticket: Yellow Smiley + Mint Green Account Capsule + Blue Bolt */}
-                <div className="flex flex-wrap items-center justify-between gap-3 relative z-10 pt-2">
-                  
-                  {/* Yellow Smiley Face Icon */}
-                  <div className="w-10 h-10 rounded-full bg-[#FDE047] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] transform -rotate-6">
-                    <Smile className="w-6 h-6 text-black stroke-[2.5]" />
+                <div className="flex flex-wrap items-center justify-between gap-2.5 relative z-10 pt-1">
+                  <div className="w-9 h-9 rounded-full bg-[#FDE047] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                    <Smile className="w-5 h-5 text-black stroke-[2.5]" />
                   </div>
 
-                  {/* Mint Green Pill Container for User Account Info */}
-                  <div className="flex-1 bg-[#A7F3D0] border-2 border-black rounded-full px-4 py-2 flex items-center justify-center font-extrabold text-xs sm:text-sm text-black shadow-[2px_2px_0px_0px_#000] text-center min-w-[200px]">
+                  <div className="flex-1 bg-[#A7F3D0] border-2 border-black rounded-full px-3.5 py-1.5 flex items-center justify-center font-extrabold text-xs sm:text-sm text-black shadow-[2px_2px_0px_0px_#000] text-center min-w-[180px]">
                     <span className="truncate">
                       ID: {transaction.targetAccount} {transaction.targetZone ? `• Zone: ${transaction.targetZone}` : ''} {transaction.nickname ? `• ${transaction.nickname}` : ''}
                     </span>
                   </div>
 
-                  {/* Blue Lightning Bolt Icon */}
-                  <div className="w-9 h-9 rounded-xl bg-[#38BDF8] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] transform rotate-12">
-                    <Zap className="w-5 h-5 text-black fill-yellow-300 stroke-[2.5]" />
+                  <div className="w-8 h-8 rounded-xl bg-[#38BDF8] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                    <Zap className="w-4 h-4 text-black fill-yellow-300 stroke-[2.5]" />
                   </div>
-
                 </div>
 
-                {/* Bottom Right Halftone Dot Pattern */}
-                <div className="absolute bottom-3 right-16 hidden sm:grid grid-cols-4 gap-1 opacity-60">
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                {/* Halftone Dots */}
+                <div className="absolute bottom-2 right-14 hidden sm:grid grid-cols-4 gap-1 opacity-50">
                   <div className="w-1.5 h-1.5 rounded-full bg-black" />
                   <div className="w-1.5 h-1.5 rounded-full bg-black" />
                   <div className="w-1.5 h-1.5 rounded-full bg-black" />
@@ -403,65 +389,58 @@ export const InvoicePage: React.FC = () => {
               </div>
 
               {/* ================= MIDDLE DASHED DIVIDER & NOTCH CUTOUTS ================= */}
-              <div className="hidden lg:block relative">
-                {/* Upper Circle Cutout Notch */}
-                <div className="absolute -top-5 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
+              <div className="relative">
+                {/* Desktop Notch Cutouts (Top & Bottom of Divider) */}
+                <div className="hidden md:block absolute -top-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
+                <div className="hidden md:block absolute top-0 bottom-0 left-0 w-0 border-r-3 border-dashed border-black z-20" />
+                <div className="hidden md:block absolute -bottom-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
                 
-                {/* Vertical Dashed Line */}
-                <div className="absolute top-0 bottom-0 left-0 w-0 border-r-3 border-dashed border-black z-20" />
-                
-                {/* Lower Circle Cutout Notch */}
-                <div className="absolute -bottom-5 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
+                {/* Mobile Tear Line (Horizontal) */}
+                <div className="md:hidden w-full border-b-3 border-dashed border-black my-0" />
               </div>
 
               {/* ================= RIGHT SECTION OF TICKET (STUB) (5/12 Cols) ================= */}
-              <div className="lg:col-span-5 p-6 sm:p-8 border-t-3 lg:border-t-0 border-dashed border-black flex flex-col justify-between gap-4 bg-[#FAF5E9] relative z-10">
+              <div className="md:col-span-5 p-5 sm:p-7 flex flex-col justify-between gap-4 bg-[#FAF5E9] relative z-10">
                 
                 {/* Row Items with Square Colored Icon Boxes */}
-                <div className="space-y-3">
-                  
-                  {/* Item 1: DATE */}
-                  <div className="flex items-center gap-3 border-b border-black/15 pb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#BBF7D0] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <Calendar className="w-5 h-5 text-black stroke-[2.5]" />
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3 border-b border-black/15 pb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#BBF7D0] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                      <Calendar className="w-4 h-4 text-black stroke-[2.5]" />
                     </div>
                     <div>
-                      <span className="font-black text-sm uppercase block leading-tight text-black">{dateShort}</span>
-                      <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">DATE</span>
+                      <span className="font-black text-xs sm:text-sm uppercase block leading-tight text-black">{dateShort}</span>
+                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">DATE</span>
                     </div>
                   </div>
 
-                  {/* Item 2: TIME */}
-                  <div className="flex items-center gap-3 border-b border-black/15 pb-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#E9D5FF] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <Clock className="w-5 h-5 text-black stroke-[2.5]" />
+                  <div className="flex items-center gap-3 border-b border-black/15 pb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#E9D5FF] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                      <Clock className="w-4 h-4 text-black stroke-[2.5]" />
                     </div>
                     <div>
-                      <span className="font-black text-sm uppercase block leading-tight text-black">{timeShort}</span>
-                      <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">TIME</span>
+                      <span className="font-black text-xs sm:text-sm uppercase block leading-tight text-black">{timeShort}</span>
+                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">TIME</span>
                     </div>
                   </div>
 
-                  {/* Item 3: VENUE / METHOD & PRICE */}
                   <div className="flex items-center gap-3 pb-1">
-                    <div className="w-10 h-10 rounded-xl bg-[#FEF08A] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <MapPin className="w-5 h-5 text-black stroke-[2.5]" />
+                    <div className="w-9 h-9 rounded-xl bg-[#FEF08A] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                      <MapPin className="w-4 h-4 text-black stroke-[2.5]" />
                     </div>
                     <div>
-                      <span className="font-black text-sm uppercase block leading-tight text-black">
+                      <span className="font-black text-xs sm:text-sm uppercase block leading-tight text-black">
                         {transaction.paymentMethod} • {formatRupiah(transaction.amount)}
                       </span>
-                      <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">VENUE & PRICE</span>
+                      <span className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">VENUE & PRICE</span>
                     </div>
                   </div>
-
                 </div>
 
                 {/* Middle Barcode Section */}
                 <div className="my-1 flex flex-col items-center justify-center text-center">
-                  {/* Real Vertical Barcode Lines */}
-                  <div className="w-full bg-white p-2.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] flex flex-col items-center">
-                    <div className="flex items-center justify-center gap-1 w-full h-10 px-2 overflow-hidden">
+                  <div className="w-full bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] flex flex-col items-center">
+                    <div className="flex items-center justify-center gap-1 w-full h-8 px-2 overflow-hidden">
                       <div className="w-1 h-full bg-black" />
                       <div className="w-2 h-full bg-black" />
                       <div className="w-0.5 h-full bg-black" />
@@ -474,15 +453,12 @@ export const InvoicePage: React.FC = () => {
                       <div className="w-1.5 h-full bg-black" />
                       <div className="w-0.5 h-full bg-black" />
                       <div className="w-2 h-full bg-black" />
-                      <div className="w-1 h-full bg-black" />
-                      <div className="w-2.5 h-full bg-black" />
                     </div>
                     
-                    {/* Invoice ID Flanked by Stars */}
-                    <div className="flex items-center justify-center gap-1.5 mt-1.5 text-xs font-mono font-black text-black">
-                      <Star className="w-3 h-3 fill-black text-black" />
-                      <span>{transaction.providerRef || `TRX-${transaction.id}`}</span>
-                      <Star className="w-3 h-3 fill-black text-black" />
+                    <div className="flex items-center justify-center gap-1 mt-1 text-[11px] font-mono font-black text-black">
+                      <Star className="w-2.5 h-2.5 fill-black text-black" />
+                      <span className="truncate max-w-[170px]">{transaction.providerRef || `TRX-${transaction.id}`}</span>
+                      <Star className="w-2.5 h-2.5 fill-black text-black" />
                     </div>
                   </div>
                 </div>
@@ -491,10 +467,10 @@ export const InvoicePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleCopy(transaction.amount.toString(), 'ticketCta')}
-                  className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-2xl py-3 px-4 font-black uppercase text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
+                  className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-2xl py-2.5 px-3 font-black uppercase text-xs flex items-center justify-center gap-1.5 shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
                 >
                   <span>{copied === 'ticketCta' ? 'NOMINAL TERSALIN!' : 'SALIN NOMINAL TEPAT'}</span>
-                  <ChevronRight className="w-4 h-4 stroke-[3]" />
+                  <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
                 </button>
 
               </div>
