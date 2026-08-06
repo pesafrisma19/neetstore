@@ -476,7 +476,22 @@ export const updateAdminUser = (id: number, data: any) => apiFetch<any>(`/admin/
 export const deleteAdminUser = (id: number) => apiFetch<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' });
 
 // === Mutations ===
-export const getAdminMutations = () => apiFetch<any[]>('/admin/users/mutations').catch(() => apiFetch<any[]>('/admin/mutations')).catch(() => null);
+export interface AdminMutationsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: string;
+}
+
+export const getAdminMutations = (params?: AdminMutationsQueryParams) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.search) query.append('search', params.search);
+  if (params?.type && params.type !== 'ALL') query.append('type', params.type);
+  const queryString = query.toString();
+  return apiFetch<any[]>(`/admin/users/mutations${queryString ? `?${queryString}` : ''}`);
+};
 
 // === Transactions ===
 export interface AdminTransactionsQueryParams {

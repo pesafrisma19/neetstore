@@ -40,5 +40,9 @@ export const queryKeys = {
       all: ['admin', 'transactions'] as const,
       list: (params?: any) => ['admin', 'transactions', 'list', params] as const,
     },
+    deposits: {
+      all: ['admin', 'deposits'] as const,
+      list: (params?: any) => ['admin', 'deposits', 'list', params] as const,
+    },
   },
 } as const;
