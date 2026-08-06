@@ -366,7 +366,7 @@ export const InvoicePage: React.FC = () => {
         {/* BLOK 3: POP-ART TICKET STUB + PRICE BREAKDOWN                             */}
         {/* ========================================================================= */}
         <div className="w-full relative">
-          <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_#000] rounded-[24px] sm:rounded-[28px] overflow-hidden relative">
+          <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_var(--nb-shadow)] rounded-[24px] sm:rounded-[28px] overflow-hidden relative">
             <div className="grid grid-cols-1 md:grid-cols-12 relative">
 
               {/* LEFT SECTION (col 1-7): Item & Account Details */}
