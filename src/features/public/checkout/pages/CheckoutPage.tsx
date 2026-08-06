@@ -186,7 +186,7 @@ export const CheckoutPage: React.FC = () => {
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
-  const [appliedDiscountType, setAppliedDiscountType] = useState('FLAT');
+  const [appliedDiscountType, setAppliedDiscountType] = useState<DiscountType>('FLAT');
   const [whatsapp, setWhatsapp] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -480,24 +480,19 @@ export const CheckoutPage: React.FC = () => {
     return { feeFlat: selected.feeFlat || 0, feePercent: selected.feePercent || 0 };
   };
 
-  const calculateTotal = () => {
-    if (!selectedItem) return 0;
-    const basePrice = selectedItem.price;
+  const getCheckoutBreakdown = React.useCallback(() => {
     const { feeFlat, feePercent } = getPaymentDetails(selectedPayment);
-    const feeAmount = feeFlat + (basePrice * (feePercent / 100));
-    const subtotal = basePrice + feeAmount;
-    
-    let totalDiscount = 0;
-    if (appliedDiscount > 0) {
-      if (appliedDiscountType === 'PERCENT') {
-        totalDiscount = subtotal * (appliedDiscount / 100);
-      } else {
-        totalDiscount = appliedDiscount;
-      }
-    }
-    
-    const grandTotal = subtotal - totalDiscount;
-    return grandTotal > 0 ? grandTotal : 0;
+    return calculateCheckoutBreakdown({
+      basePrice: selectedItem?.price || 0,
+      appliedDiscount,
+      appliedDiscountType,
+      feeFlat,
+      feePercent,
+    });
+  }, [selectedItem, appliedDiscount, appliedDiscountType, selectedPayment, paymentMethodsList]);
+
+  const calculateTotal = () => {
+    return getCheckoutBreakdown().grandTotal;
   }; 
   
   const handleOpenConfirmModal = (e: React.FormEvent) => {
@@ -1255,7 +1250,7 @@ export const CheckoutPage: React.FC = () => {
                   {appliedDiscount > 0 && (
                     <div className="flex justify-between items-center text-sm font-bold text-[#FF4D79]">
                       <span className="uppercase">POTONGAN PROMO:</span>
-                      <span>- {appliedDiscountType === 'PERCENT' ? `${appliedDiscount}%` : `Rp ${appliedDiscount.toLocaleString('id-ID')}`}</span>
+                      <span>- Rp {getCheckoutBreakdown().discountAmount.toLocaleString('id-ID')}</span>
                     </div>
                   )}
 
