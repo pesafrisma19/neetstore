@@ -124,7 +124,7 @@ export const OrdersPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { orderStatus: 'SUCCESS' | 'FAILED'; reason: string; sn?: string } }) =>
       updateAdminTransaction(id, data),
-    onSuccess: (res, variables) => {
+    onSuccess: (_, variables) => {
       addToast({
         title: `PESANAN #${variables.id} BERHASIL DIUPDATE`,
         message: `Status pesanan diubah menjadi ${variables.data.orderStatus}.`,

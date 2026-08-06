@@ -1462,8 +1462,7 @@ export const CheckoutPage: React.FC = () => {
                 </div>
               )}
             </Card>
-          </div>
-
+          
         </Card>
 
         {/* 🌟 2-COLUMN MAIN LAYOUT: LEFT = TABS, RIGHT = STICKY ORDER SUMMARY */}
@@ -2170,6 +2169,6 @@ export const CheckoutPage: React.FC = () => {
       </main>
 
       <Footer />
-    </div >
+    </div>
   );
 };

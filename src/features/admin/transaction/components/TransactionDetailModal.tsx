@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
-import { X, RefreshCw, AlertTriangle, ShieldCheck, FileText, User, ShoppingBag } from 'lucide-react';
+import { X, RefreshCw, AlertTriangle, ShieldCheck, User, ShoppingBag } from 'lucide-react';
 import { getAdminTransactionById } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { TransactionStatusBadge } from './TransactionStatusBadge';

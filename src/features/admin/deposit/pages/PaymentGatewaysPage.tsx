@@ -27,6 +27,7 @@ export const PaymentGatewaysPage: React.FC = () => {
   const [withdrawModalOpen, setWithdrawModalOpen] = useState<boolean>(false);
   const [selectedGateway, setSelectedGateway] = useState<PaymentGatewayData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [checkingBalance, setCheckingBalance] = useState<boolean>(false);
 
   const fetchGateways = async () => {
     setLoading(true);
@@ -339,7 +340,7 @@ export const PaymentGatewaysPage: React.FC = () => {
         isOpen={withdrawModalOpen}
         onClose={() => setWithdrawModalOpen(false)}
         onSuccess={fetchGateways}
-        merchantBalance={tokopayGateway.balance || 0}
+        merchantBalance={tokopayGateway?.balance || 0}
       />
     </div>
   );

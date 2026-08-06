@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { getAdminMutations } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
-import { useToast } from '../../../../components/ui/ToastContext';
 
 export interface MutationItem {
   id: number;
@@ -33,7 +32,6 @@ export interface MutationItem {
 }
 
 export const DepositsPage: React.FC = () => {
-  const { addToast } = useToast();
 
   // Local UI State
   const [page, setPage] = useState<number>(1);
