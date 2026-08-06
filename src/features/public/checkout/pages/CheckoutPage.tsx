@@ -566,6 +566,7 @@ export const CheckoutPage: React.FC = () => {
         productId: selectedItem.id,
         targetAccount: userId,
         targetZone: serverId,
+        nickname: nickname || undefined,
         paymentMethod: selectedPayment,
         voucherCode: appliedDiscount > 0 ? promoCode : undefined,
         whatsapp,

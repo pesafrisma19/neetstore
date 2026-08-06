@@ -282,10 +282,43 @@ export const InvoicePage: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)]">Nickname</span>
-                  <span className="text-sm font-bold text-[var(--nb-text-muted)] italic">- (Belum tersedia) -</span>
+                  <span className="text-sm font-extrabold uppercase text-[var(--nb-text)]">
+                    {transaction.nickname || '-'}
+                  </span>
                 </div>
               </div>
             </Card>
+
+            {/* Card Publik Kode SN / Token Voucher (Hanya tampil jika order Status SUCCESS & SN terisi) */}
+            {ordStatus === 'SUCCESS' && transaction.sn && (
+              <Card variant="mint" shadow="lg" className="p-0 overflow-hidden border-[3px] border-black">
+                <div className="bg-[var(--nb-mint)] p-3 border-b-[3px] border-black flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-black stroke-[3]" />
+                    <h2 className="text-sm font-black uppercase text-black m-0">KODE VOUCHER / TOKEN / SERIAL NUMBER (SN)</h2>
+                  </div>
+                  <Badge variant="yellow" size="sm" className="font-black">SUKSES</Badge>
+                </div>
+                <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[var(--nb-surface)] text-[var(--nb-text)]">
+                  <div className="flex flex-col gap-1 overflow-hidden w-full sm:w-auto">
+                    <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)]">Serial Number / Kode Token Voucher:</span>
+                    <span className="text-base sm:text-lg font-black font-mono tracking-wider break-all bg-[var(--nb-surface-alt)] p-2.5 border-[2px] border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      {transaction.sn}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="yellow"
+                    size="md"
+                    onClick={() => handleCopy(transaction.sn, 'sn')}
+                    className="w-full sm:w-auto shrink-0 font-black text-xs uppercase"
+                  >
+                    <Copy className="w-4 h-4 stroke-[3] mr-1.5" />
+                    {copied === 'sn' ? 'TERSALIN!' : 'SALIN KODE'}
+                  </Button>
+                </div>
+              </Card>
+            )}
 
             {/* Khusus Admin */}
             {user?.role === 'ADMIN' && (
