@@ -426,30 +426,30 @@ export const InvoicePage: React.FC = () => {
                  <h2 className="text-base font-black uppercase m-0 text-center">Ringkasan Harga</h2>
                </div>
                <div className="p-6">
-                 <Table>
-                   <TableBody>
-                     <TableRow className="border-b-0">
-                       <TableCell className="font-bold text-sm px-0 py-2">Harga Dasar</TableCell>
-                       <TableCell className="text-right font-black text-sm px-0 py-2">
-                         {formatRupiah((transaction.basePrice || transaction.amount) - (transaction.feeAmount || 0))}
-                       </TableCell>
-                     </TableRow>
-                     <TableRow className="border-b-0">
-                       <TableCell className="font-bold text-sm px-0 py-2">Biaya Admin</TableCell>
-                       <TableCell className="text-right font-black text-sm px-0 py-2">
-                         {formatRupiah(transaction.feeAmount || 0)}
-                       </TableCell>
-                     </TableRow>
-                     {transaction.discountAmount > 0 && (
-                       <TableRow className="border-b-0">
-                         <TableCell className="font-bold text-sm px-0 py-2 text-[var(--nb-success)]">Diskon Promo</TableCell>
-                         <TableCell className="text-right font-black text-sm px-0 py-2 text-[var(--nb-success)]">
-                           -{formatRupiah(transaction.discountAmount)}
-                         </TableCell>
-                       </TableRow>
-                     )}
-                   </TableBody>
-                 </Table>
+                  <Table>
+                    <TableBody>
+                      <TableRow className="border-b-0">
+                        <TableCell className="font-bold text-sm px-0 py-2">Harga Item</TableCell>
+                        <TableCell className="text-right font-black text-sm px-0 py-2">
+                          {formatRupiah(transaction.basePrice || 0)}
+                        </TableCell>
+                      </TableRow>
+                      {transaction.discountAmount > 0 && (
+                        <TableRow className="border-b-0">
+                          <TableCell className="font-bold text-sm px-0 py-2 text-[var(--nb-success)]">Potongan Promo</TableCell>
+                          <TableCell className="text-right font-black text-sm px-0 py-2 text-[var(--nb-success)]">
+                            -{formatRupiah(transaction.discountAmount)}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      <TableRow className="border-b-0">
+                        <TableCell className="font-bold text-sm px-0 py-2">Biaya Admin</TableCell>
+                        <TableCell className="text-right font-black text-sm px-0 py-2">
+                          {formatRupiah(transaction.feeAmount || 0)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                  
                  <Separator className="my-4 border-[2px] border-dashed" />
                  
