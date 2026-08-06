@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { 
-  Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, 
+  Copy, ArrowLeft, Clock, CheckCircle, XCircle, 
   AlertTriangle, Sparkles, Check, Calendar, MapPin, 
   ExternalLink, Receipt, Tag, ShieldAlert
 } from 'lucide-react';
