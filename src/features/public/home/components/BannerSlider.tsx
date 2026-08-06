@@ -27,7 +27,7 @@ const FALLBACK_BANNERS: Banner[] = [
 ];
 
 const BannerSkeleton: React.FC = () => (
-  <div className="w-full h-[220px] sm:h-[320px] md:h-[400px] bg-gray-200 animate-pulse rounded-2xl border-[4px] border-black" />
+  <div className="w-full aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] bg-gray-200 animate-pulse rounded-2xl border-[4px] border-black" />
 );
 
 export const BannerSlider: React.FC = () => {
@@ -83,7 +83,7 @@ export const BannerSlider: React.FC = () => {
     const active = banners[0];
     return (
       <div
-        className="relative w-full max-w-7xl mx-auto h-[220px] sm:h-[320px] md:h-[400px] lg:h-[430px] rounded-2xl overflow-hidden border-[3.5px] sm:border-[4px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1.5 sm:p-2.5"
+      className="relative w-full max-w-7xl mx-auto aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] rounded-2xl overflow-hidden border-[3.5px] sm:border-[4px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1.5 sm:p-2.5"
         style={{
           boxShadow: `8px 8px 0px 0px var(--nb-shadow-${centerTone})`,
         }}
@@ -110,7 +110,7 @@ export const BannerSlider: React.FC = () => {
   const nextBanner = banners[nextIndex];
 
   return (
-    <div className="relative w-full max-w-7xl mx-auto h-[220px] sm:h-[320px] md:h-[390px] lg:h-[440px] overflow-hidden select-none group py-2">
+    <div className="relative w-full max-w-7xl mx-auto aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] overflow-hidden select-none group py-2">
       {/* 3D Coverflow Container */}
       <div className="relative w-full h-full flex items-center justify-center">
         

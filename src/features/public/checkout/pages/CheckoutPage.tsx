@@ -16,7 +16,7 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -1356,56 +1356,115 @@ export const CheckoutPage: React.FC = () => {
           </div>
 
           {/* 2. Game Icon & Title Info */}
-          <div className="flex flex-row items-center sm:items-start gap-3 sm:gap-6 pt-1 sm:pt-2">
-            <Card shadow="lg" className="w-20 h-20 sm:w-36 sm:h-36 !rounded-2xl shrink-0 p-0 border-[3px] sm:border-[4px]">
-              <img src={gameIcon} alt={gameTitle} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-            </Card>
-
-            <div className="flex flex-col justify-center gap-1.5 flex-1 text-left overflow-hidden">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-black text-xs sm:text-base uppercase text-[var(--nb-text)] truncate">{developerName}</span>
-                <VerifiedBadgeIcon size={18} />
-              </div>
-
-              <div className="w-12 sm:w-16 h-1.5 bg-[var(--nb-pink)] rounded-full border-[1px] border-[var(--nb-border)]" />
-
-              <h1 className="text-xl sm:text-4xl md:text-5xl font-black uppercase text-[var(--nb-text)] tracking-tight leading-none m-0 mt-0.5 truncate mb-2 sm:mb-0">
-                {gameTitle}
-              </h1>
-
-              {/* 3. Bar Keunggulan Layanan (Dipindah ke bawah judul) */}
-              <Card variant="cream" shadow="sm" className="grid grid-cols-3 gap-1 sm:gap-3 p-2 sm:p-3 mt-2 sm:mt-4 w-full !rounded-xl">
-                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center sm:text-left pr-1 sm:pr-2 border-r-[1.5px] border-dashed border-[var(--nb-border)]/40">
-                  <div className="p-1 sm:p-1.5 bg-[var(--nb-mint)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md sm:rounded-lg shrink-0">
-                    <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-[var(--nb-text)] stroke-[3]" />
-                  </div>
-                  <div className="flex flex-col leading-tight">
-                    <h4 className="font-black text-[8px] sm:text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">PROSES 1-3 DETIK</h4>
-                    <p className="text-[7px] sm:text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5 hidden sm:block">Otomatis 24/7</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center sm:text-left pr-1 sm:pr-2 border-r-[1.5px] border-dashed border-[var(--nb-border)]/40">
-                  <div className="p-1 sm:p-1.5 bg-[var(--nb-purple)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md sm:rounded-lg shrink-0">
-                    <ShieldCheck className="w-3 h-3 sm:w-4 sm:h-4 text-[var(--nb-text)] stroke-[3]" />
-                  </div>
-                  <div className="flex flex-col leading-tight">
-                    <h4 className="font-black text-[8px] sm:text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">100% LEGAL &amp; AMAN</h4>
-                    <p className="text-[7px] sm:text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5 hidden sm:block">API Digiflazz Resmi</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center sm:text-left">
-                  <div className="p-1 sm:p-1.5 bg-[var(--nb-pink)] text-[var(--nb-dark-text)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md sm:rounded-lg shrink-0">
-                    <Headphones className="w-3 h-3 sm:w-4 sm:h-4 stroke-[3]" />
-                  </div>
-                  <div className="flex flex-col leading-tight">
-                    <h4 className="font-black text-[8px] sm:text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">CS BANTUAN 24/7</h4>
-                    <p className="text-[7px] sm:text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5 hidden sm:block">Support WhatsApp</p>
-                  </div>
-                </div>
+          <div className="flex flex-col gap-3">
+            {/* Icon + Title Row */}
+            <div className="flex flex-row items-start gap-3 sm:gap-6 pt-1 sm:pt-2">
+              <Card shadow="lg" className="w-16 h-16 sm:w-28 sm:h-28 !rounded-2xl shrink-0 p-0 border-[3px] sm:border-[4px]">
+                <img src={gameIcon} alt={gameTitle} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
               </Card>
+
+              <div className="flex flex-col justify-center gap-1.5 flex-1 text-left overflow-hidden">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-xs sm:text-base uppercase text-[var(--nb-text)] truncate">{developerName}</span>
+                  <VerifiedBadgeIcon size={18} />
+                </div>
+
+                <div className="w-12 sm:w-16 h-1.5 bg-[var(--nb-pink)] rounded-full border-[1px] border-[var(--nb-border)]" />
+
+                <h1 className="text-xl sm:text-4xl md:text-5xl font-black uppercase text-[var(--nb-text)] tracking-tight leading-none m-0 mt-0.5 truncate">
+                  {gameTitle}
+                </h1>
+
+                {/* Service Bar Desktop — 4 kolom di dalam kolom kanan, setelah judul */}
+                <div className="hidden sm:grid grid-cols-4 gap-2 mt-3 pt-3 border-t-[1.5px] border-dashed border-[var(--nb-border)]/50">
+                  <div className="flex flex-row items-center gap-2 pr-2 border-r-[1.5px] border-dashed border-[var(--nb-border)]/40">
+                    <div className="p-1.5 bg-[var(--nb-mint)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-lg shrink-0">
+                      <Zap className="w-4 h-4 text-[var(--nb-text)] stroke-[3]" />
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <h4 className="font-black text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">PROSES 1-3 DETIK</h4>
+                      <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">Otomatis 24/7</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-row items-center gap-2 pr-2 border-r-[1.5px] border-dashed border-[var(--nb-border)]/40">
+                    <div className="p-1.5 bg-[var(--nb-purple)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-lg shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-[var(--nb-text)] stroke-[3]" />
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <h4 className="font-black text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">100% LEGAL &amp; AMAN</h4>
+                      <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">API Digiflazz Resmi</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-row items-center gap-2 pr-2 border-r-[1.5px] border-dashed border-[var(--nb-border)]/40">
+                    <div className="p-1.5 bg-[var(--nb-pink)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-lg shrink-0">
+                      <Headphones className="w-4 h-4 text-[var(--nb-text)] stroke-[3]" />
+                    </div>
+                    <div className="flex flex-col leading-tight">
+                      <h4 className="font-black text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">CS BANTUAN 24/7</h4>
+                      <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">Support WhatsApp</p>
+                    </div>
+                  </div>
+                  {brandData?.googlePlayId ? (
+                    <a href={`https://play.google.com/store/apps/details?id=${brandData.googlePlayId}`} target="_blank" rel="noopener noreferrer" className="flex flex-row items-center gap-2 hover:opacity-75 transition-opacity">
+                      <div className="p-1.5 bg-[var(--nb-yellow)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-lg shrink-0">
+                        <Download className="w-4 h-4 text-[var(--nb-text)] stroke-[3]" />
+                      </div>
+                      <div className="flex flex-col leading-tight">
+                        <h4 className="font-black text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">DOWNLOAD</h4>
+                        <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">Google Play</p>
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="flex flex-row items-center gap-2">
+                      <div className="p-1.5 bg-[var(--nb-yellow)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-lg shrink-0">
+                        <Award className="w-4 h-4 text-[var(--nb-text)] stroke-[3]" />
+                      </div>
+                      <div className="flex flex-col leading-tight">
+                        <h4 className="font-black text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">BRAND RESMI</h4>
+                        <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">Produk Terverifikasi</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Service Bar Mobile — 4 kolom 1 baris di bawah row icon+title */}
+            <Card variant="cream" shadow="sm" className="sm:hidden grid grid-cols-4 gap-1 p-2 w-full !rounded-xl">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className="p-1 bg-[var(--nb-mint)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md shrink-0">
+                  <Zap className="w-3 h-3 text-[var(--nb-text)] stroke-[3]" />
+                </div>
+                <h4 className="font-black text-[7px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">PROSES CEPAT</h4>
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className="p-1 bg-[var(--nb-purple)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md shrink-0">
+                  <ShieldCheck className="w-3 h-3 text-[var(--nb-text)] stroke-[3]" />
+                </div>
+                <h4 className="font-black text-[7px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">LEGAL &amp; AMAN</h4>
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className="p-1 bg-[var(--nb-pink)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md shrink-0">
+                  <Headphones className="w-3 h-3 text-[var(--nb-text)] stroke-[3]" />
+                </div>
+                <h4 className="font-black text-[7px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">CS 24/7</h4>
+              </div>
+              {brandData?.googlePlayId ? (
+                <a href={`https://play.google.com/store/apps/details?id=${brandData.googlePlayId}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 text-center hover:opacity-75 transition-opacity">
+                  <div className="p-1 bg-[var(--nb-yellow)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md shrink-0">
+                    <Download className="w-3 h-3 text-[var(--nb-text)] stroke-[3]" />
+                  </div>
+                  <h4 className="font-black text-[7px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">DOWNLOAD</h4>
+                </a>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-center">
+                  <div className="p-1 bg-[var(--nb-yellow)] border-[1.5px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] rounded-md shrink-0">
+                    <Award className="w-3 h-3 text-[var(--nb-text)] stroke-[3]" />
+                  </div>
+                  <h4 className="font-black text-[7px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">BRAND RESMI</h4>
+                </div>
+              )}
+            </Card>
           </div>
 
         </Card>
