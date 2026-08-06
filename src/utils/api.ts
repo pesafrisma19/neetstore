@@ -432,6 +432,7 @@ export const deleteAdminPaymentMethod = (id: number) => apiFetch<{ message: stri
 // === Payment Gateways ===
 export const getAdminPaymentGateways = () => apiFetch<any[]>('/admin/payment-gateways');
 export const updateAdminPaymentGateway = (id: number, data: any) => apiFetch<any>(`/admin/payment-gateways/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const testConnectionAdminPaymentGateway = (id: number) => apiFetch<any>(`/admin/payment-gateways/${id}/test-connection`, { method: 'POST' });
 export const checkTokoPayBalance = () => apiFetch<any>('/tokopay/saldo', { method: 'POST' });
 export const checkTokoPayOrderStatus = (ref_id: string) => apiFetch<any>('/tokopay/status', { method: 'POST', body: JSON.stringify({ ref_id }) });
 export const requestTokoPayWithdrawal = (nominal: number) => apiFetch<any>('/tokopay/tarik-saldo', { method: 'POST', body: JSON.stringify({ nominal }) });

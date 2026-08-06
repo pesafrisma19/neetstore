@@ -45,5 +45,8 @@ export const queryKeys = {
       all: ['admin', 'deposits'] as const,
       list: (params?: any) => ['admin', 'deposits', 'list', params] as const,
     },
+    paymentGateways: {
+      all: ['admin', 'payment-gateways'] as const,
+    },
   },
 } as const;

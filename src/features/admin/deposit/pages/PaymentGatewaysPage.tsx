@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
@@ -8,7 +9,8 @@ import {
   Power, 
   Wallet, 
   ShieldCheck, 
-  Copy
+  Copy,
+  AlertTriangle
 } from 'lucide-react';
 import { PaymentGatewayModal } from '../components/PaymentGatewayModal';
 import { WithdrawalModal } from '../components/WithdrawalModal';
@@ -16,108 +18,94 @@ import type { PaymentGatewayData } from '../components/PaymentGatewayModal';
 import { 
   getAdminPaymentGateways, 
   updateAdminPaymentGateway, 
-  checkTokoPayBalance 
+  testConnectionAdminPaymentGateway 
 } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const PaymentGatewaysPage: React.FC = () => {
   const { addToast } = useToast();
-  const [gateways, setGateways] = useState<PaymentGatewayData[]>([]);
+  const queryClient = useQueryClient();
+
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState<boolean>(false);
   const [selectedGateway, setSelectedGateway] = useState<PaymentGatewayData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [checkingBalance, setCheckingBalance] = useState<boolean>(false);
 
-  const fetchGateways = async () => {
-    setLoading(true);
-    try {
-      const data = await getAdminPaymentGateways();
-      setGateways(data || []);
-    } catch (err: any) {
-      addToast({
-        title: 'GAGAL MEMUAT DATA',
-        message: err.message || 'Gagal mengambil data Payment Gateway dari server.',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // TanStack Query: Ambil Daftar Payment Gateways
+  const {
+    data: gatewaysResponse,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.admin.paymentGateways.all,
+    queryFn: getAdminPaymentGateways,
+  });
 
-  useEffect(() => {
-    fetchGateways();
-  }, []);
-
+  const gateways: PaymentGatewayData[] = (gatewaysResponse as unknown as PaymentGatewayData[]) || [];
   const tokopayGateway = gateways.find(
     (p) => p.code?.toLowerCase() === 'tokopay' || p.name?.toLowerCase().includes('tokopay')
   ) || null;
 
-  const handleToggleStatus = async () => {
-    if (!tokopayGateway) return;
-    const nextStatus = !tokopayGateway.isActive;
-    try {
-      await updateAdminPaymentGateway(tokopayGateway.id, {
-        isActive: nextStatus,
-        merchantId: tokopayGateway.merchantId,
-        secretKey: tokopayGateway.secretKey,
-      });
+  // Mutation: Toggle Status Aktif/Nonaktif
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => updateAdminPaymentGateway(id, data),
+    onSuccess: (res) => {
       addToast({
-        title: nextStatus ? 'GATEWAY AKTIF 🟢' : 'GATEWAY NONAKTIF 🔴',
-        message: nextStatus
+        title: res.isActive ? 'GATEWAY AKTIF 🟢' : 'GATEWAY NONAKTIF 🔴',
+        message: res.isActive
           ? 'TokoPay diaktifkan. Pelanggan dapat membayar via QRIS/VA/E-Wallet.'
           : 'TokoPay dinonaktifkan. Opsi pembayaran online ditutup sementara.',
         type: 'success',
       });
-      fetchGateways();
-    } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentGateways.all });
+    },
+    onError: (err: any) => {
       addToast({
         title: 'GAGAL MENGUBAH STATUS',
         message: err.message || 'Gagal mengubah status aktif gateway.',
         type: 'error',
       });
-    }
-  };
+    },
+  });
 
-  const handleCheckBalance = async () => {
-    setCheckingBalance(true);
-    try {
-      const res = await checkTokoPayBalance();
-      if ((res as any)?.error) {
-        addToast({
-          title: 'GAGAL CEK SALDO',
-          message: (res as any).error || 'Periksa koneksi atau Merchant ID Anda.',
-          type: 'error',
-        });
-      } else {
-        addToast({
-          title: 'SALDO TOKOPAY TERKINI 💰',
-          message: 'Berhasil menyinkronkan saldo merchant dari server TokoPay.',
-          type: 'success',
-        });
-        fetchGateways();
-      }
-    } catch (err: any) {
+  // Mutation: Real Test Connection & Balance Sync
+  const testConnectionMutation = useMutation({
+    mutationFn: (id: number) => testConnectionAdminPaymentGateway(id),
+    onSuccess: (res) => {
       addToast({
-        title: 'GAGAL CEK SALDO',
-        message: err.message || 'Terjadi kesalahan jaringan.',
+        title: 'TEST KONEKSI BERHASIL! ⚡',
+        message: res.message || 'Kredensial TokoPay valid & saldo berhasil disinkronkan.',
+        type: 'success',
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentGateways.all });
+    },
+    onError: (err: any) => {
+      addToast({
+        title: 'TEST KONEKSI GAGAL ❌',
+        message: err.message || 'Periksa Merchant ID & Secret Key Anda.',
         type: 'error',
       });
-    } finally {
-      setCheckingBalance(false);
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentGateways.all });
+    },
+  });
 
-  const handleTestConnection = () => {
-    addToast({
-      title: 'ADVANCE ORDER SIAP! ⚡',
-      message: 'Integrasi TokoPay Advance Order dan Webhook MD5 Signature telah aktif.',
-      type: 'success',
+  const handleToggleStatus = () => {
+    if (!tokopayGateway) return;
+    toggleMutation.mutate({
+      id: tokopayGateway.id,
+      data: { isActive: !tokopayGateway.isActive },
     });
   };
 
+  const handleTestConnection = () => {
+    if (!tokopayGateway) return;
+    testConnectionMutation.mutate(tokopayGateway.id);
+  };
+
   const copyWebhookUrl = () => {
-    const url = `${window.location.origin}/api/tokopay/callback`;
+    const url = tokopayGateway?.webhookUrl || `${window.location.origin}/api/tokopay/callback`;
     navigator.clipboard.writeText(url);
     addToast({
       title: 'WEBHOOK DISALIN 📋',
@@ -141,21 +129,32 @@ export const PaymentGatewaysPage: React.FC = () => {
       </div>
 
       {/* 2. KARTU TOKOPAY INDONESIA */}
-      {loading ? (
-        <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
+      {isLoading ? (
+        <Card variant="white" className="p-12 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
           <RefreshCw className="w-10 h-10 stroke-[2] mx-auto mb-3 animate-spin text-neutral-400" />
           <h3 className="text-lg font-black uppercase">MEMUAT DATA PAYMENT GATEWAY...</h3>
           <p className="text-xs font-bold text-neutral-500 mt-1">Mengambil konfigurasi gateway dari server.</p>
+        </Card>
+      ) : isError ? (
+        <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
+          <AlertTriangle className="w-12 h-12 stroke-[2] mx-auto mb-3 text-red-500" />
+          <h3 className="text-lg font-black uppercase text-red-600">GAGAL MEMUAT DATA GATEWAY</h3>
+          <p className="text-xs font-bold text-neutral-600 mt-1">{(error as any)?.message || 'Terjadi kesalahan jaringan.'}</p>
+          <div className="mt-4">
+            <Button variant="yellow" size="sm" onClick={() => refetch()} className="font-black uppercase">
+              <RefreshCw className="w-4 h-4 mr-2" /> COBA LAGI
+            </Button>
+          </div>
         </Card>
       ) : !tokopayGateway ? (
         <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
           <Wallet className="w-12 h-12 stroke-[2] mx-auto mb-3 text-red-500" />
           <h3 className="text-lg font-black uppercase text-red-600">PAYMENT GATEWAY TOKOPAY TIDAK DITEMUK</h3>
           <p className="text-xs font-bold text-neutral-600 mt-1">
-            Data gateway TokoPay belum tersedia di database server. Silakan hubungkan backend atau periksa konfigurasi.
+            Data gateway TokoPay belum tersedia di database server.
           </p>
           <div className="mt-4">
-            <Button variant="yellow" size="sm" onClick={fetchGateways} className="font-black uppercase">
+            <Button variant="yellow" size="sm" onClick={() => refetch()} className="font-black uppercase">
               <RefreshCw className="w-4 h-4 mr-2" /> COBA LAGI
             </Button>
           </div>
@@ -202,6 +201,7 @@ export const PaymentGatewaysPage: React.FC = () => {
                 variant={tokopayGateway.isActive ? 'pink' : 'mint'}
                 size="md"
                 onClick={handleToggleStatus}
+                disabled={toggleMutation.isPending}
                 className="font-black uppercase shadow-[4px_4px_0px_0px_#000] border-[3px] border-black"
               >
                 <Power className="w-4 h-4 stroke-[3]" />
@@ -212,14 +212,14 @@ export const PaymentGatewaysPage: React.FC = () => {
 
           {/* Card Content */}
           <CardContent className="p-6 space-y-6">
-            {/* Box Webhook URL */}
+            {/* Box Webhook URL (Menggunakan backend origin) */}
             <div className="bg-[var(--nb-mint)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
                 <span className="text-xs font-black uppercase text-black block">
                   URL WEBHOOK / CALLBACK TOKOPAY (WAJIB DITEMPEL DI DASBOR TOKOPAY):
                 </span>
-                <code className="text-sm font-black text-[var(--nb-purple)] mt-1 block">
-                  {window.location.origin}/api/tokopay/callback
+                <code className="text-sm font-black text-[var(--nb-purple)] mt-1 block font-mono">
+                  {tokopayGateway.webhookUrl || `${window.location.origin}/api/tokopay/callback`}
                 </code>
               </div>
               <Button
@@ -239,7 +239,7 @@ export const PaymentGatewaysPage: React.FC = () => {
                 <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
                   Saldo Merchant
                 </span>
-                <span className="text-2xl font-black text-black">
+                <span className="text-2xl font-black text-black font-mono">
                   Rp {(tokopayGateway.balance || 0).toLocaleString('id-ID')}
                 </span>
               </div>
@@ -248,17 +248,17 @@ export const PaymentGatewaysPage: React.FC = () => {
                 <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
                   Merchant ID
                 </span>
-                <span className="text-lg font-black text-black truncate block">
+                <span className="text-lg font-black text-black truncate block font-mono">
                   {tokopayGateway.merchantId ? tokopayGateway.merchantId : 'Belum Dikonfigurasi'}
                 </span>
               </div>
 
               <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
                 <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
-                  Order Type
+                  Secret Key (Masked)
                 </span>
-                <span className="text-lg font-black text-[var(--nb-purple)]">
-                  ADVANCE ORDER
+                <span className="text-sm font-black text-neutral-700 font-mono block truncate">
+                  {tokopayGateway.secretKey ? tokopayGateway.secretKey : '••••••••'}
                 </span>
               </div>
 
@@ -266,18 +266,18 @@ export const PaymentGatewaysPage: React.FC = () => {
                 <span className="text-[10px] font-black uppercase text-black/50 block mb-1">
                   LAST SYNC
                 </span>
-                <div className="text-lg font-black uppercase text-black tracking-tight">
-                  {tokopayGateway.lastSync ? new Date(tokopayGateway.lastSync).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : 'BELUM SYNC'}
+                <div className="text-sm font-black uppercase text-black font-mono tracking-tight">
+                  {tokopayGateway.lastSync ? new Date(tokopayGateway.lastSync).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : 'BELUM SYNC'}
                 </div>
               </div>
             </div>
 
-            {/* Action Bar (4 Tombol Utama) */}
+            {/* Action Bar (Kontrol) */}
             <div className="border-t-[3px] border-black pt-6">
               <h4 className="text-xs font-black uppercase text-neutral-500 mb-3">
                 AKSI KONTROL GATEWAY TOKOPAY:
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <Button
                   variant="yellow"
                   size="md"
@@ -288,28 +288,18 @@ export const PaymentGatewaysPage: React.FC = () => {
                   className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
                 >
                   <Key className="w-4 h-4 stroke-[3]" />
-                  <span>1. KELOLA CREDENTIAL</span>
-                </Button>
-
-                <Button
-                  variant="cyan"
-                  size="md"
-                  onClick={handleCheckBalance}
-                  disabled={checkingBalance}
-                  className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-                >
-                  <RefreshCw className={`w-4 h-4 stroke-[3] ${checkingBalance ? 'animate-spin' : ''}`} />
-                  <span>{checkingBalance ? 'MENGECEK...' : '2. CEK SALDO TOKOPAY'}</span>
+                  <span>1. KELOLA KREDENSIAL</span>
                 </Button>
 
                 <Button
                   variant="mint"
                   size="md"
                   onClick={handleTestConnection}
+                  disabled={testConnectionMutation.isPending}
                   className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
                 >
-                  <ShieldCheck className="w-4 h-4 stroke-[3]" />
-                  <span>3. TEST KONEKSI</span>
+                  <ShieldCheck className={`w-4 h-4 stroke-[3] ${testConnectionMutation.isPending ? 'animate-spin' : ''}`} />
+                  <span>{testConnectionMutation.isPending ? 'MENGUJI...' : '2. TEST KONEKSI & SYNC SALDO'}</span>
                 </Button>
 
                 <Button
@@ -319,7 +309,7 @@ export const PaymentGatewaysPage: React.FC = () => {
                   className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
                 >
                   <Wallet className="w-4 h-4 stroke-[3]" />
-                  <span>4. TARIK SALDO (WITHDRAW)</span>
+                  <span>3. TARIK SALDO (WITHDRAW)</span>
                 </Button>
               </div>
             </div>
@@ -331,7 +321,7 @@ export const PaymentGatewaysPage: React.FC = () => {
       <PaymentGatewayModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSuccess={fetchGateways}
+        onSuccess={() => refetch()}
         gateway={selectedGateway}
       />
 
@@ -339,9 +329,10 @@ export const PaymentGatewaysPage: React.FC = () => {
       <WithdrawalModal
         isOpen={withdrawModalOpen}
         onClose={() => setWithdrawModalOpen(false)}
-        onSuccess={fetchGateways}
+        onSuccess={() => refetch()}
         merchantBalance={tokopayGateway?.balance || 0}
       />
     </div>
   );
 };
+
