@@ -4,14 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Zap, Sparkles } from 'lucide-react';
+import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Zap, Sparkles, Check } from 'lucide-react';
 
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { Table, TableBody, TableRow, TableCell } from '../../../../components/ui/Table';
 import { Separator } from '../../../../components/ui/Separator';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
@@ -124,409 +123,442 @@ export const InvoicePage: React.FC = () => {
   const isExpired = payStatus === 'EXPIRED';
   const isFailed = ordStatus === 'FAILED' || payStatus === 'FAILED' || payStatus === 'REFUND';
 
-  // 5-Step Horizontal Timeline Progress
+  // 5-Step Progress Steps
   const steps = [
     { label: 'Dibuat', completed: true },
-    { label: 'Menunggu Bayar', completed: isPaid || isFailed, active: isUnpaid && !isExpired && !isFailed, failed: isExpired && isUnpaid },
-    { label: 'Pembayaran Lunas', completed: isPaid, active: false, failed: isFailed && payStatus === 'REFUND' },
-    { label: 'Proses Provider', completed: ordStatus === 'PROCESS' || ordStatus === 'SUCCESS', active: isPaid && ordStatus === 'PENDING' },
-    { label: ordStatus === 'SUCCESS' ? 'Topup Sukses' : isFailed ? 'Gagal' : 'Selesai', completed: ordStatus === 'SUCCESS', active: ordStatus === 'PROCESS', failed: isFailed }
+    { label: 'Bayar', completed: isPaid || isFailed, active: isUnpaid && !isExpired && !isFailed, failed: isExpired && isUnpaid },
+    { label: 'Lunas', completed: isPaid, active: false, failed: isFailed && payStatus === 'REFUND' },
+    { label: 'Diproses', completed: ordStatus === 'PROCESS' || ordStatus === 'SUCCESS', active: isPaid && ordStatus === 'PENDING' },
+    { label: ordStatus === 'SUCCESS' ? 'Selesai' : isFailed ? 'Gagal' : 'Selesai', completed: ordStatus === 'SUCCESS', active: ordStatus === 'PROCESS', failed: isFailed }
   ];
 
-  const brandName = transaction.product?.brand?.name || transaction.product?.category?.name || 'Topup Game';
+  const gameName = transaction.product?.brand?.name || transaction.product?.category?.name || 'Topup Game';
+  const expiredDateFormatted = transaction.expiredAt 
+    ? formatFullDate(transaction.expiredAt) 
+    : formatFullDate(new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString());
+
+  // Dynamic Theme Color based on Transaction Status
+  const ticketHeaderBg = ordStatus === 'SUCCESS'
+    ? 'bg-[var(--nb-mint)] text-black'
+    : ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')
+    ? 'bg-[var(--nb-cyan)] text-black'
+    : isFailed || isExpired
+    ? 'bg-red-500 text-white'
+    : 'bg-[var(--nb-yellow)] text-black';
 
   return (
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)]">
       <Navbar />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5">
         
-        {/* Top Bar Navigation */}
-        <div className="mb-4 flex items-center justify-between">
+        {/* Top Navigation */}
+        <div className="flex items-center justify-between">
           <Link to="/">
             <Button variant="outline" size="sm" className="border-2 border-black shadow-[2px_2px_0px_0px_#000] font-bold text-xs">
               <ArrowLeft className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
               Kembali ke Beranda
             </Button>
           </Link>
-          <div className="flex gap-2">
-            <Badge variant="yellow" size="sm" className="hidden sm:inline-flex border border-black/20 font-bold text-xs">
-              <Sparkles className="w-3 h-3 mr-1 text-black" />
-              Bantuan CS 24/7
-            </Badge>
+          <Badge variant="yellow" size="sm" className="border border-black/20 font-bold text-xs">
+            <Sparkles className="w-3 h-3 mr-1 text-black" />
+            Bantuan CS 24/7
+          </Badge>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* BLOK 1: SLEEK BORDERLESS TIMELINE INDICATOR (Tanpa Card / Border / Shadow) */}
+        {/* ========================================================================= */}
+        <div className="w-full px-2 py-3">
+          <div className="flex items-center justify-between relative max-w-2xl mx-auto">
+            
+            {/* Horizontal Connecting Line */}
+            <div className="absolute top-3.5 left-6 right-6 h-0.5 bg-gray-300 dark:bg-gray-700 -z-0" />
+            
+            {steps.map((st, idx) => (
+              <div key={idx} className="flex flex-col items-center z-10">
+                <div 
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                    st.completed 
+                      ? 'bg-emerald-500 text-white ring-4 ring-emerald-100 dark:ring-emerald-950' 
+                      : st.failed 
+                      ? 'bg-red-500 text-white' 
+                      : st.active 
+                      ? 'bg-[var(--nb-yellow)] text-black ring-4 ring-yellow-200 dark:ring-yellow-900 animate-pulse' 
+                      : 'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {st.completed ? (
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  ) : st.failed ? (
+                    <XCircle className="w-4 h-4 stroke-[3]" />
+                  ) : (
+                    idx + 1
+                  )}
+                </div>
+                <span className={`text-[11px] font-bold mt-1.5 ${
+                  st.completed ? 'text-black font-black' : st.failed ? 'text-red-600' : st.active ? 'text-black font-black underline' : 'text-gray-400'
+                }`}>
+                  {st.label}
+                </span>
+              </div>
+            ))}
+
           </div>
         </div>
 
-        {/* Main 2-Column Grid: On Mobile, Payment Action Box is FIRST for above-the-fold conversion! */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        {/* ========================================================================= */}
+        {/* BLOK 2: AREA STATUS DINAMIS (INFORMATIF + PURE CSS ANIMATIONS)            */}
+        {/* ========================================================================= */}
+        <Card 
+          variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'} 
+          className="p-5 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
+        >
+          {/* STATE A: UNPAID (Belum Dibayar) */}
+          {isUnpaid && !isExpired && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 text-center sm:text-left">
+                <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                  <Clock className="w-6 h-6 text-black stroke-[3] animate-pulse" />
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                    MENUNGGU PEMBAYARAN
+                  </h1>
+                  <p className="text-xs font-semibold text-black/80 mt-1 m-0">
+                    Bayar sebelum: <span className="font-bold">{expiredDateFormatted}</span>
+                  </p>
+                </div>
+              </div>
+
+              {timeLeft !== null && (
+                <div className="bg-white px-4 py-2 border-2 border-black rounded-xl text-center shrink-0 shadow-[3px_3px_0px_0px_#000]">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
+                  <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight text-red-600">
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STATE B: PROCESS / PAID (Pembayaran Diterima, Diproses Provider) */}
+          {(ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')) && (
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                <Clock className="w-6 h-6 text-amber-600 stroke-[3] animate-spin" />
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                  PEMBAYARAN DITERIMA
+                </h1>
+                <p className="text-xs font-bold text-black/80 mt-1 m-0">
+                  Provider sedang memproses pesanan Anda. Biasanya selesai dalam &lt; 1 menit.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* STATE C: SUCCESS (Topup Berhasil) */}
+          {ordStatus === 'SUCCESS' && (
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                <CheckCircle className="w-7 h-7 text-emerald-600 stroke-[3] animate-bounce" />
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                  TOPUP BERHASIL! 🎉
+                </h1>
+                <p className="text-xs font-bold text-black/80 mt-1 m-0">
+                  Produk / Diamond sudah masuk ke akun Anda. Silakan cek aplikasi game Anda.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* STATE D: FAILED / EXPIRED */}
+          {(isFailed || isExpired) && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                  <AlertTriangle className="w-6 h-6 text-red-600 stroke-[3]" />
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                    {isExpired ? 'PEMBAYARAN KEDALUWARSA' : 'TRANSAKSI GAGAL'}
+                  </h1>
+                  <p className="text-xs font-semibold text-black/80 mt-1 m-0">
+                    {isExpired ? 'Waktu pembayaran telah habis. Silakan buat pesanan baru.' : 'Transaksi ini tidak dapat diproses oleh provider.'}
+                  </p>
+                </div>
+              </div>
+              <Link to="/" className="shrink-0">
+                <Button variant="yellow" size="sm" className="font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
+                  Buat Pesanan Baru
+                </Button>
+              </Link>
+            </div>
+          )}
+        </Card>
+
+        {/* ========================================================================= */}
+        {/* BLOK 3: SATU TIKET UTUH (UNIFIED TICKET STUB WITH DYNAMIC THEME COLOR)   */}
+        {/* ========================================================================= */}
+        <Card variant="white" className="p-0 overflow-hidden border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative">
           
-          {/* ===================== KOLOM KIRI (70% Desktop) ===================== */}
-          <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* TICKET HEADER (Warna Mengikuti Status Transaksi) */}
+          <div className={`px-5 py-3.5 border-b-4 border-black flex items-center justify-between ${ticketHeaderBg}`}>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 stroke-[2.5]" />
+              <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider m-0">
+                TIKET BUKTI TRANSAKSI
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="white" className="border border-black/20 font-bold text-xs">
+                {gameName}
+              </Badge>
+              <Badge variant={isPaid ? 'mint' : isUnpaid ? 'yellow' : 'orange'} className="border border-black/20 font-bold text-xs">
+                {isPaid ? '🟢 Lunas' : isExpired ? '⚪ Kedaluwarsa' : isFailed ? '🔴 Gagal' : '🟡 Belum Dibayar'}
+              </Badge>
+            </div>
+          </div>
+
+          {/* TICKET BODY GRID: ISI TIKET (KIRI) vs STUB TIKET DINAMIS (KANAN) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 relative">
             
-            {/* [CARD 1] COMPACT HEADER STATUS (Compact ~90px, No Duplicate Badges) */}
-            <Card 
-              variant={isPaid ? 'mint' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'} 
-              className="p-4 border-4 border-black shadow-[5px_5px_0px_0px_#000] rounded-2xl relative overflow-hidden"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {isPaid ? (
-                    <div className="w-9 h-9 rounded-xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <CheckCircle className="w-5 h-5 text-emerald-600 stroke-[3]" />
-                    </div>
-                  ) : ordStatus === 'PROCESS' ? (
-                    <div className="w-9 h-9 rounded-xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <Clock className="w-5 h-5 text-amber-600 stroke-[3] animate-spin" />
-                    </div>
-                  ) : isFailed ? (
-                    <div className="w-9 h-9 rounded-xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <XCircle className="w-5 h-5 text-red-600 stroke-[3]" />
-                    </div>
-                  ) : (
-                    <div className="w-9 h-9 rounded-xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                      <Clock className="w-5 h-5 text-black stroke-[3]" />
-                    </div>
-                  )}
-
-                  <div>
-                    <h1 className="text-base sm:text-lg font-black uppercase tracking-tight text-black m-0 leading-tight">
-                      {ordStatus === 'SUCCESS' ? 'Pembayaran & Topup Sukses!' : ordStatus === 'PROCESS' ? 'Pesanan Sedang Diproses Provider' : isFailed ? 'Transaksi Gagal' : isExpired ? 'Pembayaran Kedaluwarsa' : 'Menunggu Pembayaran'}
-                    </h1>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs font-medium text-black/80 font-mono">Invoice: {transaction.providerRef || `TRX-${transaction.id}`}</span>
-                      <button 
-                        type="button"
-                        onClick={() => handleCopy(transaction.providerRef || String(transaction.id), 'invoice')}
-                        className="inline-flex items-center text-xs font-bold text-black hover:underline ml-1 cursor-pointer"
-                        title="Salin Kode Invoice"
-                      >
-                        <Copy className="w-3.5 h-3.5 mr-0.5 stroke-[2.5]" />
-                        {copied === 'invoice' ? <span className="text-emerald-800 font-bold">Tersalin!</span> : <span>Salin</span>}
-                      </button>
-                    </div>
+            {/* AREA KIRI TIKET: DETAIL PESANAN & BREAKDOWN HARGA (7/12 Cols) */}
+            <div className="md:col-span-7 p-5 flex flex-col justify-between gap-5">
+              
+              {/* Detail Pesanan & Akun Grid */}
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 mb-3 border-b pb-1">
+                  Detail Pesanan & Akun
+                </h3>
+                <div className="grid grid-cols-2 gap-y-3.5 gap-x-4 text-sm">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Game</span>
+                    <span className="font-bold text-[var(--nb-text)]">{gameName}</span>
                   </div>
-                </div>
 
-                {/* Single Non-Redundant Status Badge Pair */}
-                <div className="flex flex-wrap items-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-black/15">
-                  <Badge variant={isPaid ? 'mint' : isUnpaid ? 'yellow' : 'orange'} className="border border-black/20 font-bold text-xs">
-                    {isPaid ? '🟢 Lunas' : isExpired ? '⚪ Kedaluwarsa' : isFailed ? '🔴 Gagal' : '🟡 Belum Dibayar'}
-                  </Badge>
-                  <Badge variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : ordStatus === 'FAILED' ? 'orange' : 'white'} className="border border-black/20 font-bold text-xs">
-                    {ordStatus === 'SUCCESS' ? '🎉 Topup Sukses' : ordStatus === 'PROCESS' ? '⚡ Diproses' : isFailed ? '❌ Gagal' : '⏳ Menunggu Bayar'}
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-
-            {/* [CARD 2] DETAIL PESANAN & AKUN GAME (Clean Title Case Grid Layout) */}
-            <Card variant="white" className="p-0 overflow-hidden border-4 border-black shadow-[5px_5px_0px_0px_#000] rounded-2xl">
-              <div className="bg-[var(--nb-surface-alt)] px-4 py-3 border-b-2 border-black flex items-center justify-between">
-                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider m-0">
-                  Detail Pesanan & Akun Game
-                </h2>
-                <Badge variant="white" className="border border-black/20 font-bold text-[11px]">
-                  {brandName}
-                </Badge>
-              </div>
-
-              <div className="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-y-3.5 gap-x-6 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">Game / Brand</span>
-                  <span className="font-bold text-[var(--nb-text)]">{brandName}</span>
-                </div>
-
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">Produk Nominal</span>
-                  <span className="font-bold text-[var(--nb-text)]">{transaction.product?.name || '-'}</span>
-                </div>
-
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">User ID / Target Account</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold font-mono text-[var(--nb-text)]">{transaction.targetAccount}</span>
-                    {transaction.targetZone && (
-                      <span className="text-xs font-bold bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded border border-gray-300">
-                        Server: {transaction.targetZone}
-                      </span>
-                    )}
-                    <button 
-                      type="button" 
-                      onClick={() => handleCopy(transaction.targetAccount, 'targetAccount')}
-                      className="text-gray-600 hover:text-black ml-1 cursor-pointer"
-                      title="Salin User ID"
-                    >
-                      <Copy className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
-                    {copied === 'targetAccount' && <span className="text-[10px] font-bold text-emerald-600">Tersalin!</span>}
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Produk Nominal</span>
+                    <span className="font-bold text-[var(--nb-text)]">{transaction.product?.name || '-'}</span>
                   </div>
-                </div>
 
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">Nickname Akun</span>
-                  {transaction.nickname ? (
-                    <span className="font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-300 inline-block w-fit text-xs">
-                      {transaction.nickname}
-                    </span>
-                  ) : (
-                    <span className="font-normal text-gray-500">-</span>
-                  )}
-                </div>
-
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">Metode Pembayaran</span>
-                  <span className="font-bold text-[var(--nb-text)]">{transaction.paymentMethod || '-'}</span>
-                </div>
-
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">No. Whatsapp Kontak</span>
-                  <span className="font-bold font-mono text-[var(--nb-text)]">{transaction.whatsapp || '-'}</span>
-                </div>
-
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[var(--nb-text-muted)] mb-0.5">Tanggal Dibuat</span>
-                  <span className="font-medium text-[var(--nb-text)]">{formatFullDate(transaction.createdAt)}</span>
-                </div>
-              </div>
-            </Card>
-
-            {/* [CARD 3] HORIZONTAL TIMELINE PROGRESS & ESTIMASI PROSES */}
-            <Card variant="white" className="p-4 sm:p-5 border-4 border-black shadow-[5px_5px_0px_0px_#000] rounded-2xl">
-              <div className="flex items-center justify-between gap-2 mb-3.5">
-                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider m-0 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 stroke-[2.5]" />
-                  Alur Proses Pesanan
-                </h2>
-                <Badge variant="cyan" className="border border-black/20 font-bold text-[10px]">
-                  <Zap className="w-3 h-3 mr-1 fill-black" />
-                  Estimasi: &lt; 1 Menit
-                </Badge>
-              </div>
-
-              {/* Horizontal Progress Steps */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 relative">
-                {steps.map((st, idx) => (
-                  <div key={idx} className="flex flex-col items-center text-center p-2 rounded-xl bg-[var(--nb-surface-alt)] border border-black/10">
-                    <div className="mb-1">
-                      {st.completed ? (
-                        <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                          <CheckCircle className="w-3.5 h-3.5 stroke-[3]" />
-                        </div>
-                      ) : st.failed ? (
-                        <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white">
-                          <XCircle className="w-3.5 h-3.5 stroke-[3]" />
-                        </div>
-                      ) : st.active ? (
-                        <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center animate-pulse text-black">
-                          <Clock className="w-3.5 h-3.5 stroke-[3]" />
-                        </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-[10px]">
-                          {idx + 1}
-                        </div>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">User ID / Target</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold font-mono text-[var(--nb-text)]">{transaction.targetAccount}</span>
+                      {transaction.targetZone && (
+                        <span className="text-xs font-bold bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded border border-gray-300">
+                          Server: {transaction.targetZone}
+                        </span>
                       )}
                     </div>
-                    <span className={`text-[10px] leading-tight font-bold ${st.completed ? 'text-black font-black' : st.failed ? 'text-red-600' : st.active ? 'text-amber-800 font-black' : 'text-gray-400'}`}>
-                      {st.label}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Nickname Akun</span>
+                    <span className="font-bold text-[var(--nb-text)]">{transaction.nickname || '-'}</span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Metode Pembayaran</span>
+                    <span className="font-bold text-[var(--nb-text)]">{transaction.paymentMethod || '-'}</span>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">No. WA Kontak</span>
+                    <span className="font-bold font-mono text-[var(--nb-text)]">{transaction.whatsapp || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rincian Harga Breakdown (Di Kiri Tiket) */}
+              <div className="bg-[var(--nb-surface-alt)] p-3.5 rounded-xl border border-black/15">
+                <h3 className="text-[11px] font-black uppercase tracking-wider text-gray-500 mb-2">
+                  Rincian Biaya
+                </h3>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between font-medium">
+                    <span className="text-gray-600">Harga Item</span>
+                    <span className="font-bold">{formatRupiah(transaction.basePrice || 0)}</span>
+                  </div>
+                  
+                  {/* Voucher Promo Row: RENDERED ONLY IF DISCOUNT > 0 */}
+                  {transaction.discountAmount > 0 && (
+                    <div className="flex justify-between font-medium text-emerald-700">
+                      <span>Voucher Promo</span>
+                      <span className="font-bold">-{formatRupiah(transaction.discountAmount)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between font-medium">
+                    <span className="text-gray-600">Biaya Admin</span>
+                    <span className="font-bold">{formatRupiah(transaction.feeAmount || 0)}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* CUTOUT NOTCH & DASHED TEAR LINE */}
+            <div className="hidden md:block relative">
+              {/* Upper Notch Cutout */}
+              <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#fdfbf7] dark:bg-[#121214] border-2 border-black z-20" />
+              {/* Dashed Line */}
+              <div className="absolute top-0 bottom-0 left-0 w-0 border-r-2 border-dashed border-black/30 z-10" />
+              {/* Lower Notch Cutout */}
+              <div className="absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-[#fdfbf7] dark:bg-[#121214] border-2 border-black z-20" />
+            </div>
+
+            {/* AREA KANAN TIKET: STUB TIKET DINAMIS (5/12 Cols) */}
+            <div className="md:col-span-5 p-5 bg-[var(--nb-surface-alt)]/50 border-t-2 md:border-t-0 md:border-l-0 border-dashed border-black/30 flex flex-col justify-between gap-4">
+              
+              {/* Stub Top: Tanggal Dibuat */}
+              <div>
+                <span className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Tanggal Dibuat</span>
+                <span className="text-xs font-bold text-black dark:text-white block">{formatFullDate(transaction.createdAt)}</span>
+              </div>
+
+              {/* Prominent TOTAL BAYAR Box */}
+              <div className="bg-[var(--nb-yellow)] p-3.5 border-2 border-black rounded-xl text-center shadow-[3px_3px_0px_0px_#000]">
+                <span className="text-[10px] font-black uppercase text-black/70 block mb-0.5">Total Pembayaran</span>
+                <span className="text-2xl font-black text-black tracking-tight block">
+                  {formatRupiah(transaction.amount)}
+                </span>
+              </div>
+
+              {/* DYNAMIC STUB CONTENT (Berubah Otomatis Sesuai Status Transaksi!) */}
+              <div className="flex-1 flex flex-col justify-center">
+                
+                {/* DYNAMIC STUB 1: UNPAID (QRIS / Payment Link + Salin Nominal) */}
+                {isUnpaid && !isExpired && (
+                  <div className="flex flex-col items-center text-center gap-2">
+                    
+                    {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
+                      <div className="bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] inline-block">
+                        <QRCodeSVG value={transaction.paymentUrl} size={140} level="H" />
+                      </div>
+                    )}
+
+                    {transaction.paymentUrl && transaction.paymentUrl.startsWith('http') && (
+                      <a href={transaction.paymentUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                        <Button variant="yellow" size="sm" className="w-full font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
+                          Bayar Sekarang <ChevronRight className="w-4 h-4 ml-1 stroke-[3]" />
+                        </Button>
+                      </a>
+                    )}
+
+                    <Button 
+                      variant="white" 
+                      size="sm" 
+                      onClick={() => handleCopy(transaction.amount.toString(), 'stubAmount')}
+                      className="w-full font-black border border-black text-xs py-1 mt-1"
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                      {copied === 'stubAmount' ? 'Nominal Tersalin!' : 'Salin Nominal Tepat'}
+                    </Button>
+                  </div>
+                )}
+
+                {/* DYNAMIC STUB 2: PROCESS (Loading Spinner) */}
+                {(ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')) && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-500 rounded-xl text-center flex flex-col items-center gap-2">
+                    <Clock className="w-8 h-8 text-amber-600 stroke-[2.5] animate-spin" />
+                    <span className="text-xs font-black uppercase text-amber-900 dark:text-amber-300">
+                      ⚡ Diproses Provider
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                      Mohon tunggu sebentar...
                     </span>
                   </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* [ADMIN ONLY] PROVIDER DEBUG VIEW */}
-            {user?.role === 'ADMIN' && (
-              <Card variant="purple" className="p-0 overflow-hidden border-4 border-black rounded-2xl shadow-[5px_5px_0px_0px_#000]">
-                <div className="bg-yellow-400 p-2.5 border-b-2 border-black flex items-center gap-2">
-                   <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
-                   <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW</h2>
-                </div>
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-white text-xs">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-300 block">Digiflazz SKU</span>
-                    <span className="font-mono">{transaction.product?.digiflazzSku || '-'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-300 block">Provider Ref</span>
-                    <span className="font-mono">{transaction.providerRef || '-'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-300 block">Serial Number (SN)</span>
-                    <span className="font-mono text-emerald-400">{transaction.sn || '-'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-300 block">Provider Message</span>
-                    <span className="font-mono text-red-300">{transaction.providerMessage || '-'}</span>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-          </div>
-
-          {/* ===================== KOLOM KANAN (30% Desktop Sticky - On Mobile: Above-The-Fold Intent!) ===================== */}
-          <div className="flex flex-col gap-4 lg:sticky lg:top-20 order-first lg:order-none">
-            
-            {/* [CARD 4A] RINGKASAN HARGA (Clean, Fixed-Height Layout) */}
-            <Card variant="white" className="p-0 overflow-hidden border-4 border-black shadow-[5px_5px_0px_0px_#000] rounded-2xl">
-               <div className="bg-[var(--nb-surface-alt)] px-4 py-3 border-b-2 border-black">
-                 <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider m-0 text-center">Ringkasan Harga</h2>
-               </div>
-               <div className="p-4 sm:p-5">
-                  <Table>
-                    <TableBody>
-                      <TableRow className="border-b-0">
-                        <TableCell className="font-medium text-sm px-0 py-1.5">Harga Item</TableCell>
-                        <TableCell className="text-right font-bold text-sm px-0 py-1.5">
-                          {formatRupiah(transaction.basePrice || 0)}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow className="border-b-0">
-                        <TableCell className="font-medium text-sm px-0 py-1.5 text-emerald-700">Voucher Promo</TableCell>
-                        <TableCell className="text-right font-bold text-sm px-0 py-1.5 text-emerald-700">
-                          {transaction.discountAmount > 0 ? `-${formatRupiah(transaction.discountAmount)}` : '-'}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow className="border-b-0">
-                        <TableCell className="font-medium text-sm px-0 py-1.5">Biaya Admin</TableCell>
-                        <TableCell className="text-right font-bold text-sm px-0 py-1.5">
-                          {formatRupiah(transaction.feeAmount || 0)}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                 
-                 <Separator className="my-3 border-dashed border-black/30" />
-                 
-                 {/* TOTAL BAYAR PROMINENT BOX */}
-                 <div className="bg-[var(--nb-yellow)] p-3 border-2 border-black rounded-xl text-center shadow-[3px_3px_0px_0px_#000]">
-                   <span className="font-black text-[10px] uppercase block text-black/70 mb-0.5">Total Pembayaran</span>
-                   <span className="font-black text-2xl text-black tracking-tight block">
-                     {formatRupiah(transaction.amount)}
-                   </span>
-                 </div>
-                 
-                 {/* Copy Button for Exact Transfer Amount (Properly Labeled!) */}
-                 {isUnpaid && !isExpired && (
-                   <div className="mt-3 p-2.5 bg-[var(--nb-surface-alt)] border border-black/20 rounded-xl">
-                      <span className="text-[10px] font-bold block text-gray-600 mb-1 text-left">Nominal Transfer Tepat:</span>
-                      <div className="flex items-center justify-between gap-2">
-                         <span className="text-sm font-black font-mono text-black">{formatRupiah(transaction.amount)}</span>
-                         <Button variant="yellow" size="sm" className="font-black border border-black text-xs py-1 px-2.5" onClick={() => handleCopy(transaction.amount.toString(), 'amount')}>
-                            {copied === 'amount' ? 'Tersalin!' : 'Salin Nominal'}
-                         </Button>
-                      </div>
-                   </div>
-                 )}
-               </div>
-            </Card>
-
-            {/* [CARD 4B] INSTRUKSI PEMBAYARAN / QRIS (Above-the-Fold Priority on Mobile!) */}
-            {isUnpaid && !isExpired && !isFailed && (
-              <Card variant="yellow" className="p-4 sm:p-5 text-center border-4 border-black shadow-[5px_5px_0px_0px_#000] rounded-2xl">
-                <h3 className="text-xs font-black uppercase tracking-widest mb-3">Selesaikan Pembayaran</h3>
-                
-                {timeLeft !== null && (
-                  <div className="mb-4 bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000]">
-                    <span className="text-[10px] font-bold block text-gray-600">Sisa Waktu Pembayaran</span>
-                    <div className="text-2xl font-black tabular-nums tracking-tighter text-red-600">
-                      {formatTime(timeLeft)}
-                    </div>
-                  </div>
                 )}
 
-                {/* QRIS Renderer */}
-                {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
-                  <div className="flex flex-col items-center gap-2.5 mb-3">
-                    <div className="bg-white p-2.5 border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000]">
-                      <QRCodeSVG value={transaction.paymentUrl} size={170} level="H" includeMargin={false} />
+                {/* DYNAMIC STUB 3: SUCCESS (Kode Voucher / Serial Number Prominent Box!) */}
+                {ordStatus === 'SUCCESS' && (
+                  <div className="p-3.5 bg-[#16161a] border-2 border-black rounded-xl text-white text-center flex flex-col gap-2 shadow-[3px_3px_0px_0px_var(--nb-mint)]">
+                    <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider">
+                      🎉 KODE VOUCHER / SERIAL NUMBER
+                    </span>
+                    <div className="bg-[#0b0b0e] p-2 border border-gray-700 rounded-lg font-mono text-sm font-black tracking-widest text-white break-all">
+                      {transaction.sn || 'BERHASIL TERKIRIM'}
                     </div>
-                    <Badge variant="white" className="w-full justify-center border border-black/20 font-bold text-xs">Scan via BCA / Gopay / OVO / Dana</Badge>
-                  </div>
-                )}
-
-                {/* HTTP Redirect Renderer */}
-                {transaction.paymentUrl && transaction.paymentUrl.startsWith('http') && (
-                  <div className="mb-3">
-                    <a href={transaction.paymentUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="yellow" size="lg" className="w-full font-black border-2 border-black shadow-[3px_3px_0px_0px_#000]">
-                        Bayar Sekarang Di Sini
-                        <ChevronRight className="w-4 h-4 stroke-[3] ml-1" />
+                    {transaction.sn && (
+                      <Button 
+                        variant="yellow" 
+                        size="sm" 
+                        onClick={() => handleCopy(transaction.sn, 'stubSn')}
+                        className="w-full font-black border border-black text-xs py-1"
+                      >
+                        <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                        {copied === 'stubSn' ? 'Kode Tersalin!' : 'Salin Kode Voucher'}
                       </Button>
-                    </a>
+                    )}
                   </div>
                 )}
 
-                {/* Fallback QRIS */}
-                {!transaction.paymentUrl && transaction.paymentMethod === 'QRIS' && (
-                  <div className="flex flex-col items-center gap-2.5 mb-3">
-                    <div className="bg-white p-2.5 border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000]">
-                      <QRCodeSVG value={transaction.providerRef} size={170} level="M" />
-                    </div>
-                    <p className="text-xs font-medium text-gray-700">Harap scan QRIS di atas untuk membayar.</p>
+                {/* DYNAMIC STUB 4: FAILED / EXPIRED */}
+                {(isFailed || isExpired) && (
+                  <div className="p-3 bg-red-50 dark:bg-red-950/40 border-2 border-red-500 rounded-xl text-center text-red-700 dark:text-red-300 text-xs font-bold">
+                    {isExpired ? 'Metode pembayaran kedaluwarsa.' : 'Transaksi gagal diproses.'}
                   </div>
                 )}
 
-                <Separator className="my-2.5 border-black/20" />
-                
-                <p className="text-[10px] font-medium text-black/80 leading-snug">
-                  Pastikan nominal transfer sesuai hingga 3 digit terakhir agar dikonfirmasi otomatis.
-                </p>
-              </Card>
-            )}
-
-            {/* Expired State Warning */}
-            {isExpired && (
-              <Card variant="purple" className="p-4 text-center text-white border-4 border-black shadow-[5px_5px_0px_0px_#000] rounded-2xl">
-                <AlertTriangle className="w-8 h-8 stroke-[2] text-red-400 mx-auto mb-1.5" />
-                <h3 className="text-sm font-black uppercase mb-1">Waktu Habis</h3>
-                <p className="text-xs font-medium text-gray-300 mb-4">Metode pembayaran ini sudah kadaluwarsa.</p>
-                <Link to="/">
-                  <Button variant="yellow" size="sm" className="w-full font-black border-2 border-black">Buat Pesanan Baru</Button>
-                </Link>
-              </Card>
-            )}
-
-          </div>
-        </div>
-
-        {/* [CARD 5 - FULL WIDTH 100% AT BOTTOM] CELEBRATORY TOKEN / SERIAL NUMBER (SN) BANNER CARD */}
-        {ordStatus === 'SUCCESS' && transaction.sn && (
-          <div className="mt-6">
-            <Card className="p-0 overflow-hidden border-4 border-black shadow-[6px_6px_0px_0px_var(--nb-mint)] rounded-2xl bg-[#16161a] text-white">
-              <div className="bg-[var(--nb-mint)] px-4 py-3 border-b-4 border-black flex flex-wrap items-center justify-between gap-2 text-black">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 fill-black stroke-[2]" />
-                  <h2 className="text-sm sm:text-base font-black uppercase tracking-wide m-0">
-                    🎉 TOPUP BERHASIL! KODE VOUCHER / SERIAL NUMBER (SN)
-                  </h2>
-                </div>
-                <Badge variant="yellow" className="font-bold border border-black/20 text-xs">
-                  KODE AKTIF
-                </Badge>
               </div>
-              
-              <div className="p-5 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-5">
-                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                  <span className="text-xs font-bold text-gray-400">Nomor Token PLN / Kode Voucher Steam / Serial Number:</span>
-                  <div className="bg-[#0b0b0e] p-3.5 sm:p-4 border-2 border-gray-700 rounded-xl font-mono text-xl sm:text-2xl font-black tracking-widest text-white break-all shadow-inner">
-                    {transaction.sn}
-                  </div>
+
+              {/* Stub Footer: Invoice ID & Functional Visual Barcode */}
+              <div className="border-t border-black/15 pt-2 flex items-center justify-between gap-2">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold text-gray-500 uppercase">Invoice ID</span>
+                  <span className="font-mono text-xs font-bold text-black dark:text-white truncate max-w-[130px]">
+                    {transaction.providerRef || `TRX-${transaction.id}`}
+                  </span>
                 </div>
-                
-                <Button
-                  type="button"
-                  variant="yellow"
-                  size="md"
-                  onClick={() => handleCopy(transaction.sn, 'sn')}
-                  className="shrink-0 font-black text-sm uppercase border-2 border-black shadow-[3px_3px_0px_0px_#000] py-3 px-6 self-center sm:self-auto"
+                <button 
+                  type="button" 
+                  onClick={() => handleCopy(transaction.providerRef || String(transaction.id), 'stubInvoice')}
+                  className="p-1 text-gray-600 hover:text-black shrink-0 cursor-pointer"
+                  title="Salin Invoice ID"
                 >
-                  <Copy className="w-4 h-4 stroke-[2.5] mr-2" />
-                  {copied === 'sn' ? 'KODE TERSALIN!' : 'SALIN KODE VOUCHER'}
-                </Button>
+                  <Copy className="w-3.5 h-3.5 stroke-[2.5]" />
+                </button>
+                {copied === 'stubInvoice' && <span className="text-[10px] font-bold text-emerald-600">Tersalin!</span>}
               </div>
-            </Card>
+
+            </div>
           </div>
+        </Card>
+
+        {/* ========================================================================= */}
+        {/* BLOK 4: ADMIN DEBUG PANEL (KHUSUS ROLE ADMIN)                             */}
+        {/* ========================================================================= */}
+        {user?.role === 'ADMIN' && (
+          <Card variant="purple" className="p-0 overflow-hidden border-4 border-black rounded-2xl shadow-[5px_5px_0px_0px_#000]">
+            <div className="bg-yellow-400 p-2.5 border-b-2 border-black flex items-center gap-2">
+               <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
+               <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW</h2>
+            </div>
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-white text-xs">
+              <div>
+                <span className="text-[10px] font-bold text-gray-300 block">Digiflazz SKU</span>
+                <span className="font-mono">{transaction.product?.digiflazzSku || '-'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-gray-300 block">Provider Ref</span>
+                <span className="font-mono">{transaction.providerRef || '-'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-gray-300 block">Serial Number (SN)</span>
+                <span className="font-mono text-emerald-400">{transaction.sn || '-'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-gray-300 block">Provider Message</span>
+                <span className="font-mono text-red-300">{transaction.providerMessage || '-'}</span>
+              </div>
+            </div>
+          </Card>
         )}
 
       </main>
