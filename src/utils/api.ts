@@ -512,6 +512,7 @@ export const getAdminTransactions = (params?: AdminTransactionsQueryParams) => {
   const queryString = query.toString();
   return apiFetch<any[]>(`/admin/transactions${queryString ? `?${queryString}` : ''}`);
 };
+export const getAdminTransactionById = (id: number) => apiFetch<any>(`/admin/transactions/${id}`);
 export const updateAdminTransaction = (id: number, data: any) => apiFetch<any>(`/admin/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const checkAdminTransactionStatus = (id: number) => apiFetch<any>(`/admin/transactions/${id}/check-status`, { method: 'POST' });
 

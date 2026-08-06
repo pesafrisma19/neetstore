@@ -200,10 +200,10 @@ export const AdminSidebar: React.FC = () => {
             '/secret-admin-dashboard/deposits',
           ])}
         >
-          <SidebarItem to="/secret-admin-dashboard/orders" label="Orders" />
+          <SidebarItem to="/secret-admin-dashboard/orders" label="Antrean Pesanan" />
           <SidebarItem
             to="/secret-admin-dashboard/transactions"
-            label="Transactions"
+            label="Riwayat Transaksi"
           />
           <SidebarItem
             to="/secret-admin-dashboard/deposits"
@@ -301,7 +301,7 @@ export const AdminSidebar: React.FC = () => {
           />
           <SidebarItem
             to="/secret-admin-dashboard/reports-transactions"
-            label="Transactions"
+            label="Laporan Transaksi"
           />
           <SidebarItem
             to="/secret-admin-dashboard/reports-deposits"
