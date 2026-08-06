@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Sparkles, Check } from 'lucide-react';
+import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Sparkles, Check, Calendar, MapPin, Zap, Music, Smile, Star } from 'lucide-react';
 
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
@@ -136,14 +136,8 @@ export const InvoicePage: React.FC = () => {
     ? formatFullDate(transaction.expiredAt) 
     : formatFullDate(new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString());
 
-  // Dynamic Theme Color based on Transaction Status
-  const ticketHeaderBg = ordStatus === 'SUCCESS'
-    ? 'bg-[var(--nb-mint)] text-black'
-    : ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')
-    ? 'bg-[var(--nb-cyan)] text-black'
-    : isFailed || isExpired
-    ? 'bg-red-500 text-white'
-    : 'bg-[var(--nb-yellow)] text-black';
+  const dateShort = format(new Date(transaction.createdAt), "MMM dd, yyyy").toUpperCase();
+  const timeShort = format(new Date(transaction.createdAt), "hh:mm a").toUpperCase();
 
   return (
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)]">
@@ -166,14 +160,11 @@ export const InvoicePage: React.FC = () => {
         </div>
 
         {/* ========================================================================= */}
-        {/* BLOK 1: SLEEK BORDERLESS TIMELINE INDICATOR (Tanpa Card / Border / Shadow) */}
+        {/* BLOK 1: SLEEK BORDERLESS TIMELINE INDICATOR                               */}
         {/* ========================================================================= */}
         <div className="w-full px-2 py-3">
           <div className="flex items-center justify-between relative max-w-2xl mx-auto">
-            
-            {/* Horizontal Connecting Line */}
             <div className="absolute top-3.5 left-6 right-6 h-0.5 bg-gray-300 dark:bg-gray-700 -z-0" />
-            
             {steps.map((st, idx) => (
               <div key={idx} className="flex flex-col items-center z-10">
                 <div 
@@ -187,13 +178,7 @@ export const InvoicePage: React.FC = () => {
                       : 'bg-gray-200 text-gray-500'
                   }`}
                 >
-                  {st.completed ? (
-                    <Check className="w-4 h-4 stroke-[3]" />
-                  ) : st.failed ? (
-                    <XCircle className="w-4 h-4 stroke-[3]" />
-                  ) : (
-                    idx + 1
-                  )}
+                  {st.completed ? <Check className="w-4 h-4 stroke-[3]" /> : st.failed ? <XCircle className="w-4 h-4 stroke-[3]" /> : idx + 1}
                 </div>
                 <span className={`text-[11px] font-bold mt-1.5 ${
                   st.completed ? 'text-black font-black' : st.failed ? 'text-red-600' : st.active ? 'text-black font-black underline' : 'text-gray-400'
@@ -202,7 +187,6 @@ export const InvoicePage: React.FC = () => {
                 </span>
               </div>
             ))}
-
           </div>
         </div>
 
@@ -213,7 +197,6 @@ export const InvoicePage: React.FC = () => {
           variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'} 
           className="p-5 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
         >
-          {/* STATE A: UNPAID (Belum Dibayar) */}
           {isUnpaid && !isExpired && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 text-center sm:text-left">
@@ -230,18 +213,35 @@ export const InvoicePage: React.FC = () => {
                 </div>
               </div>
 
-              {timeLeft !== null && (
-                <div className="bg-white px-4 py-2 border-2 border-black rounded-xl text-center shrink-0 shadow-[3px_3px_0px_0px_#000]">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
-                  <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight text-red-600">
-                    {formatTime(timeLeft)}
-                  </span>
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
+                  <div className="bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] inline-block shrink-0">
+                    <QRCodeSVG value={transaction.paymentUrl} size={90} level="H" />
+                  </div>
+                )}
+                
+                {timeLeft !== null && (
+                  <div className="bg-white px-4 py-2 border-2 border-black rounded-xl text-center shrink-0 shadow-[3px_3px_0px_0px_#000]">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
+                    <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight text-red-600">
+                      {formatTime(timeLeft)}
+                    </span>
+                  </div>
+                )}
+
+                <Button 
+                  variant="white" 
+                  size="sm" 
+                  onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
+                  className="font-black border-2 border-black text-xs py-1.5 px-3 shadow-[2px_2px_0px_0px_#000]"
+                >
+                  <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                  {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
+                </Button>
+              </div>
             </div>
           )}
 
-          {/* STATE B: PROCESS / PAID (Pembayaran Diterima, Diproses Provider) */}
           {(ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')) && (
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
@@ -258,7 +258,6 @@ export const InvoicePage: React.FC = () => {
             </div>
           )}
 
-          {/* STATE C: SUCCESS (Topup Berhasil) */}
           {ordStatus === 'SUCCESS' && (
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
@@ -275,7 +274,6 @@ export const InvoicePage: React.FC = () => {
             </div>
           )}
 
-          {/* STATE D: FAILED / EXPIRED */}
           {(isFailed || isExpired) && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
               <div className="flex items-center gap-3.5">
@@ -301,234 +299,211 @@ export const InvoicePage: React.FC = () => {
         </Card>
 
         {/* ========================================================================= */}
-        {/* BLOK 3: SATU TIKET UTUH (UNIFIED TICKET STUB WITH DYNAMIC THEME COLOR)   */}
+        {/* BLOK 3: POP-ART TICKET STUB (EXACT REPLICA FROM REFERENCE MOCKUP IMAGE)   */}
         {/* ========================================================================= */}
-        <Card variant="white" className="p-0 overflow-hidden border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative">
+        <div className="w-full relative">
           
-          {/* TICKET HEADER (Warna Mengikuti Status Transaksi) */}
-          <div className={`px-5 py-3.5 border-b-4 border-black flex items-center justify-between ${ticketHeaderBg}`}>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 stroke-[2.5]" />
-              <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider m-0">
-                TIKET BUKTI TRANSAKSI
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="white" className="border border-black/20 font-bold text-xs">
-                {gameName}
-              </Badge>
-              <Badge variant={isPaid ? 'mint' : isUnpaid ? 'yellow' : 'orange'} className="border border-black/20 font-bold text-xs">
-                {isPaid ? '🟢 Lunas' : isExpired ? '⚪ Kedaluwarsa' : isFailed ? '🔴 Gagal' : '🟡 Belum Dibayar'}
-              </Badge>
-            </div>
-          </div>
-
-          {/* TICKET BODY GRID: ISI TIKET (KIRI) vs STUB TIKET DINAMIS (KANAN) */}
-          <div className="grid grid-cols-1 md:grid-cols-12 relative">
+          {/* Main Ticket Shell */}
+          <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_#000] rounded-[28px] overflow-hidden relative">
             
-            {/* AREA KIRI TIKET: DETAIL PESANAN & BREAKDOWN HARGA (7/12 Cols) */}
-            <div className="md:col-span-7 p-5 flex flex-col justify-between gap-5">
+            {/* Main Ticket Inner Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 relative">
               
-              {/* Detail Pesanan & Akun Grid */}
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 mb-3 border-b pb-1">
-                  Detail Pesanan & Akun
-                </h3>
-                <div className="grid grid-cols-2 gap-y-3.5 gap-x-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Game</span>
-                    <span className="font-bold text-[var(--nb-text)]">{gameName}</span>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Produk Nominal</span>
-                    <span className="font-bold text-[var(--nb-text)]">{transaction.product?.name || '-'}</span>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">User ID / Target</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold font-mono text-[var(--nb-text)]">{transaction.targetAccount}</span>
-                      {transaction.targetZone && (
-                        <span className="text-xs font-bold bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded border border-gray-300">
-                          Server: {transaction.targetZone}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Nickname Akun</span>
-                    <span className="font-bold text-[var(--nb-text)]">{transaction.nickname || '-'}</span>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">Metode Pembayaran</span>
-                    <span className="font-bold text-[var(--nb-text)]">{transaction.paymentMethod || '-'}</span>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-gray-500 mb-0.5">No. WA Kontak</span>
-                    <span className="font-bold font-mono text-[var(--nb-text)]">{transaction.whatsapp || '-'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Rincian Harga Breakdown (Di Kiri Tiket) */}
-              <div className="bg-[var(--nb-surface-alt)] p-3.5 rounded-xl border border-black/15">
-                <h3 className="text-[11px] font-black uppercase tracking-wider text-gray-500 mb-2">
-                  Rincian Biaya
-                </h3>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between font-medium">
-                    <span className="text-gray-600">Harga Item</span>
-                    <span className="font-bold">{formatRupiah(transaction.basePrice || 0)}</span>
-                  </div>
-                  
-                  {/* Voucher Promo Row: RENDERED ONLY IF DISCOUNT > 0 */}
-                  {transaction.discountAmount > 0 && (
-                    <div className="flex justify-between font-medium text-emerald-700">
-                      <span>Voucher Promo</span>
-                      <span className="font-bold">-{formatRupiah(transaction.discountAmount)}</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between font-medium">
-                    <span className="text-gray-600">Biaya Admin</span>
-                    <span className="font-bold">{formatRupiah(transaction.feeAmount || 0)}</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* CUTOUT NOTCH & DASHED TEAR LINE */}
-            <div className="hidden md:block relative">
-              {/* Upper Notch Cutout */}
-              <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#fdfbf7] dark:bg-[#121214] border-2 border-black z-20" />
-              {/* Dashed Line */}
-              <div className="absolute top-0 bottom-0 left-0 w-0 border-r-2 border-dashed border-black/30 z-10" />
-              {/* Lower Notch Cutout */}
-              <div className="absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-[#fdfbf7] dark:bg-[#121214] border-2 border-black z-20" />
-            </div>
-
-            {/* AREA KANAN TIKET: STUB TIKET DINAMIS (5/12 Cols) */}
-            <div className="md:col-span-5 p-5 bg-[var(--nb-surface-alt)]/50 border-t-2 md:border-t-0 md:border-l-0 border-dashed border-black/30 flex flex-col justify-between gap-4">
-              
-              {/* Stub Top: Tanggal Dibuat */}
-              <div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Tanggal Dibuat</span>
-                <span className="text-xs font-bold text-black dark:text-white block">{formatFullDate(transaction.createdAt)}</span>
-              </div>
-
-              {/* Prominent TOTAL BAYAR Box */}
-              <div className="bg-[var(--nb-yellow)] p-3.5 border-2 border-black rounded-xl text-center shadow-[3px_3px_0px_0px_#000]">
-                <span className="text-[10px] font-black uppercase text-black/70 block mb-0.5">Total Pembayaran</span>
-                <span className="text-2xl font-black text-black tracking-tight block">
-                  {formatRupiah(transaction.amount)}
-                </span>
-              </div>
-
-              {/* DYNAMIC STUB CONTENT (Berubah Otomatis Sesuai Status Transaksi!) */}
-              <div className="flex-1 flex flex-col justify-center">
+              {/* ================= LEFT SECTION OF TICKET (7/12 Cols) ================= */}
+              <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between gap-6 relative min-h-[320px]">
                 
-                {/* DYNAMIC STUB 1: UNPAID (QRIS / Payment Link + Salin Nominal) */}
-                {isUnpaid && !isExpired && (
-                  <div className="flex flex-col items-center text-center gap-2">
-                    
-                    {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
-                      <div className="bg-white p-2 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] inline-block">
-                        <QRCodeSVG value={transaction.paymentUrl} size={140} level="H" />
-                      </div>
-                    )}
-
-                    {transaction.paymentUrl && transaction.paymentUrl.startsWith('http') && (
-                      <a href={transaction.paymentUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-                        <Button variant="yellow" size="sm" className="w-full font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
-                          Bayar Sekarang <ChevronRight className="w-4 h-4 ml-1 stroke-[3]" />
-                        </Button>
-                      </a>
-                    )}
-
-                    <Button 
-                      variant="white" 
-                      size="sm" 
-                      onClick={() => handleCopy(transaction.amount.toString(), 'stubAmount')}
-                      className="w-full font-black border border-black text-xs py-1 mt-1"
-                    >
-                      <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
-                      {copied === 'stubAmount' ? 'Nominal Tersalin!' : 'Salin Nominal Tepat'}
-                    </Button>
-                  </div>
-                )}
-
-                {/* DYNAMIC STUB 2: PROCESS (Loading Spinner) */}
-                {(ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')) && (
-                  <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-500 rounded-xl text-center flex flex-col items-center gap-2">
-                    <Clock className="w-8 h-8 text-amber-600 stroke-[2.5] animate-spin" />
-                    <span className="text-xs font-black uppercase text-amber-900 dark:text-amber-300">
-                      ⚡ Diproses Provider
-                    </span>
-                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
-                      Mohon tunggu sebentar...
-                    </span>
-                  </div>
-                )}
-
-                {/* DYNAMIC STUB 3: SUCCESS (Kode Voucher / Serial Number Prominent Box!) */}
-                {ordStatus === 'SUCCESS' && (
-                  <div className="p-3.5 bg-[#16161a] border-2 border-black rounded-xl text-white text-center flex flex-col gap-2 shadow-[3px_3px_0px_0px_var(--nb-mint)]">
-                    <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider">
-                      🎉 KODE VOUCHER / SERIAL NUMBER
-                    </span>
-                    <div className="bg-[#0b0b0e] p-2 border border-gray-700 rounded-lg font-mono text-sm font-black tracking-widest text-white break-all">
-                      {transaction.sn || 'BERHASIL TERKIRIM'}
+                {/* Top Row: Pink Live Badge + Four-point Star Sparkle + Purple Starburst Sticker */}
+                <div className="flex items-start justify-between gap-2 relative z-10">
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Pink Live Pill Badge */}
+                    <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-3 py-1 flex items-center gap-2 font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48] animate-pulse" />
+                      <span>{isPaid ? 'PAID' : isUnpaid ? 'LIVE' : 'INVOICE'}</span>
                     </div>
-                    {transaction.sn && (
-                      <Button 
-                        variant="yellow" 
-                        size="sm" 
-                        onClick={() => handleCopy(transaction.sn, 'stubSn')}
-                        className="w-full font-black border border-black text-xs py-1"
-                      >
-                        <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
-                        {copied === 'stubSn' ? 'Kode Tersalin!' : 'Salin Kode Voucher'}
-                      </Button>
-                    )}
-                  </div>
-                )}
 
-                {/* DYNAMIC STUB 4: FAILED / EXPIRED */}
-                {(isFailed || isExpired) && (
-                  <div className="p-3 bg-red-50 dark:bg-red-950/40 border-2 border-red-500 rounded-xl text-center text-red-700 dark:text-red-300 text-xs font-bold">
-                    {isExpired ? 'Metode pembayaran kedaluwarsa.' : 'Transaksi gagal diproses.'}
+                    {/* Blue 4-point Sparkle */}
+                    <Sparkles className="w-6 h-6 text-[#0284C7] fill-[#38BDF8] stroke-black stroke-[2]" />
                   </div>
-                )}
+
+                  {/* Purple Starburst Jagged Sticker */}
+                  <div className="relative">
+                    <div className="bg-[#C084FC] border-2 border-black px-3 py-1.5 rounded-lg shadow-[3px_3px_0px_0px_#000] transform rotate-3 flex items-center justify-center">
+                      <span className="font-black text-[10px] sm:text-xs uppercase text-black leading-tight text-center block">
+                        SEE YOU THERE!
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Logo & Big Bold Headline */}
+                <div className="my-2 relative z-10">
+                  {/* Brand/Game Name with Logo Graphic */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-lg bg-[#FFB7D5] border-2 border-black flex items-center justify-center font-black text-xs shadow-[2px_2px_0px_0px_#000]">
+                      ⚡
+                    </div>
+                    <span className="font-black text-base sm:text-lg uppercase tracking-wider text-black">
+                      {gameName}
+                    </span>
+                  </div>
+
+                  {/* Hero Headline: Big Bold Product Name */}
+                  <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-black leading-none m-0">
+                    {transaction.product?.name || 'TOPUP GAME'}
+                  </h1>
+
+                  {/* Pink Underline Bar */}
+                  <div className="w-24 sm:w-32 h-2.5 bg-[#FFB7D5] border-2 border-black rounded-full mt-2 shadow-[2px_2px_0px_0px_#000]" />
+                </div>
+
+                {/* Music Note Embellishment Near Right of Headline */}
+                <div className="absolute right-8 top-24 hidden sm:block">
+                  <div className="relative">
+                    <Music className="w-8 h-8 text-[#E086D3] fill-[#F472B6] stroke-black stroke-[2] transform -rotate-12" />
+                    <div className="absolute -top-1 -right-2 text-xs font-black text-black">/\</div>
+                  </div>
+                </div>
+
+                {/* Bottom Row of Left Ticket: Yellow Smiley + Mint Green Account Capsule + Blue Bolt */}
+                <div className="flex flex-wrap items-center justify-between gap-3 relative z-10 pt-2">
+                  
+                  {/* Yellow Smiley Face Icon */}
+                  <div className="w-10 h-10 rounded-full bg-[#FDE047] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] transform -rotate-6">
+                    <Smile className="w-6 h-6 text-black stroke-[2.5]" />
+                  </div>
+
+                  {/* Mint Green Pill Container for User Account Info */}
+                  <div className="flex-1 bg-[#A7F3D0] border-2 border-black rounded-full px-4 py-2 flex items-center justify-center font-extrabold text-xs sm:text-sm text-black shadow-[2px_2px_0px_0px_#000] text-center min-w-[200px]">
+                    <span className="truncate">
+                      ID: {transaction.targetAccount} {transaction.targetZone ? `• Zone: ${transaction.targetZone}` : ''} {transaction.nickname ? `• ${transaction.nickname}` : ''}
+                    </span>
+                  </div>
+
+                  {/* Blue Lightning Bolt Icon */}
+                  <div className="w-9 h-9 rounded-xl bg-[#38BDF8] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] transform rotate-12">
+                    <Zap className="w-5 h-5 text-black fill-yellow-300 stroke-[2.5]" />
+                  </div>
+
+                </div>
+
+                {/* Bottom Right Halftone Dot Pattern */}
+                <div className="absolute bottom-3 right-16 hidden sm:grid grid-cols-4 gap-1 opacity-60">
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                </div>
 
               </div>
 
-              {/* Stub Footer: Invoice ID & Functional Visual Barcode */}
-              <div className="border-t border-black/15 pt-2 flex items-center justify-between gap-2">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-gray-500 uppercase">Invoice ID</span>
-                  <span className="font-mono text-xs font-bold text-black dark:text-white truncate max-w-[130px]">
-                    {transaction.providerRef || `TRX-${transaction.id}`}
-                  </span>
+              {/* ================= MIDDLE DASHED DIVIDER & NOTCH CUTOUTS ================= */}
+              <div className="hidden lg:block relative">
+                {/* Upper Circle Cutout Notch */}
+                <div className="absolute -top-5 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
+                
+                {/* Vertical Dashed Line */}
+                <div className="absolute top-0 bottom-0 left-0 w-0 border-r-3 border-dashed border-black z-20" />
+                
+                {/* Lower Circle Cutout Notch */}
+                <div className="absolute -bottom-5 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
+              </div>
+
+              {/* ================= RIGHT SECTION OF TICKET (STUB) (5/12 Cols) ================= */}
+              <div className="lg:col-span-5 p-6 sm:p-8 border-t-3 lg:border-t-0 border-dashed border-black flex flex-col justify-between gap-4 bg-[#FAF5E9] relative z-10">
+                
+                {/* Row Items with Square Colored Icon Boxes */}
+                <div className="space-y-3">
+                  
+                  {/* Item 1: DATE */}
+                  <div className="flex items-center gap-3 border-b border-black/15 pb-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#BBF7D0] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                      <Calendar className="w-5 h-5 text-black stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <span className="font-black text-sm uppercase block leading-tight text-black">{dateShort}</span>
+                      <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">DATE</span>
+                    </div>
+                  </div>
+
+                  {/* Item 2: TIME */}
+                  <div className="flex items-center gap-3 border-b border-black/15 pb-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#E9D5FF] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                      <Clock className="w-5 h-5 text-black stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <span className="font-black text-sm uppercase block leading-tight text-black">{timeShort}</span>
+                      <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">TIME</span>
+                    </div>
+                  </div>
+
+                  {/* Item 3: VENUE / METHOD & PRICE */}
+                  <div className="flex items-center gap-3 pb-1">
+                    <div className="w-10 h-10 rounded-xl bg-[#FEF08A] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                      <MapPin className="w-5 h-5 text-black stroke-[2.5]" />
+                    </div>
+                    <div>
+                      <span className="font-black text-sm uppercase block leading-tight text-black">
+                        {transaction.paymentMethod} • {formatRupiah(transaction.amount)}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase text-gray-500 tracking-wider">VENUE & PRICE</span>
+                    </div>
+                  </div>
+
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleCopy(transaction.providerRef || String(transaction.id), 'stubInvoice')}
-                  className="p-1 text-gray-600 hover:text-black shrink-0 cursor-pointer"
-                  title="Salin Invoice ID"
+
+                {/* Middle Barcode Section */}
+                <div className="my-1 flex flex-col items-center justify-center text-center">
+                  {/* Real Vertical Barcode Lines */}
+                  <div className="w-full bg-white p-2.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] flex flex-col items-center">
+                    <div className="flex items-center justify-center gap-1 w-full h-10 px-2 overflow-hidden">
+                      <div className="w-1 h-full bg-black" />
+                      <div className="w-2 h-full bg-black" />
+                      <div className="w-0.5 h-full bg-black" />
+                      <div className="w-1.5 h-full bg-black" />
+                      <div className="w-1 h-full bg-black" />
+                      <div className="w-3 h-full bg-black" />
+                      <div className="w-0.5 h-full bg-black" />
+                      <div className="w-2 h-full bg-black" />
+                      <div className="w-1 h-full bg-black" />
+                      <div className="w-1.5 h-full bg-black" />
+                      <div className="w-0.5 h-full bg-black" />
+                      <div className="w-2 h-full bg-black" />
+                      <div className="w-1 h-full bg-black" />
+                      <div className="w-2.5 h-full bg-black" />
+                    </div>
+                    
+                    {/* Invoice ID Flanked by Stars */}
+                    <div className="flex items-center justify-center gap-1.5 mt-1.5 text-xs font-mono font-black text-black">
+                      <Star className="w-3 h-3 fill-black text-black" />
+                      <span>{transaction.providerRef || `TRX-${transaction.id}`}</span>
+                      <Star className="w-3 h-3 fill-black text-black" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Pink Pill CTA Button */}
+                <button
+                  type="button"
+                  onClick={() => handleCopy(transaction.amount.toString(), 'ticketCta')}
+                  className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-2xl py-3 px-4 font-black uppercase text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
                 >
-                  <Copy className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>{copied === 'ticketCta' ? 'NOMINAL TERSALIN!' : 'SALIN NOMINAL TEPAT'}</span>
+                  <ChevronRight className="w-4 h-4 stroke-[3]" />
                 </button>
-                {copied === 'stubInvoice' && <span className="text-[10px] font-bold text-emerald-600">Tersalin!</span>}
+
               </div>
 
             </div>
+
           </div>
-        </Card>
+
+        </div>
 
         {/* ========================================================================= */}
         {/* BLOK 4: ADMIN DEBUG PANEL (KHUSUS ROLE ADMIN)                             */}
