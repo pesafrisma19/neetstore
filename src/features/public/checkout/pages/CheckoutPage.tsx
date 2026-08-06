@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
 import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Sparkles, Download, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
 import { checkoutApi } from '../services/checkout.api';
+import { calculateCheckoutBreakdown, type DiscountType } from '../../../../utils/checkoutCalculator';
 
 const optimizeGoogleBanner = (url: string) => {
   if (!url || !url.includes('googleusercontent.com')) return url;
