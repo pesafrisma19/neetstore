@@ -180,6 +180,10 @@ export const CheckoutPage: React.FC = () => {
   const [checkIdError, setCheckIdError] = useState('');
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
 
+  // State untuk merekam ID & Server yang BENAR-BENAR berhasil divalidasi
+  const [validatedUserId, setValidatedUserId] = useState('');
+  const [validatedServerId, setValidatedServerId] = useState('');
+
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [appliedDiscountType, setAppliedDiscountType] = useState('FLAT');
@@ -190,9 +194,42 @@ export const CheckoutPage: React.FC = () => {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState<string>('');
 
+  // Helper untuk reset SELURUH state validasi
+  const resetValidationState = React.useCallback(() => {
+    setNickname('');
+    setDetectedRegionCode('');
+    setIsRegionLocked(false);
+    setShowAllRegionsOverride(false);
+    setValidMatchedRegionIds([]);
+    setFirstTopupTiers([]);
+    setValidatedUserId('');
+    setValidatedServerId('');
+    setCheckIdError('');
+  }, []);
+
+  // Handler onChange dengan proteksi: hanya reset jika nilai BENAR-BENAR BERBEDA
+  const handleUserIdChange = (val: string) => {
+    if (val !== userId) {
+      setUserId(val);
+      resetValidationState();
+    }
+  };
+
+  const handleServerIdChange = (val: string) => {
+    if (val !== serverId) {
+      setServerId(val);
+      resetValidationState();
+    }
+  };
+
   // Load Data dari API Database NETSTORE (100% Kontrol Admin)
   useEffect(() => {
     const loadGameData = async () => {
+      // Reset input & validasi game lama saat ganti brand/slug
+      setUserId('');
+      setServerId('');
+      resetValidationState();
+
       const brandRes = await checkoutApi.getBrandBySlug(slug);
       if (brandRes) {
         setBrandData(brandRes);
@@ -217,7 +254,7 @@ export const CheckoutPage: React.FC = () => {
     };
 
     loadGameData();
-  }, [slug]);
+  }, [slug, resetValidationState]);
 
   const availableRegions = React.useMemo(() => {
     if (!brandData?.regions || !Array.isArray(brandData.regions)) return [];
@@ -399,6 +436,8 @@ export const CheckoutPage: React.FC = () => {
       const res = await checkoutApi.validateNeetflixAccount(brandData.id, userId, serverId);
       if (res.success && res.data) {
         setNickname(res.data.nickname);
+        setValidatedUserId(userId.trim());
+        setValidatedServerId(serverId.trim());
         const targetRegionId = res.data.recommendedRegionId || res.data.matchedRegionId;
         if (targetRegionId) {
           setSelectedRegionId(targetRegionId); // Auto-Lock Recommended Region
@@ -418,11 +457,15 @@ export const CheckoutPage: React.FC = () => {
         }
         setToast({ type: 'success', title: 'AKUN DITEMUKAN', message: `Halo, ${res.data.nickname}!` });
       } else {
+        setValidatedUserId('');
+        setValidatedServerId('');
         const errMsg = res.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
         setCheckIdError(errMsg);
         setToast({ type: 'error', title: 'ID TIDAK VALID', message: errMsg });
       }
     } catch (err: any) {
+      setValidatedUserId('');
+      setValidatedServerId('');
       const errMsg = err.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
       setCheckIdError(errMsg);
       setToast({ type: 'error', title: 'GAGAL CEK ID', message: errMsg });
@@ -468,6 +511,33 @@ export const CheckoutPage: React.FC = () => {
       });
       return;
     }
+
+    // Phase 4 Guard: Jika game mendukung Cek ID (validationGameCode), pastikan ID divalidasi & tidak berubah
+    if (brandData?.validationGameCode) {
+      const currentUserId = userId.trim();
+      const currentServerId = serverId.trim();
+
+      if (!validatedUserId) {
+        setToast({
+          id: `t_${Date.now()}`,
+          type: 'warning',
+          title: 'CEK ID DIPERLUKAN',
+          message: 'Silakan lakukan Cek ID terlebih dahulu.',
+        });
+        return;
+      }
+
+      if (currentUserId !== validatedUserId || currentServerId !== validatedServerId) {
+        setToast({
+          id: `t_${Date.now()}`,
+          type: 'warning',
+          title: 'DATA AKUN BERUBAH',
+          message: 'User ID atau Server telah berubah. Silakan lakukan Cek ID kembali.',
+        });
+        return;
+      }
+    }
+
     // Generate UUID pseudo-random sebagai Idempotency Key unik untuk transaksi ini
     const newKey = `KEY-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
     setIdempotencyKey(newKey);
@@ -725,7 +795,7 @@ export const CheckoutPage: React.FC = () => {
                                 <select
                                   className="w-full text-xs sm:text-sm py-2 px-3 bg-[var(--nb-surface)] border-2 border-[var(--nb-border)] rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-medium"
                                   value={isFirst ? userId : serverId}
-                                  onChange={(e) => isFirst ? setUserId(e.target.value) : setServerId(e.target.value)}
+                                  onChange={(e) => isFirst ? handleUserIdChange(e.target.value) : handleServerIdChange(e.target.value)}
                                   required
                                 >
                                   <option value="">-- Pilih --</option>
@@ -738,7 +808,7 @@ export const CheckoutPage: React.FC = () => {
                                   type={field.inputType || 'text'}
                                   placeholder={`Masukkan ${field.label}`}
                                   value={isFirst ? userId : serverId}
-                                  onChange={(e) => isFirst ? setUserId(e.target.value) : setServerId(e.target.value)}
+                                  onChange={(e) => isFirst ? handleUserIdChange(e.target.value) : handleServerIdChange(e.target.value)}
                                   required
                                   className="w-full text-xs sm:text-sm py-2 px-3 bg-[var(--nb-surface)]"
                                 />
