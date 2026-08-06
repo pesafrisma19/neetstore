@@ -47,8 +47,9 @@ export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<
       const message = error.response.data?.error || error.response.data?.message || `Error ${error.response.status}`;
       throw new Error(message);
     }
-    // Untuk network failure murni (no response), tetap return null
-    return null;
+    // Untuk network failure murni (no response), lempar Error agar consumer menangani kegagalan jaringan
+    const networkMessage = error.message || 'Koneksi jaringan terputus atau server tidak merespon';
+    throw new Error(networkMessage);
   }
 };
 
@@ -478,8 +479,25 @@ export const deleteAdminUser = (id: number) => apiFetch<{ message: string }>(`/a
 export const getAdminMutations = () => apiFetch<any[]>('/admin/users/mutations').catch(() => apiFetch<any[]>('/admin/mutations')).catch(() => null);
 
 // === Transactions ===
-export const getAdminTransactions = () => apiFetch<any[]>('/admin/transactions');
-export const updateAdminTransaction = (id: number, data: any) => apiFetch<any>(`/admin/transactions/${id}`, { method: 'PATCH', body: data });
+export interface AdminTransactionsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  orderStatus?: string;
+  paymentStatus?: string;
+}
+
+export const getAdminTransactions = (params?: AdminTransactionsQueryParams) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.search) query.append('search', params.search);
+  if (params?.orderStatus && params.orderStatus !== 'ALL') query.append('orderStatus', params.orderStatus);
+  if (params?.paymentStatus && params.paymentStatus !== 'ALL') query.append('paymentStatus', params.paymentStatus);
+  const queryString = query.toString();
+  return apiFetch<any[]>(`/admin/transactions${queryString ? `?${queryString}` : ''}`);
+};
+export const updateAdminTransaction = (id: number, data: any) => apiFetch<any>(`/admin/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const checkAdminTransactionStatus = (id: number) => apiFetch<any>(`/admin/transactions/${id}/check-status`, { method: 'POST' });
 
 // === Banners ===
