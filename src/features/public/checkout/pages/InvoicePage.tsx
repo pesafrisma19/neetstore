@@ -18,7 +18,7 @@ export const InvoicePage: React.FC = () => {
   const { orderId } = useParams();
   const invoiceNumber = orderId || '';
   const { user } = useAuth();
-  
+
   const [copied, setCopied] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
@@ -33,14 +33,14 @@ export const InvoicePage: React.FC = () => {
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return 10000;
-      
-      const isTerminal = 
-        data.orderStatus === 'SUCCESS' || 
-        data.orderStatus === 'FAILED' || 
+
+      const isTerminal =
+        data.orderStatus === 'SUCCESS' ||
+        data.orderStatus === 'FAILED' ||
         data.orderStatus === 'CANCELED' ||
         data.paymentStatus === 'EXPIRED' ||
         data.paymentStatus === 'REFUND';
-        
+
       return isTerminal ? false : 10000;
     }
   });
@@ -51,9 +51,9 @@ export const InvoicePage: React.FC = () => {
       setTimeLeft(null);
       return;
     }
-    
+
     const expiredDate = transaction.expiredAt ? new Date(transaction.expiredAt) : new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000);
-    
+
     const calculateTimeLeft = () => {
       const secondsLeft = differenceInSeconds(expiredDate, new Date());
       setTimeLeft(secondsLeft > 0 ? secondsLeft : 0);
@@ -116,7 +116,7 @@ export const InvoicePage: React.FC = () => {
 
   const payStatus = transaction.paymentStatus;
   const ordStatus = transaction.orderStatus;
-  
+
   const isPaid = payStatus === 'PAID';
   const isUnpaid = payStatus === 'UNPAID';
   const isExpired = payStatus === 'EXPIRED';
@@ -138,8 +138,8 @@ export const InvoicePage: React.FC = () => {
     ? rawProductName.slice(gameName.length).replace(/^[\s:\-]+/, '')
     : rawProductName;
 
-  const expiredDateFormatted = transaction.expiredAt 
-    ? formatFullDate(transaction.expiredAt) 
+  const expiredDateFormatted = transaction.expiredAt
+    ? formatFullDate(transaction.expiredAt)
     : formatFullDate(new Date(new Date(transaction.createdAt).getTime() + 24 * 60 * 60 * 1000).toISOString());
 
   const dateShort = format(new Date(transaction.createdAt), "MMM dd, yyyy").toUpperCase();
@@ -150,7 +150,7 @@ export const InvoicePage: React.FC = () => {
       <Navbar />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-5">
-        
+
         {/* Top Navigation */}
         <div className="flex items-center justify-between">
           <Link to="/">
@@ -173,22 +173,20 @@ export const InvoicePage: React.FC = () => {
             <div className="absolute top-3.5 left-6 right-6 h-0.5 bg-gray-300 dark:bg-gray-700 -z-0" />
             {steps.map((st, idx) => (
               <div key={idx} className="flex flex-col items-center z-10">
-                <div 
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
-                    st.completed 
-                      ? 'bg-emerald-500 text-white ring-4 ring-emerald-100 dark:ring-emerald-950' 
-                      : st.failed 
-                      ? 'bg-red-500 text-white' 
-                      : st.active 
-                      ? 'bg-[var(--nb-yellow)] text-black ring-4 ring-yellow-200 dark:ring-yellow-900 animate-pulse' 
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${st.completed
+                      ? 'bg-emerald-500 text-white ring-4 ring-emerald-100 dark:ring-emerald-950'
+                      : st.failed
+                        ? 'bg-red-500 text-white'
+                        : st.active
+                          ? 'bg-[var(--nb-yellow)] text-black ring-4 ring-yellow-200 dark:ring-yellow-900 animate-pulse'
+                          : 'bg-gray-200 text-gray-500'
+                    }`}
                 >
                   {st.completed ? <Check className="w-4 h-4 stroke-[3]" /> : st.failed ? <XCircle className="w-4 h-4 stroke-[3]" /> : idx + 1}
                 </div>
-                <span className={`text-[11px] font-bold mt-1.5 ${
-                  st.completed ? 'text-black font-black' : st.failed ? 'text-red-600' : st.active ? 'text-black font-black underline' : 'text-gray-400'
-                }`}>
+                <span className={`text-[11px] font-bold mt-1.5 ${st.completed ? 'text-black font-black' : st.failed ? 'text-red-600' : st.active ? 'text-black font-black underline' : 'text-gray-400'
+                  }`}>
                   {st.label}
                 </span>
               </div>
@@ -197,21 +195,26 @@ export const InvoicePage: React.FC = () => {
         </div>
 
         {/* ========================================================================= */}
-        {/* BLOK 2: AREA STATUS DINAMIS (INFORMATIF + PURE CSS ANIMATIONS)            */}
+        {/* BLOK 2: AREA STATUS DINAMIS                                               */}
+        {/* Redesain: banner sekarang cuma jadi "header" tipis (judul + deskripsi).   */}
+        {/* QR / timer / tombol dikumpulkan jadi satu panel putih terpisah di bawah   */}
+        {/* judul, supaya semua elemen brutalist (border tebal + shadow) konsisten   */}
+        {/* dan nggak numpuk ngambang di atas background kuning polos.               */}
         {/* ========================================================================= */}
-        <Card 
-          variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'} 
-          className="p-4 sm:p-5 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
+        <Card
+          variant={ordStatus === 'SUCCESS' ? 'mint' : ordStatus === 'PROCESS' ? 'cyan' : isFailed ? 'purple' : isExpired ? 'cream' : 'yellow'}
+          className="p-0 border-4 border-black shadow-[6px_6px_0px_0px_#000] rounded-2xl relative overflow-hidden"
         >
           {isUnpaid && !isExpired && (
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
+            <div className="flex flex-col">
+              {/* Header row */}
+              <div className="flex items-center gap-3.5 p-4 sm:p-5 pb-3 sm:pb-4">
                 <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                   <Clock className="w-5 h-5 text-black stroke-[3] animate-pulse" />
                 </div>
-                <div>
-                  <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
-                    MENUNGGU PEMBAYARAN
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-lg font-black uppercase tracking-tight text-black m-0 leading-tight truncate">
+                    Menunggu Pembayaran
                   </h1>
                   <p className="text-xs font-semibold text-black/80 mt-0.5 m-0">
                     Bayar sebelum: <span className="font-bold">{expiredDateFormatted}</span>
@@ -219,37 +222,46 @@ export const InvoicePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
-                  <div className="bg-white p-1.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
-                    <QRCodeSVG value={transaction.paymentUrl} size={70} level="M" />
-                  </div>
-                )}
-                
-                {timeLeft !== null && (
-                  <div className="bg-white px-3 py-1.5 border-2 border-black rounded-xl text-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                    <span className="text-[9px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
-                    <span className="text-lg sm:text-xl font-black tabular-nums tracking-tight text-red-600">
-                      {formatTime(timeLeft)}
-                    </span>
-                  </div>
-                )}
+              {/* Action panel — satu bidang putih, border-top tebal pemisah dari header */}
+              <div className="border-t-2 border-black/10 bg-white/70 p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                  {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
+                    <div className="flex items-center gap-3 bg-white p-2.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+                      <QRCodeSVG value={transaction.paymentUrl} size={64} level="M" />
+                      <div className="sm:hidden">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider block text-gray-500">Scan QRIS</span>
+                        <span className="text-xs font-black">Bayar via e-wallet</span>
+                      </div>
+                    </div>
+                  )}
 
-                <Button 
-                  variant="white" 
-                  size="sm" 
-                  onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
-                  className="font-black border-2 border-black text-xs py-2 px-3 shadow-[2px_2px_0px_0px_#000]"
-                >
-                  <Copy className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
-                  {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
-                </Button>
+                  <div className="flex-1 flex flex-col sm:flex-row gap-3">
+                    {timeLeft !== null && (
+                      <div className="flex-1 bg-white px-4 py-2.5 border-2 border-black rounded-xl text-center flex flex-col justify-center shadow-[2px_2px_0px_0px_#000]">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
+                        <span className="text-lg sm:text-xl font-black tabular-nums tracking-tight text-red-600">
+                          {formatTime(timeLeft)}
+                        </span>
+                      </div>
+                    )}
+
+                    <Button
+                      variant="white"
+                      size="sm"
+                      onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
+                      className="font-black border-2 border-black text-xs py-2 px-4 shadow-[2px_2px_0px_0px_#000] sm:self-stretch"
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
+                      {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {(ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING')) && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 p-4 sm:p-5">
               <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                 <Clock className="w-6 h-6 text-amber-600 stroke-[3] animate-spin" />
               </div>
@@ -265,7 +277,7 @@ export const InvoicePage: React.FC = () => {
           )}
 
           {ordStatus === 'SUCCESS' && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 p-4 sm:p-5">
               <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                 <CheckCircle className="w-7 h-7 text-emerald-600 stroke-[3] animate-bounce" />
               </div>
@@ -281,7 +293,7 @@ export const InvoicePage: React.FC = () => {
           )}
 
           {(isFailed || isExpired) && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left p-4 sm:p-5">
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                   <AlertTriangle className="w-6 h-6 text-red-600 stroke-[3]" />
@@ -305,20 +317,25 @@ export const InvoicePage: React.FC = () => {
         </Card>
 
         {/* ========================================================================= */}
-        {/* BLOK 3: POP-ART TICKET STUB (RESPONSIVE 2-COLUMN POP-ART TICKET)          */}
+        {/* BLOK 3: POP-ART TICKET STUB                                               */}
+        {/* FIX: divider tengah sekarang position:absolute (bukan grid item), dan     */}
+        {/* kedua kolom pakai col-start eksplisit. Sebelumnya divider tanpa col-span  */}
+        {/* ikut "makan" 1 kolom grid, bikin kolom kanan auto-wrap ke row baru dan    */}
+        {/* nyisain blank space gede di kanan (bug yang bikin QRIS/stub keluar dari   */}
+        {/* posisi seharusnya).                                                       */}
         {/* ========================================================================= */}
         <div className="w-full relative">
-          
+
           {/* Main Ticket Shell */}
           <div className="bg-[#FAF5E9] text-black border-4 border-black shadow-[8px_8px_0px_0px_#000] rounded-[24px] sm:rounded-[28px] overflow-hidden relative">
-            
-            {/* Main Ticket Inner Grid (Always 2 Columns on md/lg, responsive stacked with tear lines) */}
+
+            {/* Main Ticket Inner Grid — 12 kolom eksplisit, tanpa item "siluman" */}
             <div className="grid grid-cols-1 md:grid-cols-12 relative">
-              
-              {/* ================= LEFT SECTION OF TICKET (7/12 Cols) ================= */}
-              <div className="md:col-span-7 p-5 sm:p-7 flex flex-col justify-between gap-5 relative min-h-[300px]">
-                
-                {/* Top Row: Pink Live Badge + Four-point Star Sparkle + Purple Starburst Sticker */}
+
+              {/* ================= LEFT SECTION OF TICKET (col 1-7) ================= */}
+              <div className="md:col-start-1 md:col-span-7 p-5 sm:p-7 flex flex-col justify-between gap-5 relative min-h-[300px]">
+
+                {/* Top Row: Pink Live Badge + Sparkle + Purple Starburst Sticker */}
                 <div className="flex items-start justify-between gap-2 relative z-10">
                   <div className="flex items-center gap-2">
                     <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-2.5 py-0.5 flex items-center gap-1.5 font-black text-[11px] uppercase shadow-[2px_2px_0px_0px_#000]">
@@ -348,7 +365,6 @@ export const InvoicePage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Clean Headline Product Name */}
                   <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-black leading-tight m-0 break-words">
                     {cleanProductName || rawProductName}
                   </h1>
@@ -361,7 +377,7 @@ export const InvoicePage: React.FC = () => {
                   <Music className="w-7 h-7 text-[#E086D3] fill-[#F472B6] stroke-black stroke-[2] transform -rotate-12" />
                 </div>
 
-                {/* Bottom Row of Left Ticket: Yellow Smiley + Mint Green Account Capsule + Blue Bolt */}
+                {/* Bottom Row */}
                 <div className="flex flex-wrap items-center justify-between gap-2.5 relative z-10 pt-1">
                   <div className="w-9 h-9 rounded-full bg-[#FDE047] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                     <Smile className="w-5 h-5 text-black stroke-[2.5]" />
@@ -388,20 +404,20 @@ export const InvoicePage: React.FC = () => {
 
               </div>
 
-              {/* ================= MIDDLE DASHED DIVIDER & NOTCH CUTOUTS ================= */}
-              <div className="relative">
-                {/* Desktop Notch Cutouts (Top & Bottom of Divider) */}
-                <div className="hidden md:block absolute -top-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
-                <div className="hidden md:block absolute top-0 bottom-0 left-0 w-0 border-r-3 border-dashed border-black z-20" />
-                <div className="hidden md:block absolute -bottom-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
-                
-                {/* Mobile Tear Line (Horizontal) */}
-                <div className="md:hidden w-full border-b-3 border-dashed border-black my-0" />
+              {/* ================= NOTCH CUTOUTS + DASHED DIVIDER ================= */}
+              {/* Absolute, bukan grid item -> tidak lagi ikut "makan" kolom grid */}
+              <div className="hidden md:block absolute top-0 bottom-0 left-[58.333%] -translate-x-1/2 z-20 pointer-events-none">
+                <div className="absolute -top-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
+                <div className="absolute top-0 bottom-0 left-0 border-r-3 border-dashed border-black" />
+                <div className="absolute -bottom-4 -left-4 w-8 h-8 rounded-full bg-white dark:bg-[#121214] border-4 border-black z-30" />
               </div>
 
-              {/* ================= RIGHT SECTION OF TICKET (STUB) (5/12 Cols) ================= */}
-              <div className="md:col-span-5 p-5 sm:p-7 flex flex-col justify-between gap-4 bg-[#FAF5E9] relative z-10">
-                
+              {/* Mobile Tear Line (Horizontal) */}
+              <div className="md:hidden col-span-1 border-b-3 border-dashed border-black" />
+
+              {/* ================= RIGHT SECTION OF TICKET (STUB) (col 8-12) ================= */}
+              <div className="md:col-start-8 md:col-span-5 p-5 sm:p-7 flex flex-col justify-between gap-4 bg-[#FAF5E9] relative z-10">
+
                 {/* Row Items with Square Colored Icon Boxes */}
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-3 border-b border-black/15 pb-2">
@@ -454,7 +470,7 @@ export const InvoicePage: React.FC = () => {
                       <div className="w-0.5 h-full bg-black" />
                       <div className="w-2 h-full bg-black" />
                     </div>
-                    
+
                     <div className="flex items-center justify-center gap-1 mt-1 text-[11px] font-mono font-black text-black">
                       <Star className="w-2.5 h-2.5 fill-black text-black" />
                       <span className="truncate max-w-[170px]">{transaction.providerRef || `TRX-${transaction.id}`}</span>
@@ -487,8 +503,8 @@ export const InvoicePage: React.FC = () => {
         {user?.role === 'ADMIN' && (
           <Card variant="purple" className="p-0 overflow-hidden border-4 border-black rounded-2xl shadow-[5px_5px_0px_0px_#000]">
             <div className="bg-yellow-400 p-2.5 border-b-2 border-black flex items-center gap-2">
-               <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
-               <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW</h2>
+              <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
+              <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW</h2>
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-white text-xs">
               <div>
