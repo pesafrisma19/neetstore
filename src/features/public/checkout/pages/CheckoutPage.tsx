@@ -124,9 +124,8 @@ const EventCarouselSlider: React.FC<{ events: { title: string; badge: string; ba
                   key={i}
                   type="button"
                   onClick={() => setIndex(i)}
-                  className={`h-2 border-[1.5px] border-[var(--nb-border)] transition-all ${
-                    i === index ? 'bg-[var(--nb-yellow)] w-6' : 'bg-[var(--nb-surface)] w-2'
-                  }`}
+                  className={`h-2 border-[1.5px] border-[var(--nb-border)] transition-all ${i === index ? 'bg-[var(--nb-yellow)] w-6' : 'bg-[var(--nb-surface)] w-2'
+                    }`}
                 />
               ))}
             </div>
@@ -252,7 +251,7 @@ function writeAllPersistedAttempts(allMap: CheckoutAttemptMap): void {
     } else {
       sessionStorage.setItem(CHECKOUT_ATTEMPTS_STORAGE_KEY, JSON.stringify(allMap));
     }
-  } catch {}
+  } catch { }
 }
 
 // 3. Mengambil attempt HANYA untuk owner tertentu (untuk view / lookup)
@@ -375,7 +374,7 @@ export const CheckoutPage: React.FC = () => {
   // Phase 5: Dynamic 5-Level Region & ProductCategory States
   const [selectedRegionId, setSelectedRegionId] = useState<number | 'ALL'>('ALL');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'ALL'>('ALL');
-  
+
   // Dynamic Payment Methods Selection State
   const [selectedPayment, setSelectedPayment] = useState<number | string>('');
 
@@ -1039,8 +1038,8 @@ export const CheckoutPage: React.FC = () => {
 
   const calculateTotal = () => {
     return getCheckoutBreakdown().grandTotal;
-  }; 
-  
+  };
+
   // 5. Mutation Submit Transaksi Checkout
   const checkoutMutation = useMutation<
     CheckoutSuccessResponse,
@@ -1201,7 +1200,7 @@ export const CheckoutPage: React.FC = () => {
       whatsapp: whatsapp.trim() || undefined,
     };
 
-    resolveCheckoutAttemptKey(draftPayload).catch(() => {});
+    resolveCheckoutAttemptKey(draftPayload).catch(() => { });
     setIsConfirmModalOpen(true);
   };
 
@@ -1356,10 +1355,8 @@ export const CheckoutPage: React.FC = () => {
           </div>
 
           {/* 2. Game Icon & Title Info */}
-          <div className="flex flex-col gap-3">
-            {/* Icon + Title Row */}
-            <div className="flex flex-row items-start gap-3 sm:gap-6 pt-1 sm:pt-2">
-              <Card shadow="lg" className="w-16 h-16 sm:w-28 sm:h-28 !rounded-2xl shrink-0 p-0 border-[3px] sm:border-[4px]">
+          <div className="flex flex-row items-center sm:items-start gap-3 sm:gap-6 pt-1 sm:pt-2">
+            <Card shadow="lg" className="w-20 h-20 sm:w-36 sm:h-36 !rounded-2xl shrink-0 p-0 border-[3px] sm:border-[4px]">
                 <img src={gameIcon} alt={gameTitle} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
               </Card>
 
@@ -2173,6 +2170,6 @@ export const CheckoutPage: React.FC = () => {
       </main>
 
       <Footer />
-    </div>
+    </div >
   );
 };
