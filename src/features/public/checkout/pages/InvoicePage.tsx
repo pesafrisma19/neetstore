@@ -440,23 +440,6 @@ export const InvoicePage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Serial Number Section (If Success & SN Available) */}
-                {ordStatus === 'SUCCESS' && transaction.sn && (
-                  <div className="bg-[#A7F3D0] border-2 border-black rounded-xl p-3 shadow-[3px_3px_0px_0px_#000] relative z-10 flex items-center justify-between">
-                    <div>
-                      <span className="font-extrabold text-[10px] uppercase text-emerald-900 block leading-none">Serial Number (SN):</span>
-                      <span className="font-mono font-black text-xs text-black tracking-wide mt-1 block">{transaction.sn}</span>
-                    </div>
-                    <button
-                      onClick={() => handleCopy(transaction.sn!, 'sn')}
-                      className="bg-white border-2 border-black rounded-lg px-2.5 py-1 text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1"
-                    >
-                      {copied === 'sn' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copied === 'sn' ? 'Tersalin' : 'Salin SN'}</span>
-                    </button>
-                  </div>
-                )}
-
               </div>
 
               {/* NOTCH CUTOUTS + DASHED DIVIDER */}
@@ -522,15 +505,22 @@ export const InvoicePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Bottom Copy CTA */}
-                <button
-                  type="button"
-                  onClick={() => handleCopy(transaction.amount.toString(), 'ticketCta')}
-                  className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-2xl py-2.5 px-3 font-black uppercase text-xs flex items-center justify-center gap-1.5 shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
-                >
-                  <span>{copied === 'ticketCta' ? 'NOMINAL TERSALIN!' : 'SALIN NOMINAL TEPAT'}</span>
-                  <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
+                {/* Bottom Stub CTA - Tampil Khusus Serial Number (SN) Saat Sukses */}
+                {ordStatus === 'SUCCESS' && transaction.sn ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(transaction.sn!, 'ticketSn')}
+                    className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-2xl py-2.5 px-3 font-black uppercase text-xs flex items-center justify-between shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
+                  >
+                    <span className="truncate font-mono font-black">
+                      {copied === 'ticketSn' ? 'SN / TOKEN TERSALIN!' : `SN: ${transaction.sn}`}
+                    </span>
+                    <div className="flex items-center gap-1 shrink-0 bg-white border border-black rounded-lg px-2 py-0.5 text-[10px]">
+                      {copied === 'ticketSn' ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied === 'ticketSn' ? 'Tersalin' : 'Salin SN'}</span>
+                    </div>
+                  </button>
+                ) : null}
 
               </div>
             </div>
