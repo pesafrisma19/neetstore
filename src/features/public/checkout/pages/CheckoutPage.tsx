@@ -16,7 +16,7 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Sparkles, Download, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -1302,7 +1302,7 @@ export const CheckoutPage: React.FC = () => {
         <Card variant="white" shadow="xl" borderWidth="4" className="mb-6 p-3 sm:p-6 rounded-3xl relative flex flex-col gap-4 sm:gap-6 bg-[var(--nb-surface)]">
 
           {/* 1. AUTO BANNER SLIDER (Geser-Geser Sendiri 4s) */}
-          <div className="relative w-full h-48 sm:h-72 md:h-96 rounded-xl sm:rounded-2xl border-[2.5px] sm:border-[3.5px] border-[var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow)] overflow-hidden bg-[var(--nb-surface-alt)] group">
+          <div className="relative w-full aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] rounded-xl sm:rounded-2xl border-[2.5px] sm:border-[3.5px] border-[var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow)] overflow-hidden bg-[var(--nb-surface-alt)] group">
             <img
               src={optimizeGoogleBanner(headerBanners[bannerIndex])}
               alt={`${gameTitle} Banner Slide ${bannerIndex + 1}`}
@@ -1310,11 +1310,11 @@ export const CheckoutPage: React.FC = () => {
               className="w-full h-full object-cover transition-all duration-700"
             />
 
-            {/* Official Badge Overlay */}
+            {/* Top Up Resmi Badge Overlay */}
             <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
               <Sticker variant="mint" size="md" angle="-rotate-3">
-                <Sparkles className="w-3.5 h-3.5 fill-black stroke-[2]" />
-                <span>GOOGLE PLAY OFFICIAL</span>
+                <ShieldCheck className="w-3.5 h-3.5 fill-black stroke-[2]" />
+                <span>TOP UP RESMI</span>
               </Sticker>
             </div>
 
@@ -1365,10 +1365,6 @@ export const CheckoutPage: React.FC = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-black text-xs sm:text-base uppercase text-[var(--nb-text)] truncate">{developerName}</span>
                 <VerifiedBadgeIcon size={18} />
-                <Badge variant="mint" size="sm" className="hidden sm:inline-flex">
-                  <Download className="w-3 h-3 text-[var(--nb-text)] stroke-[2.5]" />
-                  <span>OFFICIAL BRAND</span>
-                </Badge>
               </div>
 
               <div className="w-12 sm:w-16 h-1.5 bg-[var(--nb-pink)] rounded-full border-[1px] border-[var(--nb-border)]" />
