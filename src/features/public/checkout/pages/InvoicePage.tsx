@@ -4,14 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Zap, Sparkles, Check } from 'lucide-react';
+import { Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, AlertTriangle, ShieldCheck, Sparkles, Check } from 'lucide-react';
 
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { Separator } from '../../../../components/ui/Separator';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
 
