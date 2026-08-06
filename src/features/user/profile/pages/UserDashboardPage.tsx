@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { isAxiosError } from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
@@ -15,7 +17,8 @@ import { Avatar } from '../../../../components/ui/Avatar';
 import { Wallet, History, Shield, Zap, RefreshCw, CheckCircle, Clock, PlusCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { dashboardApi } from '../services/dashboard.api';
+import { apiFetch, type UserTransactionItem, isTransactionPaymentStatus, isTransactionOrderStatus } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 
 export const UserDashboardPage: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -24,37 +27,73 @@ export const UserDashboardPage: React.FC = () => {
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const [selectedBank, setSelectedBank] = useState('qris');
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [isFetchingTx, setIsFetchingTx] = useState(false);
 
-  // Protected Route Logic
+  // Protected Route Logic: HANYA redirect jika auth bootstrap selesai (!isLoading) DAN user null
   React.useEffect(() => {
     if (!isLoading && !user) {
       navigate('/');
     }
   }, [user, isLoading, navigate]);
 
-  const fetchTransactions = async () => {
-    if (!user) return;
-    setIsFetchingTx(true);
-    try {
-      const data = await dashboardApi.getUserTransactions();
-      setTransactions(data);
-    } catch (e) {
-      console.error('Failed to fetch transactions', e);
-    } finally {
-      setIsFetchingTx(false);
-    }
-  };
+  const userId = user?.id;
 
-  React.useEffect(() => {
-    if (user) {
-      fetchTransactions();
-    }
-  }, [user]);
+  // 1. Fetch User Transactions via TanStack Query (User-Scoped Cache Key)
+  // Enabled HANYA jika auth bootstrap selesai (!isLoading) DAN user.id terautentikasi
+  const {
+    data: transactions = [],
+    isLoading: isFetchingTx,
+    isError: isTxError,
+    refetch: refetchTx,
+  } = useQuery<UserTransactionItem[]>({
+    queryKey: queryKeys.user.transactions.byUser(userId ?? 0),
+    queryFn: async () => {
+      const data = await apiFetch<UserTransactionItem[]>('/user/transactions');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /user/transactions response: expected array');
+      }
+      for (const tx of data) {
+        const isValidDate = typeof tx.createdAt === 'string' && !isNaN(new Date(tx.createdAt).getTime());
+        const isValidProduct = tx.product === null || (
+          typeof tx.product === 'object' &&
+          typeof tx.product.name === 'string' &&
+          typeof tx.product.sku === 'string'
+        );
+
+        if (
+          typeof tx.id !== 'number' || !Number.isFinite(tx.id) ||
+          typeof tx.userId !== 'number' || !Number.isFinite(tx.userId) ||
+          typeof tx.productId !== 'number' || !Number.isFinite(tx.productId) ||
+          typeof tx.amount !== 'number' || !Number.isFinite(tx.amount) ||
+          typeof tx.paymentMethod !== 'string' ||
+          !isTransactionPaymentStatus(tx.paymentStatus) ||
+          !isTransactionOrderStatus(tx.orderStatus) ||
+          !isValidDate ||
+          !isValidProduct
+        ) {
+          throw new Error('Invalid /user/transactions item: malformed data type, missing fields, or unrecognized status value');
+        }
+      }
+      return data;
+    },
+    enabled: !isLoading && Boolean(userId),
+    staleTime: 30 * 1000,
+    retry: (failureCount, error: unknown) => {
+      if (isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
+          return false; // Disable retry on auth error (401/403)
+        }
+      }
+      return failureCount < 1;
+    },
+  });
 
   if (isLoading || !user) {
-    return <div className="min-h-screen flex items-center justify-center bg-brutalist-grid"><span className="font-black text-2xl">LOADING...</span></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brutalist-grid">
+        <span className="font-black text-2xl uppercase tracking-wider text-[var(--nb-text)]">MEMUAT PROFIL USER...</span>
+      </div>
+    );
   }
 
   const formatRupiah = (val: number) => {
@@ -62,7 +101,9 @@ export const UserDashboardPage: React.FC = () => {
   };
   
   const formatDate = (dateStr: string) => {
-    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(dateStr));
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(d);
   };
 
   return (
@@ -147,7 +188,7 @@ export const UserDashboardPage: React.FC = () => {
               <CardHeader headerBg="#6EE7B7">
                 <CardTitle className="flex items-center justify-between w-full">
                   <span>TRANSAKSI TERAKHIR</span>
-                  <RefreshCw className="w-4 h-4 stroke-[3] cursor-pointer" />
+                  <RefreshCw className="w-4 h-4 stroke-[3] cursor-pointer hover:rotate-180 transition-transform" onClick={() => refetchTx()} />
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -166,13 +207,19 @@ export const UserDashboardPage: React.FC = () => {
                   <TableBody>
                     {isFetchingTx ? (
                        <TableRow>
-                          <TableCell colSpan={7} className="text-center font-bold py-8">Memuat transaksi...</TableCell>
+                          <TableCell colSpan={7} className="text-center font-bold py-8">Memuat data transaksi dari server...</TableCell>
+                       </TableRow>
+                    ) : isTxError ? (
+                       <TableRow>
+                          <TableCell colSpan={7} className="text-center font-bold py-8 text-red-500">
+                            Gagal memuat transaksi. <button type="button" onClick={() => refetchTx()} className="underline font-black cursor-pointer">Klik untuk coba lagi</button>
+                          </TableCell>
                        </TableRow>
                     ) : transactions.length === 0 ? (
                        <TableRow>
                           <TableCell colSpan={7} className="text-center font-bold py-8">Belum ada transaksi</TableCell>
                        </TableRow>
-                    ) : transactions.map((tx) => (
+                    ) : transactions.map((tx: UserTransactionItem) => (
                       <TableRow key={tx.id}>
                         <TableCell className="font-black">{tx.providerRef || tx.id}</TableCell>
                         <TableCell className="uppercase">{tx.product?.name || `Produk #${tx.productId}`}</TableCell>

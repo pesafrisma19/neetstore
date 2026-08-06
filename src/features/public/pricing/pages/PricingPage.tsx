@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Display } from '../../../../components/ui/Display';
 import { Input } from '../../../../components/ui/Input';
-import { apiFetch, getBrandBySlug } from '../../../../utils/api';
+import { apiFetch, type PublicBrand, type PublicBrandDetail, type PublicBrandProduct } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 import { 
   Tag, Search, Gamepad2, ArrowRight, CheckCircle2, 
   AlertTriangle, Crown, Shield, Loader2 
@@ -30,91 +32,86 @@ interface ProductItem {
 }
 
 export const PricingPage: React.FC = () => {
-  const [brands, setBrands] = useState<BrandItem[]>([]);
-  const [selectedBrand, setSelectedBrand] = useState<BrandItem | null>(null);
-  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loadingBrands, setLoadingBrands] = useState(true);
-  const [loadingProducts, setLoadingProducts] = useState(false);
 
-  // Helper: Ambil data produk untuk satu brand tertentu
-  const loadProductsForBrand = async (brandSlugOrId: string) => {
-    setLoadingProducts(true);
-    try {
-      const res = await getBrandBySlug(brandSlugOrId);
-      const realList = res?.products || [];
-
-      if (realList.length > 0) {
-        const mappedProducts: ProductItem[] = realList.map((p: any) => {
-          const basePrice = Number(p.price) || 25000;
-          const memberPrice = Math.round((basePrice * 0.975) / 100) * 100;
-          const resellerPrice = Math.round((basePrice * 0.95) / 100) * 100;
-          const vipPrice = Math.round((basePrice * 0.92) / 100) * 100;
-
-          return {
-            id: p.id || Math.random().toString(),
-            name: String(p.name || '').toUpperCase(),
-            guestPrice: basePrice,
-            memberPrice: memberPrice,
-            resellerPrice: resellerPrice,
-            vipPrice: vipPrice,
-            status: p.isActive !== false ? 'NORMAL' : 'GANGGUAN',
-          };
-        });
-        setProducts(mappedProducts);
-      } else {
-        setProducts([]);
+  // 1. Query Brands List
+  const { data: rawDbBrands = [], isLoading: loadingBrands } = useQuery<PublicBrand[]>({
+    queryKey: queryKeys.public.brands.all,
+    queryFn: async () => {
+      const data = await apiFetch<PublicBrand[]>('/brands');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /brands response: expected array');
       }
-    } catch (err) {
-      console.error('Error loading products for brand:', err);
-      setProducts([]);
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
-  // 1x useEffect TUNGGAL: Fetch Brand & langsung Produk pertama saat awal buka halaman
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoadingBrands(true);
-      try {
-        const dbBrands = await apiFetch<any[]>('/brands').catch(() => null);
-        if (dbBrands && dbBrands.length > 0) {
-          const mapped: BrandItem[] = dbBrands.map((b: any) => ({
-            id: b.id?.toString() || b.slug || Math.random().toString(),
-            slug: b.slug || b.id?.toString(),
-            name: (b.name || '').toUpperCase(),
-            image: b.thumbnail || b.image || b.imageUrl || '',
-            category: typeof b.category === 'object' && b.category !== null 
-              ? String(b.category.name || b.category.slug || 'MOBILE GAMES').toUpperCase() 
-              : String(b.category || 'MOBILE GAMES').toUpperCase(),
-          }));
-          mapped.sort((a, b) => a.name.localeCompare(b.name));
-          setBrands(mapped);
-          setSelectedBrand(null);
-          setProducts([]);
-        } else {
-          setBrands([]);
-          setSelectedBrand(null);
-          setProducts([]);
+  const brands: BrandItem[] = useMemo(() => {
+    const mapped = rawDbBrands.map((b: PublicBrand): BrandItem => ({
+      id: String(b.id),
+      slug: b.slug,
+      name: b.name.toUpperCase(),
+      image: b.thumbnail || '',
+      category: b.category.name.toUpperCase(),
+    }));
+    return mapped.sort((a, b) => a.name.localeCompare(b.name));
+  }, [rawDbBrands]);
+
+  // 2. Dependent Query Detail Products per Brand
+  const { data: selectedBrandData, isLoading: loadingProducts } = useQuery<PublicBrandDetail>({
+    queryKey: queryKeys.public.brands.detail(selectedSlug || ''),
+    queryFn: async ({ signal }) => {
+      const res = await apiFetch<PublicBrandDetail>(`/brands/${selectedSlug}`, { signal });
+      if (!res || typeof res !== 'object') {
+        throw new Error('Invalid /brands/:slug response: expected object');
+      }
+      if (!Array.isArray(res.products)) {
+        throw new Error('Invalid /brands/:slug response: expected products array');
+      }
+      for (const p of res.products) {
+        if (
+          typeof p.id !== 'number' ||
+          typeof p.name !== 'string' ||
+          typeof p.priceUser !== 'number' || Number.isNaN(p.priceUser) ||
+          typeof p.priceMember !== 'number' || Number.isNaN(p.priceMember) ||
+          typeof p.priceReseller !== 'number' || Number.isNaN(p.priceReseller) ||
+          typeof p.priceVip !== 'number' || Number.isNaN(p.priceVip) ||
+          typeof p.isActive !== 'boolean'
+        ) {
+          throw new Error('Invalid /brands/:slug product item: malformed data type or missing fields');
         }
-      } catch (err) {
-        console.error('Error fetching initial pricing data:', err);
-        setBrands([]);
-        setSelectedBrand(null);
-        setProducts([]);
-      } finally {
-        setLoadingBrands(false);
       }
-    };
-    fetchInitialData();
-  }, []);
+      return res;
+    },
+    enabled: Boolean(selectedSlug),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
-  // Event Handler saat klik game di menu kiri (bukan useEffect lagi)
+  const selectedBrand: BrandItem | null = useMemo(() => {
+    if (!selectedSlug) return null;
+    return brands.find((b) => b.slug === selectedSlug) || null;
+  }, [brands, selectedSlug]);
+
+  const products: ProductItem[] = useMemo(() => {
+    const realList = selectedBrandData?.products || [];
+    return realList.map((p: PublicBrandProduct): ProductItem => ({
+      id: p.id,
+      name: p.name.toUpperCase(),
+      guestPrice: p.priceUser,
+      memberPrice: p.priceMember,
+      resellerPrice: p.priceReseller,
+      vipPrice: p.priceVip,
+      status: p.isActive ? 'NORMAL' : 'GANGGUAN',
+    }));
+  }, [selectedBrandData]);
+
   const handleSelectBrand = (brand: BrandItem) => {
-    if (brand.id === selectedBrand?.id) return; // Abaikan jika klik game yang sama
-    setSelectedBrand(brand);
-    loadProductsForBrand(brand.slug || brand.id);
+    if (brand.slug === selectedSlug) return;
+    setSelectedSlug(brand.slug);
   };
 
   const formatRupiah = (num: number) => {

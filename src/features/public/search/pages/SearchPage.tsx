@@ -1,61 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { GameCard, type GameItem } from '../../home/components/GameCard';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { Display } from '../../../../components/ui/Display';
-import { apiFetch, getCategories } from '../../../../utils/api';
+import { apiFetch, type PublicBrand } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 import { Search, ArrowLeft, Gamepad2, AlertCircle } from 'lucide-react';
 
 export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [inputVal, setInputVal] = useState(query);
-  const [games, setGames] = useState<GameItem[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setInputVal(query);
   }, [query]);
 
-  useEffect(() => {
-    const fetchGames = async () => {
-      setLoading(true);
-      try {
-        const [cats, dbBrands] = await Promise.all([
-          getCategories(),
-          apiFetch<any[]>('/brands').catch(() => []),
-        ]);
-        const listToRender = dbBrands && dbBrands.length > 0 ? dbBrands : (cats || []);
-        
-        const mapped: GameItem[] = listToRender.map((item: any) => ({
-          id: item.id?.toString() || item.slug || Math.random().toString(),
-          name: item.name || 'Unknown Game',
-          publisher: item.publisher || 'Official Publisher',
-          category: typeof item.category === 'object' && item.category !== null
-            ? String(item.category.name || item.category.slug || 'MOBILE GAMES').toUpperCase()
-            : String(item.category || 'MOBILE GAMES').toUpperCase(),
-          image: item.image || item.imageUrl || null,
-          discount: item.discount || undefined,
-          isPopular: item.isPopular || item.is_popular || false,
-          rating: item.rating || 4.9,
-          salesCount: item.salesCount || '15k+ Terjual',
-          estYear: item.releasedOn
-            ? (String(item.releasedOn).match(/\b(19\d\d|20\d\d)\b/)?.[0] || String(item.releasedOn).slice(0, 4))
-            : (item.createdAt ? new Date(item.createdAt).getFullYear().toString() : ''),
-        }));
-
-        setGames(mapped);
-      } catch (err) {
-        console.error('Error fetching games for search:', err);
-      } finally {
-        setLoading(false);
+  const { data: dbBrands = [], isLoading } = useQuery<PublicBrand[]>({
+    queryKey: queryKeys.public.brands.all,
+    queryFn: async () => {
+      const data = await apiFetch<PublicBrand[]>('/brands');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /brands response: expected array');
       }
-    };
-    fetchGames();
-  }, []);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const loading = isLoading;
+
+  const games: GameItem[] = useMemo(() => {
+    return dbBrands.map((brand: PublicBrand): GameItem => ({
+      id: brand.slug,
+      name: brand.name,
+      publisher: brand.publisher || 'OFFICIAL',
+      category: brand.category.name.toUpperCase(),
+      image: brand.thumbnail,
+      googlePlayId: brand.googlePlayId,
+      estYear: new Date(brand.createdAt).getFullYear().toString(),
+    }));
+  }, [dbBrands]);
 
   const filteredGames = games.filter((g) => {
     if (!query.trim()) return true;

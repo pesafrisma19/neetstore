@@ -125,20 +125,24 @@ export const GameCard: React.FC<{ game: GameItem }> = ({ game }) => {
         </h3>
       </div>
 
-      {/* 4. Chips / Tags Row (Rating & Sales Count on 1 single line) */}
-      <div className="flex items-center gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 flex-nowrap overflow-hidden whitespace-nowrap">
-        {/* Rating Chip Yellow */}
-        <Badge variant="yellow" size="sm" className="text-[7px] sm:text-[9px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 shrink-0">
-          <Star className="w-2 h-2 sm:w-2.5 sm:h-2.5 fill-[var(--nb-text)] text-[var(--nb-text)] stroke-[2.5]" />
-          <span>{game.rating || 4.9}</span>
-        </Badge>
+      {/* 4. Chips / Tags Row (Rating & Sales Count) */}
+      {(game.rating || game.salesCount) ? (
+        <div className="flex items-center gap-1 sm:gap-1.5 mb-1.5 sm:mb-2 flex-nowrap overflow-hidden whitespace-nowrap">
+          {game.rating ? (
+            <Badge variant="yellow" size="sm" className="text-[7px] sm:text-[9px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 shrink-0">
+              <Star className="w-2 h-2 sm:w-2.5 sm:h-2.5 fill-[var(--nb-text)] text-[var(--nb-text)] stroke-[2.5]" />
+              <span>{game.rating}</span>
+            </Badge>
+          ) : null}
 
-        {/* Sales Count Chip Pink with White Flame Icon */}
-        <Badge variant="pink" size="sm" className="text-[7px] sm:text-[9px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 truncate">
-          <Flame className="w-2 h-2 sm:w-2.5 sm:h-2.5 fill-white text-[var(--nb-dark-text)] stroke-[2.5] shrink-0" />
-          <span className="truncate">{game.salesCount || '12.5k+ Terjual'}</span>
-        </Badge>
-      </div>
+          {game.salesCount ? (
+            <Badge variant="pink" size="sm" className="text-[7px] sm:text-[9px] px-1 py-0.5 sm:px-1.5 sm:py-0.5 truncate">
+              <Flame className="w-2 h-2 sm:w-2.5 sm:h-2.5 fill-white text-[var(--nb-dark-text)] stroke-[2.5] shrink-0" />
+              <span className="truncate">{game.salesCount}</span>
+            </Badge>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* 5. Footer Buttons (CTA & Bookmark) */}
       <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t-[1.5px] sm:border-t-[2px] border-[var(--nb-border)]/20">

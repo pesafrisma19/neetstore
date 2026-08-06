@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios';
 import { api } from '../services/api';
 
 // =====================================================
@@ -10,11 +11,12 @@ import { api } from '../services/api';
 // =====================================================
 export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<T | null> => {
   try {
-    const axiosConfig: any = {
-      method: options?.method || 'GET',
+    const axiosConfig: AxiosRequestConfig = {
+      method: (options?.method as AxiosRequestConfig['method']) || 'GET',
       url: path, // baseURL is already set in axios instance
-      headers: options?.headers || {},
+      headers: (options?.headers as AxiosRequestConfig['headers']) || {},
       data: options?.body, // Axios uses 'data' instead of 'body'
+      signal: options?.signal as AxiosRequestConfig['signal'],
     };
 
     // Otomatis parse JSON jika string
@@ -53,6 +55,220 @@ export const apiFetch = async <T>(path: string, options?: RequestInit): Promise<
 // =====================================================
 // TYPES
 // =====================================================
+export interface PublicBrandCategory {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicBrand {
+  id: number;
+  categoryId: number;
+  category: PublicBrandCategory;
+  name: string;
+  slug: string;
+  publisher: string | null;
+  googlePlayId: string | null;
+  thumbnail: string | null;
+  bannerUrl: string | null;
+  description: string | null;
+  validationGameCode: string | null;
+  customFields?: { fieldName: string; fieldType: string; fieldLabel: string; required?: boolean; placeholder?: string; options?: string[] }[] | null;
+  promoScreenshots?: string[] | null;
+  eventsAndOffers?: { title: string; badge: string; bannerUrl: string }[] | null;
+  whatsNew?: string | null;
+  releasedOn?: string | null;
+  updatedOn?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicBrandProduct {
+  id: number;
+  name: string;
+  sku: string;
+  price: number;
+  priceUser: number;
+  priceMember: number;
+  priceReseller: number;
+  priceVip: number;
+  originalPrice: number;
+  isActive: boolean;
+  isPopular: boolean;
+  isFlashsale: boolean;
+  flashsalePrice: number | null;
+  brandId: number | null;
+  regionId: number | null;
+  productCategoryId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicBrandRegion {
+  id: number;
+  name: string;
+  slug: string;
+  code: string | null;
+  sortOrder: number;
+  availableCategories?: PublicBrandProductCategory[];
+}
+
+export interface PublicBrandProductCategory {
+  id: number;
+  name: string;
+  slug: string;
+  sortOrder: number;
+}
+
+export interface PublicBrandDetail extends PublicBrand {
+  products: PublicBrandProduct[];
+  regions: PublicBrandRegion[];
+  productCategories: PublicBrandProductCategory[];
+}
+
+export const PAYMENT_METHOD_TYPES = [
+  'SALDO_AKUN',
+  'QRIS',
+  'E-WALLET',
+  'VIRTUAL_ACCOUNT',
+  'RETAIL',
+] as const;
+
+export type PaymentMethodType = (typeof PAYMENT_METHOD_TYPES)[number];
+
+export function isPaymentMethodType(val: unknown): val is PaymentMethodType {
+  return typeof val === 'string' && (PAYMENT_METHOD_TYPES as readonly string[]).includes(val);
+}
+
+export interface PublicPaymentMethod {
+  id: number;
+  name: string;
+  code: string;
+  type: PaymentMethodType;
+  feeFlat: number;
+  feePercent: number;
+  iconUrl: string | null;
+  isActive: boolean;
+}
+
+export const VOUCHER_DISCOUNT_TYPES = ['FLAT', 'PERCENT'] as const;
+
+export type VoucherDiscountType = (typeof VOUCHER_DISCOUNT_TYPES)[number];
+
+export function isVoucherDiscountType(val: unknown): val is VoucherDiscountType {
+  return typeof val === 'string' && (VOUCHER_DISCOUNT_TYPES as readonly string[]).includes(val);
+}
+
+export interface ApiErrorResponse {
+  error?: string;
+  message?: string;
+  code?: string;
+}
+
+export interface PublicVoucherCheckResponse {
+  id: number;
+  code: string;
+  discountType: VoucherDiscountType;
+  discountValue: number;
+}
+
+export interface PublicNeetflixValidationResult {
+  nickname: string;
+  detectedRegionCode?: string;
+  detectedCountry?: string;
+  recommendedRegionId?: number | null;
+  matchedRegionId?: number | null;
+  matchedRegionIds?: number[];
+  firstTopupAvailable?: boolean;
+  firstTopupTiers?: string[];
+}
+
+export interface PublicNeetflixValidationResponse {
+  success: boolean;
+  data?: PublicNeetflixValidationResult;
+  error?: string;
+  message?: string;
+}
+
+export interface CheckoutPayload {
+  productId: number;
+  targetAccount: string;
+  targetZone?: string;
+  nickname?: string;
+  paymentMethod: number | string;
+  voucherCode?: string;
+  whatsapp?: string;
+}
+
+export interface CheckoutSuccessResponse {
+  success: boolean;
+  transactionId: number;
+  invoiceId: string;
+  paymentStatus: TransactionPaymentStatus;
+  orderStatus: TransactionOrderStatus;
+  isIdempotentReplay?: boolean;
+}
+
+export function isCheckoutSuccessResponse(val: unknown): val is CheckoutSuccessResponse {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    obj.success === true &&
+    typeof obj.transactionId === 'number' && Number.isFinite(obj.transactionId) &&
+    typeof obj.invoiceId === 'string' && obj.invoiceId.trim().length > 0 &&
+    isTransactionPaymentStatus(obj.paymentStatus) &&
+    isTransactionOrderStatus(obj.orderStatus) &&
+    (obj.isIdempotentReplay === undefined || typeof obj.isIdempotentReplay === 'boolean')
+  );
+}
+
+export const TRANSACTION_PAYMENT_STATUSES = [
+  'UNPAID',
+  'PAID',
+  'FAILED',
+  'REFUND',
+] as const;
+
+export type TransactionPaymentStatus = (typeof TRANSACTION_PAYMENT_STATUSES)[number];
+
+export function isTransactionPaymentStatus(val: unknown): val is TransactionPaymentStatus {
+  return typeof val === 'string' && (TRANSACTION_PAYMENT_STATUSES as readonly string[]).includes(val);
+}
+
+export const TRANSACTION_ORDER_STATUSES = [
+  'PENDING',
+  'PROCESS',
+  'SUCCESS',
+  'FAILED',
+] as const;
+
+export type TransactionOrderStatus = (typeof TRANSACTION_ORDER_STATUSES)[number];
+
+export function isTransactionOrderStatus(val: unknown): val is TransactionOrderStatus {
+  return typeof val === 'string' && (TRANSACTION_ORDER_STATUSES as readonly string[]).includes(val);
+}
+
+export interface UserTransactionItem {
+  id: number;
+  providerRef: string | null;
+  userId: number;
+  productId: number;
+  amount: number;
+  paymentMethod: string;
+  paymentStatus: TransactionPaymentStatus;
+  orderStatus: TransactionOrderStatus;
+  createdAt: string;
+  product: {
+    name: string;
+    sku: string;
+  } | null;
+}
+
 export interface Category {
   id: number;
   name: string;

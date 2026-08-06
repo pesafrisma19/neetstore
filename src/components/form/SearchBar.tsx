@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Input } from '../ui/Input';
-import { apiFetch } from '../../utils/api';
+import { apiFetch, type PublicBrand } from '../../utils/api';
+import { queryKeys } from '../../services/queryKeys';
 
 interface SearchBarProps {
   onCloseMobile?: () => void;
@@ -12,18 +14,23 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({ onCloseMobile, isMobile = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchGames, setSearchGames] = useState<any[]>([]);
   const navigate = useNavigate();
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Load search data once
-    const loadSearchData = async () => {
-      const data = await apiFetch<any[]>('/brands').catch(() => []);
-      setSearchGames(data || []);
-    };
-    loadSearchData();
+  const { data: searchGames = [] } = useQuery<PublicBrand[]>({
+    queryKey: queryKeys.public.brands.all,
+    queryFn: async () => {
+      const data = await apiFetch<PublicBrand[]>('/brands');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /brands response: expected array');
+      }
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchBoxRef.current && !searchBoxRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
@@ -90,8 +97,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onCloseMobile, isMobile = 
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
                       <div className="w-8 h-8 bg-[var(--nb-surface)] border-[1.5px] border-[var(--nb-border)] overflow-hidden shrink-0 flex items-center justify-center">
-                        {g.image ? (
-                          <img src={g.image} alt={g.name} className="w-full h-full object-cover" />
+                        {g.thumbnail ? (
+                          <img src={g.thumbnail} alt={g.name} className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-[10px] font-black">{g.name.slice(0, 2).toUpperCase()}</span>
                         )}

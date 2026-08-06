@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing, processQueue } from '../services/api';
+import { queryClient } from '../services/queryClient';
+import { queryKeys } from '../services/queryKeys';
 
 export interface UserProfile {
   id: number;
@@ -21,6 +23,38 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function removePersistedAttemptsForOwner(targetOwnerScope: string): void {
+  try {
+    const raw = sessionStorage.getItem('netstore_checkout_attempts_v1');
+    if (!raw) return;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+
+    const map = parsed as Record<string, unknown>;
+    let modified = false;
+
+    for (const [hash, item] of Object.entries(map)) {
+      if (item && typeof item === 'object') {
+        const obj = item as Record<string, unknown>;
+        // Hapus HANYA attempt PREPARED yang belum pernah dikirim.
+        // Attempt IN_FLIGHT atau UNKNOWN_RESULT TETAP DIPERTAHANKAN di storage untuk owner ini.
+        if (obj.ownerScope === targetOwnerScope && obj.status === 'PREPARED') {
+          delete map[hash];
+          modified = true;
+        }
+      }
+    }
+
+    if (modified) {
+      if (Object.keys(map).length === 0) {
+        sessionStorage.removeItem('netstore_checkout_attempts_v1');
+      } else {
+        sessionStorage.setItem('netstore_checkout_attempts_v1', JSON.stringify(map));
+      }
+    }
+  } catch {}
+}
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -92,6 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleForceLogout = () => {
       setAccessToken(null);
       setUser(null);
+      queryClient.removeQueries({ queryKey: queryKeys.user.root });
     };
     window.addEventListener('auth:logout', handleForceLogout);
 
@@ -122,6 +157,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logoutUser = async () => {
+    const previousUserId = user?.id;
     try {
       await api.post('/auth/logout');
     } catch (e) {
@@ -130,6 +166,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAccessToken(null);
       setUser(null);
       hadSession.current = false; // Reset sesi setelah logout
+      queryClient.removeQueries({ queryKey: queryKeys.user.root });
+      if (previousUserId) {
+        removePersistedAttemptsForOwner(`user:${previousUserId}`);
+      }
 
       // Beri tahu tab lain
       const bc = new BroadcastChannel('auth_channel');

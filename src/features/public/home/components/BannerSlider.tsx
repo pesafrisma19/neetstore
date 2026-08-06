@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getBanners, type Banner } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // 3 Banner Promo Game 16:9 Berkualitas Tinggi (LootBar / Coverflow style demo)
@@ -29,17 +31,24 @@ const BannerSkeleton: React.FC = () => (
 );
 
 export const BannerSlider: React.FC = () => {
-  const [banners, setBanners] = useState<Banner[]>([]);
   const [current, setCurrent] = useState(0);
-  const [loading, setLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    getBanners().then((data) => {
-      setBanners(data && data.length > 0 ? data : FALLBACK_BANNERS);
-      setLoading(false);
-    });
-  }, []);
+  const { data: bannerData, isLoading } = useQuery<Banner[]>({
+    queryKey: queryKeys.public.banners.all,
+    queryFn: async () => {
+      const data = await getBanners();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /banners response: expected array');
+      }
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const banners = bannerData && bannerData.length > 0 ? bannerData : FALLBACK_BANNERS;
+  const loading = isLoading;
 
   useEffect(() => {
     if (banners.length <= 1) return;

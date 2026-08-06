@@ -17,8 +17,13 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
 import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Sparkles, Download, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
 import { calculateCheckoutBreakdown, type DiscountType } from '../../../../utils/checkoutCalculator';
+import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 
 const optimizeGoogleBanner = (url: string) => {
   if (!url || !url.includes('googleusercontent.com')) return url;
@@ -140,15 +145,220 @@ const EventCarouselSlider: React.FC<{ events: { title: string; badge: string; ba
   );
 };
 
+const CHECKOUT_ATTEMPTS_STORAGE_KEY = 'netstore_checkout_attempts_v1';
+const ATTEMPT_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for PREPARED status
+const MAX_PERSISTED_ATTEMPTS_PER_OWNER = 5;
+
+export const CHECKOUT_ATTEMPT_STATUSES = [
+  'PREPARED',
+  'IN_FLIGHT',
+  'UNKNOWN_RESULT',
+] as const;
+
+export type CheckoutAttemptStatus = (typeof CHECKOUT_ATTEMPT_STATUSES)[number];
+
+export function isCheckoutAttemptStatus(val: unknown): val is CheckoutAttemptStatus {
+  return typeof val === 'string' && (CHECKOUT_ATTEMPT_STATUSES as readonly string[]).includes(val);
+}
+
+export interface PersistedCheckoutAttempt {
+  key: string;
+  fingerprintHash: string;
+  createdAt: number;
+  ownerScope: string;
+  status: CheckoutAttemptStatus;
+}
+
+export interface CheckoutMutationVariables {
+  payload: CheckoutPayload;
+  idempotencyKey: string;
+  attemptHash: string;
+  ownerScope: string;
+  slug: string;
+}
+
+export type CheckoutAttemptMap = Record<string, PersistedCheckoutAttempt>;
+
+export function isPersistedCheckoutAttempt(val: unknown): val is PersistedCheckoutAttempt {
+  if (!val || typeof val !== 'object') return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj.key === 'string' &&
+    obj.key.trim().length > 0 &&
+    typeof obj.fingerprintHash === 'string' &&
+    obj.fingerprintHash.trim().length > 0 &&
+    typeof obj.createdAt === 'number' &&
+    Number.isFinite(obj.createdAt) &&
+    typeof obj.ownerScope === 'string' &&
+    obj.ownerScope.trim().length > 0 &&
+    isCheckoutAttemptStatus(obj.status)
+  );
+}
+
+function getOwnerScope(user: UserProfile | null): string {
+  if (user?.id) {
+    return `user:${user.id}`;
+  }
+  let guestId = '';
+  try {
+    guestId = sessionStorage.getItem('netstore_guest_session_id') || '';
+    if (!guestId) {
+      guestId =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `g_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      sessionStorage.setItem('netstore_guest_session_id', guestId);
+    }
+  } catch {
+    guestId = 'guest_fallback';
+  }
+  return `guest:${guestId}`;
+}
+
+export function createAttemptStorageKey(ownerScope: string, fingerprintHash: string): string {
+  return `${ownerScope}::${fingerprintHash}`;
+}
+
+// 1. Membaca SELURUH storage dan mengembalikan semua attempt valid milik SEMUA owner
+function readAllPersistedAttempts(): CheckoutAttemptMap {
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_ATTEMPTS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      sessionStorage.removeItem(CHECKOUT_ATTEMPTS_STORAGE_KEY);
+      return {};
+    }
+
+    const map = parsed as Record<string, unknown>;
+    const validAllMap: CheckoutAttemptMap = {};
+
+    for (const [storageKey, item] of Object.entries(map)) {
+      if (isPersistedCheckoutAttempt(item)) {
+        validAllMap[storageKey] = item;
+      }
+    }
+    return validAllMap;
+  } catch {
+    return {};
+  }
+}
+
+// 2. Menulis kembali SELURUH map ke sessionStorage tanpa membuang owner lain
+function writeAllPersistedAttempts(allMap: CheckoutAttemptMap): void {
+  try {
+    if (Object.keys(allMap).length === 0) {
+      sessionStorage.removeItem(CHECKOUT_ATTEMPTS_STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(CHECKOUT_ATTEMPTS_STORAGE_KEY, JSON.stringify(allMap));
+    }
+  } catch {}
+}
+
+// 3. Mengambil attempt HANYA untuk owner tertentu (untuk view / lookup)
+function getAttemptsForOwner(allMap: CheckoutAttemptMap, ownerScope: string): CheckoutAttemptMap {
+  const now = Date.now();
+  const ownerMap: CheckoutAttemptMap = {};
+
+  for (const [storageKey, item] of Object.entries(allMap)) {
+    if (item.ownerScope === ownerScope) {
+      // Kebijakan TTL: HANYA HAPUS 'PREPARED' jika > 15 menit.
+      // Item 'IN_FLIGHT' dan 'UNKNOWN_RESULT' TIDAK BOLEH dihapus oleh TTL!
+      if (item.status === 'PREPARED' && now - item.createdAt > ATTEMPT_TTL_MS) {
+        continue;
+      }
+      ownerMap[storageKey] = item;
+    }
+  }
+  return ownerMap;
+}
+
+// 4. Menyimpan / memperbarui attempt dengan isolasi mutasi composite key per owner
+function savePersistedAttempt(attempt: PersistedCheckoutAttempt): void {
+  const compositeKey = createAttemptStorageKey(attempt.ownerScope, attempt.fingerprintHash);
+  const allMap = readAllPersistedAttempts();
+  const ownerMap = getAttemptsForOwner(allMap, attempt.ownerScope);
+
+  ownerMap[compositeKey] = attempt;
+  allMap[compositeKey] = attempt;
+
+  const ownerEntries = Object.entries(ownerMap);
+  if (ownerEntries.length > MAX_PERSISTED_ATTEMPTS_PER_OWNER) {
+    // EVICTION PER-OWNER: Hanya buang entry 'PREPARED' milik owner ini!
+    const preparedEntries = ownerEntries.filter(([, item]) => item.status === 'PREPARED');
+    if (preparedEntries.length > 0) {
+      preparedEntries.sort((a, b) => a[1].createdAt - b[1].createdAt);
+      const oldestCompositeKey = preparedEntries[0][0];
+      delete allMap[oldestCompositeKey];
+    } else {
+      throw new Error('Kapasitas transaksi belum terkonfirmasi penuh (5 unresolved) untuk akun ini. Silakan periksa Riwayat Transaksi Anda.');
+    }
+  }
+
+  writeAllPersistedAttempts(allMap);
+}
+
+// 5. Menghapus attempt spesifik milik owner spesifik (menggunakan Composite Key)
+function removePersistedAttempt(fingerprintHash: string, ownerScope: string): void {
+  const compositeKey = createAttemptStorageKey(ownerScope, fingerprintHash);
+  const allMap = readAllPersistedAttempts();
+  const item = allMap[compositeKey];
+
+  if (item && item.ownerScope === ownerScope) {
+    delete allMap[compositeKey];
+    writeAllPersistedAttempts(allMap);
+  }
+}
+
+// 6. Mengupdate status attempt spesifik milik owner spesifik (menggunakan Composite Key)
+function updateAttemptStatus(fingerprintHash: string, newStatus: CheckoutAttemptStatus, ownerScope: string): void {
+  const compositeKey = createAttemptStorageKey(ownerScope, fingerprintHash);
+  const allMap = readAllPersistedAttempts();
+  const item = allMap[compositeKey];
+
+  if (item && item.ownerScope === ownerScope) {
+    item.status = newStatus;
+    allMap[compositeKey] = item;
+    writeAllPersistedAttempts(allMap);
+  }
+}
+
+function generateIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `KEY-${crypto.randomUUID()}`;
+  }
+  return `KEY-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+}
+
+async function computePayloadFingerprintHash(payload: CheckoutPayload): Promise<string> {
+  const deterministicStr = JSON.stringify({
+    p: payload.productId,
+    a: payload.targetAccount.trim(),
+    z: (payload.targetZone || '').trim(),
+    n: (payload.nickname || '').trim(),
+    m: String(payload.paymentMethod),
+    v: (payload.voucherCode || '').trim().toUpperCase(),
+    w: (payload.whatsapp || '').trim(),
+  });
+
+  if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(deterministicStr);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  throw new Error('Browser Anda tidak mendukung Web Crypto API (SHA-256) untuk pemrosesan transaksi yang aman.');
+}
+
 export const CheckoutPage: React.FC = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const slug = (gameId || '').toLowerCase();
-
-  // State Data
-  const [brandData, setBrandData] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
 
   // Tab State: "topup" | "information"
   const [activeTab, setActiveTab] = useState('topup');
@@ -160,20 +370,18 @@ export const CheckoutPage: React.FC = () => {
   // State Form Checkout
   const [userId, setUserId] = useState('');
   const [serverId, setServerId] = useState('');
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<PublicBrandProduct | null>(null);
 
   // Phase 5: Dynamic 5-Level Region & ProductCategory States
   const [selectedRegionId, setSelectedRegionId] = useState<number | 'ALL'>('ALL');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'ALL'>('ALL');
   
-  // Dynamic Payment Methods
-  const [paymentMethodsList, setPaymentMethodsList] = useState<any[]>([]);
+  // Dynamic Payment Methods Selection State
   const [selectedPayment, setSelectedPayment] = useState<number | string>('');
 
   // Phase 4: Neetflix Validation States & Region Lock UX
   const [nickname, setNickname] = useState('');
   const [detectedRegionCode, setDetectedRegionCode] = useState('');
-  const [isCheckingId, setIsCheckingId] = useState(false);
   const [firstTopupTiers, setFirstTopupTiers] = useState<any[]>([]);
   const [isRegionLocked, setIsRegionLocked] = useState(false);
   const [showAllRegionsOverride, setShowAllRegionsOverride] = useState(false);
@@ -188,12 +396,59 @@ export const CheckoutPage: React.FC = () => {
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [appliedDiscountType, setAppliedDiscountType] = useState<DiscountType>('FLAT');
+  const [appliedVoucherCode, setAppliedVoucherCode] = useState('');
+  const [voucherError, setVoucherError] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
-  const [idempotencyKey, setIdempotencyKey] = useState<string>('');
+
+  const currentOwnerScope = getOwnerScope(user);
+
+  // Refs untuk Synchronous Submit Lock & Idempotency Attempt Tracking terikat SHA-256 Fingerprint Hash & Owner Scope
+  const checkoutSubmitLockRef = useRef(false);
+  const checkoutAttemptRef = useRef<PersistedCheckoutAttempt | null>(null);
+  const currentAttemptHashRef = useRef<string | null>(null);
+
+  // Hydrate attempt dari sessionStorage saat halaman dimuat (jika scope user/guest cocok)
+  useEffect(() => {
+    const all = readAllPersistedAttempts();
+    const ownerMap = getAttemptsForOwner(all, currentOwnerScope);
+    const ownerAttempts = Object.values(ownerMap);
+    if (ownerAttempts.length > 0) {
+      ownerAttempts.sort((a, b) => b.createdAt - a.createdAt);
+      const newest = ownerAttempts[0];
+      checkoutAttemptRef.current = newest;
+      currentAttemptHashRef.current = newest.fingerprintHash;
+    }
+  }, [currentOwnerScope]);
+
+  const resolveCheckoutAttemptKey = async (payload: CheckoutPayload): Promise<string> => {
+    const fingerprintHash = await computePayloadFingerprintHash(payload);
+    const compositeKey = createAttemptStorageKey(currentOwnerScope, fingerprintHash);
+    const all = readAllPersistedAttempts();
+    const ownerMap = getAttemptsForOwner(all, currentOwnerScope);
+    const existing = ownerMap[compositeKey] || (checkoutAttemptRef.current?.fingerprintHash === fingerprintHash ? checkoutAttemptRef.current : null);
+
+    if (existing) {
+      checkoutAttemptRef.current = existing;
+      currentAttemptHashRef.current = fingerprintHash;
+      return existing.key;
+    }
+
+    const newKey = generateIdempotencyKey();
+    const newAttempt: PersistedCheckoutAttempt = {
+      key: newKey,
+      fingerprintHash,
+      createdAt: Date.now(),
+      ownerScope: currentOwnerScope,
+      status: 'PREPARED',
+    };
+    checkoutAttemptRef.current = newAttempt;
+    currentAttemptHashRef.current = fingerprintHash;
+    savePersistedAttempt(newAttempt);
+    return newKey;
+  };
 
   // Helper untuk reset SELURUH state validasi
   const resetValidationState = React.useCallback(() => {
@@ -223,39 +478,159 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
-  // Load Data dari API Database NETSTORE (100% Kontrol Admin)
-  useEffect(() => {
-    const loadGameData = async () => {
-      // Reset input & validasi game lama saat ganti brand/slug
-      setUserId('');
-      setServerId('');
-      resetValidationState();
-
-      const brandRes = await checkoutApi.getBrandBySlug(slug);
-      if (brandRes) {
-        setBrandData(brandRes);
-        const prodList = brandRes.products || [];
-        setProducts(prodList);
-        if (prodList.length > 0) {
-          setSelectedItem(prodList[0]);
-        } else {
-          setSelectedItem(null);
+  // 1. Query Detail Brand berdasarkan slug
+  const {
+    data: brandData,
+    isLoading: isBrandLoading,
+    isError: isBrandError,
+    refetch: refetchBrand,
+  } = useQuery<PublicBrandDetail, Error>({
+    queryKey: queryKeys.public.brands.detail(slug),
+    queryFn: async ({ signal }) => {
+      const data = await apiFetch<PublicBrandDetail>(`/brands/${slug}`, { signal });
+      if (!data || typeof data !== 'object') {
+        throw new Error(`Brand detail empty or missing for slug: ${slug}`);
+      }
+      if (
+        typeof data.id !== 'number' || !Number.isFinite(data.id) ||
+        typeof data.name !== 'string' || !data.name.trim() ||
+        typeof data.slug !== 'string' || !data.slug.trim()
+      ) {
+        throw new Error(`Brand detail missing mandatory fields (id, name, slug)`);
+      }
+      if (!Array.isArray(data.products)) {
+        throw new Error(`Brand products must be an array`);
+      }
+      for (const p of data.products) {
+        if (
+          typeof p.id !== 'number' || !Number.isFinite(p.id) ||
+          typeof p.name !== 'string' || !p.name.trim() ||
+          typeof p.sku !== 'string' || !p.sku.trim() ||
+          typeof p.price !== 'number' || !Number.isFinite(p.price) ||
+          typeof p.priceUser !== 'number' || !Number.isFinite(p.priceUser) ||
+          typeof p.isActive !== 'boolean'
+        ) {
+          throw new Error(`Malformed product item found in brand ${slug}`);
         }
-      } else {
-        setProducts([]);
-        setSelectedItem(null);
+      }
+      if (!Array.isArray(data.regions)) {
+        throw new Error(`Brand regions must be an array`);
+      }
+      for (const r of data.regions) {
+        const isValidCategories = !r.availableCategories || (
+          Array.isArray(r.availableCategories) &&
+          r.availableCategories.every(
+            (c) => typeof c.id === 'number' && Number.isFinite(c.id) && typeof c.name === 'string' && typeof c.slug === 'string' && typeof c.sortOrder === 'number' && Number.isFinite(c.sortOrder)
+          )
+        );
+
+        if (
+          typeof r.id !== 'number' || !Number.isFinite(r.id) ||
+          typeof r.name !== 'string' || !r.name.trim() ||
+          typeof r.slug !== 'string' || !r.slug.trim() ||
+          typeof r.sortOrder !== 'number' || !Number.isFinite(r.sortOrder) ||
+          !isValidCategories
+        ) {
+          throw new Error(`Malformed region item found in brand ${slug}`);
+        }
+      }
+      if (!Array.isArray(data.productCategories)) {
+        throw new Error(`Brand productCategories must be an array`);
+      }
+      for (const c of data.productCategories) {
+        if (
+          typeof c.id !== 'number' || !Number.isFinite(c.id) ||
+          typeof c.name !== 'string' || !c.name.trim() ||
+          typeof c.slug !== 'string' || !c.slug.trim() ||
+          typeof c.sortOrder !== 'number' || !Number.isFinite(c.sortOrder)
+        ) {
+          throw new Error(`Malformed productCategory item found in brand ${slug}`);
+        }
       }
 
-      // Fetch dynamic payment methods
-      const payRes = await checkoutApi.getPaymentMethods();
-      if (payRes && payRes.length > 0) {
-        setPaymentMethodsList(payRes);
-        setSelectedPayment(payRes[0].id);
+      // Validasi bentuk JSON opsional yang dikirim backend
+      if (data.customFields !== null && data.customFields !== undefined && !Array.isArray(data.customFields)) {
+        throw new Error(`customFields in brand ${slug} must be an array or null`);
       }
-    };
+      if (data.promoScreenshots !== null && data.promoScreenshots !== undefined && (!Array.isArray(data.promoScreenshots) || !data.promoScreenshots.every(s => typeof s === 'string'))) {
+        throw new Error(`promoScreenshots in brand ${slug} must be an array of strings or null`);
+      }
+      if (data.eventsAndOffers !== null && data.eventsAndOffers !== undefined && !Array.isArray(data.eventsAndOffers)) {
+        throw new Error(`eventsAndOffers in brand ${slug} must be an array or null`);
+      }
 
-    loadGameData();
+      return data;
+    },
+    enabled: Boolean(slug),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const products: PublicBrandProduct[] = React.useMemo(() => {
+    return brandData?.products || [];
+  }, [brandData]);
+
+  // 2. Query Daftar Metode Pembayaran
+  const paymentMethodsQueryResult = useQuery({
+    queryKey: queryKeys.public.paymentMethods.all,
+    queryFn: async ({ signal }): Promise<PublicPaymentMethod[]> => {
+      const data = await apiFetch<PublicPaymentMethod[]>('/payment-methods', { signal });
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /payment-methods response: expected array');
+      }
+      for (const item of data) {
+        if (
+          typeof item.id !== 'number' || !Number.isFinite(item.id) ||
+          typeof item.name !== 'string' || !item.name.trim() ||
+          typeof item.code !== 'string' || !item.code.trim() ||
+          !isPaymentMethodType(item.type) ||
+          typeof item.feeFlat !== 'number' || !Number.isFinite(item.feeFlat) ||
+          typeof item.feePercent !== 'number' || !Number.isFinite(item.feePercent) ||
+          (item.iconUrl !== null && typeof item.iconUrl !== 'string') ||
+          typeof item.isActive !== 'boolean'
+        ) {
+          throw new Error('Invalid payment method item: malformed data or missing mandatory fields');
+        }
+      }
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const paymentMethodsList = paymentMethodsQueryResult.data || [];
+  const isPaymentLoading = paymentMethodsQueryResult.isLoading;
+  const isPaymentError = paymentMethodsQueryResult.isError;
+  const isPaymentRefetching = paymentMethodsQueryResult.isRefetching;
+  const refetchPaymentMethods = paymentMethodsQueryResult.refetch;
+
+  // Effect UI: Reset input & state validasi game lama saat slug berubah
+  useEffect(() => {
+    setUserId('');
+    setServerId('');
+    resetValidationState();
+    setSelectedRegionId('ALL');
+    setSelectedCategoryId('ALL');
+    setSelectedItem(null);
+    setSelectedPayment('');
+    setPromoCode('');
+    setAppliedDiscount(0);
+    setAppliedDiscountType('FLAT');
+    setAppliedVoucherCode('');
+    setVoucherError('');
+    checkoutAttemptRef.current = null;
+    checkoutSubmitLockRef.current = false;
   }, [slug, resetValidationState]);
+
+  // Effect UI: Auto-select metode pembayaran AKTIF pertama saat list dimuat
+  useEffect(() => {
+    const activePaymentMethods = paymentMethodsList.filter((p) => p.isActive !== false);
+    if (activePaymentMethods.length > 0) {
+      if (!selectedPayment || !activePaymentMethods.some((p) => p.id === selectedPayment)) {
+        setSelectedPayment(activePaymentMethods[0].id);
+      }
+    }
+  }, [paymentMethodsList, selectedPayment]);
 
   const availableRegions = React.useMemo(() => {
     if (!brandData?.regions || !Array.isArray(brandData.regions)) return [];
@@ -391,65 +766,201 @@ export const CheckoutPage: React.FC = () => {
     { label: brandData?.name || slug.replace('-', ' ').toUpperCase() },
   ];
 
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-
-    try {
-      const response = await checkoutApi.checkVoucher(promoCode.trim().toUpperCase());
-      if (response && !response.error) {
-        setAppliedDiscount(response.discountValue);
-        setAppliedDiscountType(response.discountType);
-        setToast({
-          type: 'success',
-          title: 'PROMO DITERAPKAN',
-          message: `Kamu mendapatkan potongan diskon ${response.discountType === 'PERCENT' ? response.discountValue + '%' : 'Rp ' + response.discountValue}!`,
-        });
-      } else {
-        setAppliedDiscount(0);
-        setToast({
-          type: 'error',
-          title: 'KODE PROMO TIDAK VALID',
-          message: response?.error || 'Silakan periksa kembali kode promo kamu.',
-        });
+  // 3. Mutation Cek Voucher
+  const checkVoucherMutation = useMutation<PublicVoucherCheckResponse, Error, string>({
+    mutationFn: async (rawCode: string): Promise<PublicVoucherCheckResponse> => {
+      const code = rawCode.trim().toUpperCase();
+      if (!code) {
+        throw new Error('Kode promo tidak boleh kosong.');
       }
-    } catch (err) {
+      const data = await checkoutApi.checkVoucher(code);
+      if (
+        !data || typeof data !== 'object' ||
+        typeof data.id !== 'number' || !Number.isFinite(data.id) ||
+        typeof data.code !== 'string' || !data.code.trim() ||
+        !isVoucherDiscountType(data.discountType) ||
+        typeof data.discountValue !== 'number' || !Number.isFinite(data.discountValue) || data.discountValue < 0
+      ) {
+        throw new Error('Response voucher dari server tidak valid.');
+      }
+
+      if (data.discountType === 'PERCENT' && data.discountValue > 100) {
+        throw new Error('Diskon persentase tidak boleh lebih dari 100%.');
+      }
+
+      return data;
+    },
+    onMutate: () => {
+      setVoucherError('');
+    },
+    onSuccess: (data) => {
+      setAppliedDiscount(data.discountValue);
+      setAppliedDiscountType(data.discountType);
+      setAppliedVoucherCode(data.code);
+      setVoucherError('');
+      setToast({
+        type: 'success',
+        title: 'PROMO DITERAPKAN',
+        message: `Kamu mendapatkan potongan diskon ${data.discountType === 'PERCENT' ? data.discountValue + '%' : 'Rp ' + data.discountValue.toLocaleString('id-ID')}!`,
+      });
+    },
+    onError: (error: unknown) => {
       setAppliedDiscount(0);
+      setAppliedDiscountType('FLAT');
+      setAppliedVoucherCode('');
+
+      let errorMessage = 'Gagal memvalidasi promo.';
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        errorMessage =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          errorMessage;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      setVoucherError(errorMessage);
       setToast({
         type: 'error',
-        title: 'ERROR JARINGAN',
-        message: 'Gagal memvalidasi promo.',
+        title: 'KODE PROMO TIDAK VALID',
+        message: errorMessage,
       });
-    }
+    },
+  });
+
+  const handleApplyPromo = () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code || checkVoucherMutation.isPending) return;
+    checkVoucherMutation.mutate(code);
   };
 
-  const handleCheckId = async () => {
-    if (!userId.trim()) {
-      setToast({ type: 'warning', title: 'USER ID KOSONG', message: 'Silakan isi User ID kamu!' });
-      return;
-    }
+  const handleRemovePromo = () => {
+    setAppliedDiscount(0);
+    setAppliedDiscountType('FLAT');
+    setAppliedVoucherCode('');
+    setPromoCode('');
+    setVoucherError('');
+    setToast({
+      type: 'info',
+      title: 'PROMO DICABUT',
+      message: 'Kode promo telah dihapus.',
+    });
+  };
 
-    setIsCheckingId(true);
-    setNickname('');
-    setDetectedRegionCode('');
-    setFirstTopupTiers([]);
-    setCheckIdError('');
-    try {
-      const res = await checkoutApi.validateNeetflixAccount(brandData.id, userId, serverId);
+  // 4. Mutation Validasi Akun Game
+  const validateAccountMutation = useMutation<
+    PublicNeetflixValidationResponse,
+    Error,
+    { brandId: number; slug: string; userId: string; zoneId?: string }
+  >({
+    mutationFn: async (params) => {
+      const res = await checkoutApi.validateNeetflixAccount(
+        params.brandId,
+        params.userId,
+        params.zoneId
+      );
+      if (!res || typeof res !== 'object' || typeof res.success !== 'boolean') {
+        throw new Error('Response validasi akun dari server tidak valid.');
+      }
+
+      if (res.success) {
+        if (!res.data || typeof res.data !== 'object') {
+          throw new Error('Data validasi akun dari server kosong.');
+        }
+        const d = res.data;
+        if (typeof d.nickname !== 'string' || !d.nickname.trim()) {
+          throw new Error('Nickname dari server tidak valid.');
+        }
+        if (d.detectedRegionCode !== undefined && typeof d.detectedRegionCode !== 'string') {
+          throw new Error('Kode region dari server tidak valid.');
+        }
+        if (d.detectedCountry !== undefined && typeof d.detectedCountry !== 'string') {
+          throw new Error('Kode negara dari server tidak valid.');
+        }
+        if (
+          d.recommendedRegionId !== undefined &&
+          d.recommendedRegionId !== null &&
+          (typeof d.recommendedRegionId !== 'number' || !Number.isFinite(d.recommendedRegionId))
+        ) {
+          throw new Error('Recommended region ID dari server tidak valid.');
+        }
+        if (
+          d.matchedRegionId !== undefined &&
+          d.matchedRegionId !== null &&
+          (typeof d.matchedRegionId !== 'number' || !Number.isFinite(d.matchedRegionId))
+        ) {
+          throw new Error('Matched region ID dari server tidak valid.');
+        }
+        if (
+          d.matchedRegionIds !== undefined &&
+          (!Array.isArray(d.matchedRegionIds) ||
+            !d.matchedRegionIds.every((id) => typeof id === 'number' && Number.isFinite(id)))
+        ) {
+          throw new Error('Matched region IDs dari server tidak valid.');
+        }
+        if (d.firstTopupAvailable !== undefined && typeof d.firstTopupAvailable !== 'boolean') {
+          throw new Error('First topup status dari server tidak valid.');
+        }
+        if (
+          d.firstTopupTiers !== undefined &&
+          (!Array.isArray(d.firstTopupTiers) ||
+            !d.firstTopupTiers.every((tier) => typeof tier === 'string'))
+        ) {
+          throw new Error('First topup tiers dari server tidak valid.');
+        }
+      } else {
+        if (res.error !== undefined && typeof res.error !== 'string') {
+          throw new Error('Format error dari server tidak valid.');
+        }
+        if (res.message !== undefined && typeof res.message !== 'string') {
+          throw new Error('Format message dari server tidak valid.');
+        }
+      }
+
+      return res;
+    },
+    onMutate: () => {
+      setNickname('');
+      setDetectedRegionCode('');
+      setFirstTopupTiers([]);
+      setCheckIdError('');
+    },
+    onSuccess: (res, variables) => {
+      // Proteksi Stale Response: Pastikan snapshot input saat request dipicu masih persis sama dengan state aktif
+      if (
+        variables.slug !== slug ||
+        variables.userId.trim() !== userId.trim() ||
+        (variables.zoneId || '').trim() !== serverId.trim()
+      ) {
+        return; // Abaikan respons lama secara diam-diam tanpa memperbarui UI
+      }
+
       if (res.success && res.data) {
         setNickname(res.data.nickname);
-        setValidatedUserId(userId.trim());
-        setValidatedServerId(serverId.trim());
-        const targetRegionId = res.data.recommendedRegionId || res.data.matchedRegionId;
+        setValidatedUserId(variables.userId.trim());
+        setValidatedServerId((variables.zoneId || '').trim());
+
+        const targetRegionId = res.data.recommendedRegionId ?? res.data.matchedRegionId;
         if (targetRegionId) {
-          setSelectedRegionId(targetRegionId); // Auto-Lock Recommended Region
-          setIsRegionLocked(true);
-          setShowAllRegionsOverride(false);
+          // Verifikasi keberadaan Region ID terhadap brand aktif di DB
+          const isValidBrandRegion = brandData?.regions?.some((r) => r.id === targetRegionId);
+          if (isValidBrandRegion) {
+            setSelectedRegionId(targetRegionId); // Auto-Lock Recommended Region yang valid
+            setIsRegionLocked(true);
+            setShowAllRegionsOverride(false);
+          }
         }
+
         if (res.data.matchedRegionIds && Array.isArray(res.data.matchedRegionIds)) {
-          setValidMatchedRegionIds(res.data.matchedRegionIds);
-        } else if (targetRegionId) {
+          const validMatchedIds = res.data.matchedRegionIds.filter((id) =>
+            brandData?.regions?.some((r) => r.id === id)
+          );
+          setValidMatchedRegionIds(validMatchedIds);
+        } else if (targetRegionId && brandData?.regions?.some((r) => r.id === targetRegionId)) {
           setValidMatchedRegionIds([targetRegionId]);
         }
+
         if (res.data.detectedRegionCode) {
           setDetectedRegionCode(res.data.detectedRegionCode);
         }
@@ -460,19 +971,53 @@ export const CheckoutPage: React.FC = () => {
       } else {
         setValidatedUserId('');
         setValidatedServerId('');
-        const errMsg = res.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
+        const errMsg = res.error || res.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
         setCheckIdError(errMsg);
         setToast({ type: 'error', title: 'ID TIDAK VALID', message: errMsg });
       }
-    } catch (err: any) {
+    },
+    onError: (error: unknown, variables) => {
+      // Proteksi Stale Response pada Jalur Error
+      if (
+        variables.slug !== slug ||
+        variables.userId.trim() !== userId.trim() ||
+        (variables.zoneId || '').trim() !== serverId.trim()
+      ) {
+        return;
+      }
+
       setValidatedUserId('');
       setValidatedServerId('');
-      const errMsg = err.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
+      let errMsg = 'ID tidak terdeteksi, jika benar silakan lanjut.';
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        errMsg =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          errMsg;
+      } else if (error instanceof Error) {
+        errMsg = error.message;
+      }
       setCheckIdError(errMsg);
       setToast({ type: 'error', title: 'GAGAL CEK ID', message: errMsg });
-    } finally {
-      setIsCheckingId(false);
+    },
+  });
+
+  const isCheckingId = validateAccountMutation.isPending;
+
+  const handleCheckId = () => {
+    if (!userId.trim()) {
+      setToast({ type: 'warning', title: 'USER ID KOSONG', message: 'Silakan isi User ID kamu!' });
+      return;
     }
+    if (!brandData || validateAccountMutation.isPending) return;
+
+    validateAccountMutation.mutate({
+      brandId: brandData.id,
+      slug,
+      userId: userId.trim(),
+      zoneId: serverId.trim() || undefined,
+    });
   };
 
   const getPaymentDetails = (id: number | string) => {
@@ -496,6 +1041,112 @@ export const CheckoutPage: React.FC = () => {
     return getCheckoutBreakdown().grandTotal;
   }; 
   
+  // 5. Mutation Submit Transaksi Checkout
+  const checkoutMutation = useMutation<
+    CheckoutSuccessResponse,
+    unknown,
+    CheckoutMutationVariables
+  >({
+    mutationFn: async (variables): Promise<CheckoutSuccessResponse> => {
+      // TRANSISI LIFECYCLE 1 -> 2: IN_FLIGHT (menggunakan SNAPSHOT dari variables per-request)
+      updateAttemptStatus(variables.attemptHash, 'IN_FLIGHT', variables.ownerScope);
+
+      const res = await checkoutApi.checkoutPayment(variables.payload, variables.idempotencyKey);
+      if (!res || !isCheckoutSuccessResponse(res)) {
+        throw new Error('Response transaksi dari server tidak valid.');
+      }
+      return res;
+    },
+    retry: false, // Strict: TIDAK BOLEH auto-retry transaksi checkout
+    onSuccess: (data, variables) => {
+      // PENTING: Gunakan SNAPSHOT variables.ownerScope
+      if (variables.ownerScope.startsWith('user:')) {
+        const userIdFromScope = Number(variables.ownerScope.replace('user:', ''));
+        if (Number.isFinite(userIdFromScope)) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.user.transactions.byUser(userIdFromScope),
+          });
+        }
+      }
+
+      setToast({
+        type: 'success',
+        title: 'PESANAN DIBUAT',
+        message: 'Transaksi berhasil diproses.',
+      });
+      setIsConfirmModalOpen(false);
+
+      // TRANSISI LIFECYCLE -> SELESAI: Hapus attempt berdasarkan SNAPSHOT variables
+      removePersistedAttempt(variables.attemptHash, variables.ownerScope);
+      checkoutAttemptRef.current = null;
+      currentAttemptHashRef.current = null;
+
+      setPromoCode('');
+      setAppliedDiscount(0);
+      setAppliedDiscountType('FLAT');
+      setAppliedVoucherCode('');
+      setVoucherError('');
+
+      navigate(`/invoice/${encodeURIComponent(data.invoiceId)}`);
+    },
+    onError: (error: unknown, variables) => {
+      let errorMessage = 'Gagal memproses pembayaran.';
+      let isFinalBusinessError = false;
+
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        const status = error.response?.status;
+        const serverData = error.response?.data;
+        const serverCode = serverData?.code;
+        const serverErr = serverData?.error || serverData?.message;
+
+        if (status === 409) {
+          if (serverCode === 'PRICE_CHANGED') {
+            isFinalBusinessError = true;
+            errorMessage = serverErr || 'Harga modal atau status produk telah berubah. Silakan tinjau ulang.';
+            refetchBrand();
+          } else {
+            isFinalBusinessError = false;
+            errorMessage = serverErr || 'Terjadi konflik transaksi atau idempotency key. Silakan periksa kembali.';
+          }
+        } else if (status === 401) {
+          isFinalBusinessError = true;
+          errorMessage = serverErr || 'Anda harus login terlebih dahulu atau sesi telah berakhir.';
+        } else if (status === 400) {
+          isFinalBusinessError = true;
+          errorMessage = serverErr || 'Data transaksi tidak valid atau saldo/kuota tidak mencukupi.';
+        } else if (status === 503) {
+          errorMessage = serverErr || 'Layanan supplier sedang tidak tersedia. Silakan coba beberapa saat lagi.';
+        } else {
+          errorMessage = serverErr || error.message || errorMessage;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      if (isFinalBusinessError) {
+        // TRANSISI LIFECYCLE -> HAPUS: Error 400/401/409 dipastikan terjadi SEBELUM transaksi DB dibuat
+        removePersistedAttempt(variables.attemptHash, variables.ownerScope);
+        checkoutAttemptRef.current = null;
+        currentAttemptHashRef.current = null;
+      } else {
+        // TRANSISI LIFECYCLE 2 -> 3: UNKNOWN_RESULT (Network timeout/50x/409 generik) -> SIMPAN PERMANEN DI STORAGE
+        updateAttemptStatus(variables.attemptHash, 'UNKNOWN_RESULT', variables.ownerScope);
+      }
+
+      setToast({
+        type: 'error',
+        title: 'TRANSAKSI GAGAL',
+        message: errorMessage,
+      });
+      setIsConfirmModalOpen(false);
+    },
+    onSettled: () => {
+      checkoutSubmitLockRef.current = false;
+    },
+  });
+
+  const isSubmitting = checkoutMutation.isPending;
+
   const handleOpenConfirmModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId.trim()) {
@@ -534,14 +1185,33 @@ export const CheckoutPage: React.FC = () => {
       }
     }
 
-    // Generate UUID pseudo-random sebagai Idempotency Key unik untuk transaksi ini
-    const newKey = `KEY-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-    setIdempotencyKey(newKey);
+    if (!selectedItem || !selectedPayment) {
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
+    // Persiapkan draft payload & trigger resolving attempt key async
+    const draftPayload: CheckoutPayload = {
+      productId: selectedItem.id,
+      targetAccount: userId.trim(),
+      targetZone: serverId.trim() || undefined,
+      nickname: nickname.trim() || undefined,
+      paymentMethod: selectedPayment,
+      voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
+      whatsapp: whatsapp.trim() || undefined,
+    };
+
+    resolveCheckoutAttemptKey(draftPayload).catch(() => {});
     setIsConfirmModalOpen(true);
   };
 
   const handleFinalPayment = async () => {
+    // Synchronous submit lock via Ref untuk mencegah double-event sebelum render berikutnya
+    if (checkoutSubmitLockRef.current || checkoutMutation.isPending) return;
+    checkoutSubmitLockRef.current = true;
+
     if (!agreeTerms) {
+      checkoutSubmitLockRef.current = false;
       setToast({
         id: `t_${Date.now()}`,
         type: 'warning',
@@ -550,57 +1220,66 @@ export const CheckoutPage: React.FC = () => {
       });
       return;
     }
-    
+
     if (!selectedItem) {
+      checkoutSubmitLockRef.current = false;
       setToast({ type: 'error', title: 'PRODUK KOSONG', message: 'Silakan pilih nominal topup.' });
       return;
     }
     if (!selectedPayment) {
+      checkoutSubmitLockRef.current = false;
       setToast({ type: 'error', title: 'PEMBAYARAN KOSONG', message: 'Silakan pilih metode pembayaran.' });
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        productId: selectedItem.id,
-        targetAccount: userId,
-        targetZone: serverId,
-        nickname: nickname || undefined,
-        paymentMethod: selectedPayment,
-        voucherCode: appliedDiscount > 0 ? promoCode : undefined,
-        whatsapp,
-      };
+    const payload: CheckoutPayload = {
+      productId: selectedItem.id,
+      targetAccount: userId.trim(),
+      targetZone: serverId.trim() || undefined,
+      nickname: nickname.trim() || undefined,
+      paymentMethod: selectedPayment,
+      voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
+      whatsapp: whatsapp.trim() || undefined,
+    };
 
-      const res = await checkoutApi.checkoutPayment(payload, idempotencyKey);
-      
-      if (res && res.success) {
-        setToast({
-          type: 'success',
-          title: 'PESANAN DIBUAT',
-          message: 'Transaksi berhasil diproses.'
-        });
-        setIsConfirmModalOpen(false);
-        navigate(`/invoice/${res.invoiceId}`);
-      } else {
-        setToast({
-          type: 'error',
-          title: 'TRANSAKSI GAGAL',
-          message: res?.error || 'Gagal memproses pembayaran.'
-        });
-        setIsConfirmModalOpen(false);
-      }
-    } catch (err) {
-      setToast({
-        type: 'error',
-        title: 'ERROR JARINGAN',
-        message: 'Gagal terhubung ke server transaksi.'
-      });
-      setIsConfirmModalOpen(false);
-    } finally {
-      setIsSubmitting(false);
+    let activeKey = '';
+    let attemptHash = '';
+    try {
+      attemptHash = await computePayloadFingerprintHash(payload);
+      activeKey = await resolveCheckoutAttemptKey(payload);
+    } catch (err: unknown) {
+      checkoutSubmitLockRef.current = false;
+      const msg = err instanceof Error ? err.message : 'Gagal memproses kunci idempotensi.';
+      setToast({ type: 'error', title: 'KEAMANAN TRANSAKSI', message: msg });
+      return;
     }
+
+    checkoutMutation.mutate({
+      payload,
+      idempotencyKey: activeKey,
+      attemptHash,
+      ownerScope: currentOwnerScope,
+      slug,
+    });
   };
+
+  if (isBrandLoading || isPaymentLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brutalist-grid">
+        <span className="font-black text-2xl uppercase tracking-wider text-[var(--nb-text)]">MEMUAT DETAIL GAME & PEMBAYARAN...</span>
+      </div>
+    );
+  }
+
+  if (isBrandError || isPaymentError || !brandData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-brutalist-grid gap-4 py-20 px-4 text-center">
+        <h2 className="text-2xl font-black uppercase text-red-500">GAME TIDAK DITEMUKAN / GAGAL MEMUAT DATA</h2>
+        <p className="text-sm font-bold text-[var(--nb-text-muted)]">Data katalog game &quot;{slug}&quot; tidak dapat diakses saat ini.</p>
+        <Button variant="yellow" onClick={() => navigate('/')}>KEMBALI KE BERANDA</Button>
+      </div>
+    );
+  }
 
   const gameTitle = brandData?.name || slug.replace('-', ' ').toUpperCase();
   const developerName = brandData?.publisher || 'OFFICIAL PUBLISHER';
@@ -779,7 +1458,7 @@ export const CheckoutPage: React.FC = () => {
                         brandData.customFields.map((field: any, index: number) => {
                           const isFirst = index === 0;
                           return (
-                            <div key={field.id || index} className={`${isFirst ? (brandData.customFields.length === 1 ? 'col-span-12' : 'col-span-7 sm:col-span-8') : 'col-span-5 sm:col-span-4'}`}>
+                            <div key={field.id || index} className={`${isFirst ? ((brandData.customFields?.length || 0) === 1 ? 'col-span-12' : 'col-span-7 sm:col-span-8') : 'col-span-5 sm:col-span-4'}`}>
                               <div className="flex items-center justify-between mb-1">
                                 <label className="text-[10px] sm:text-xs font-black uppercase text-[var(--nb-text)] truncate">{field.label}</label>
                                 {isFirst && (
@@ -1042,9 +1721,21 @@ export const CheckoutPage: React.FC = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <RadioGroup value={String(selectedPayment)} onValueChange={(val) => setSelectedPayment(val === 'saldo' ? val : Number(val))}>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {paymentMethodsList.map((method) => {
+                    {isPaymentError ? (
+                      <div className="p-4 bg-red-100 border-2 border-red-500 rounded text-red-600 font-bold text-center text-xs sm:text-sm flex flex-col items-center gap-2 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]">
+                        <span>⚠️ GAGAL MEMUAT METODE PEMBAYARAN.</span>
+                        <Button variant="yellow" size="sm" onClick={() => { void refetchPaymentMethods(); }} disabled={isPaymentRefetching}>
+                          {isPaymentRefetching ? 'MEMUAT...' : 'COBA LAGI'}
+                        </Button>
+                      </div>
+                    ) : paymentMethodsList.length === 0 ? (
+                      <div className="p-4 bg-yellow-100 border-2 border-yellow-500 rounded text-yellow-800 font-bold text-center text-xs sm:text-sm shadow-[2px_2px_0px_0px_rgba(234,179,8,1)]">
+                        Belum ada metode pembayaran yang tersedia saat ini.
+                      </div>
+                    ) : (
+                      <RadioGroup value={String(selectedPayment)} onValueChange={(val) => setSelectedPayment(val === 'saldo' ? val : Number(val))}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {paymentMethodsList.map((method) => {
                           const isSelected = String(selectedPayment) === String(method.id);
                           const methodTheme = paymentThemes[method.id] || 'yellow';
                           const shadowColor = `var(--nb-shadow-${methodTheme})`;
@@ -1083,13 +1774,14 @@ export const CheckoutPage: React.FC = () => {
                                 )}
                               </div>
                               <div className="mt-2 text-xs font-bold bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] py-1 px-2 rounded w-fit uppercase">
-                                {method.feeFlat > 0 ? `+ Rp ${method.feeFlat.toLocaleString('id-ID')} Fee` : (method.feePercent > 0 ? `+ ${method.feePercent}% Fee` : 'BEBAS BIAYA ADMIN')}
+                                {(method.feeFlat ?? 0) > 0 ? `+ Rp ${(method.feeFlat ?? 0).toLocaleString('id-ID')} Fee` : ((method.feePercent ?? 0) > 0 ? `+ ${method.feePercent}% Fee` : 'BEBAS BIAYA ADMIN')}
                               </div>
                             </Card>
                           );
                         })}
                       </div>
                     </RadioGroup>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -1197,24 +1889,45 @@ export const CheckoutPage: React.FC = () => {
               <CardContent className="flex flex-col gap-4">
 
                 {/* Promo Code Input */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Kode Promo (NEON30)"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    className="text-xs uppercase bg-[var(--nb-surface)]"
-                  />
-                  <Button type="button" variant={promoButtonTheme} size="sm" onClick={handleApplyPromo}>
-                    PAKAI
-                  </Button>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Kode Promo (NEON30)"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="text-xs uppercase bg-[var(--nb-surface)]"
+                      disabled={checkVoucherMutation.isPending}
+                    />
+                    {appliedDiscount > 0 ? (
+                      <Button type="button" variant="pink" size="sm" onClick={handleRemovePromo} disabled={checkVoucherMutation.isPending}>
+                        HAPUS
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant={promoButtonTheme}
+                        size="sm"
+                        onClick={handleApplyPromo}
+                        disabled={!promoCode.trim() || checkVoucherMutation.isPending}
+                      >
+                        {checkVoucherMutation.isPending ? 'MEMERIKSA...' : 'PAKAI'}
+                      </Button>
+                    )}
+                  </div>
+                  {voucherError && (
+                    <span className="text-[11px] font-bold text-red-600">⚠️ {voucherError}</span>
+                  )}
                 </div>
 
                 {appliedDiscount > 0 && (
                   <div className="bg-[var(--nb-mint)] text-[var(--nb-text)] p-2.5 border-[2px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex items-center justify-between font-bold text-sm">
                     <div className="flex items-center gap-2">
                       <Check className="w-5 h-5 stroke-[3]" />
-                      <span className="uppercase">PROMO DITERAPKAN!</span>
+                      <span className="uppercase">PROMO {appliedVoucherCode || promoCode} DITERAPKAN!</span>
                     </div>
+                    <button type="button" onClick={handleRemovePromo} className="text-xs text-red-600 underline font-black">
+                      HAPUS
+                    </button>
                   </div>
                 )}
 

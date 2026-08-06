@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { PromoBanner } from '../components/PromoBanner';
@@ -11,11 +12,13 @@ import { Display } from '../../../../components/ui/Display';
 import { Callout } from '../../../../components/ui/Callout';
 import { Pagination } from '../../../../components/ui/Pagination';
 import { Avatar, AvatarGroup } from '../../../../components/ui/Avatar';
+import { Button } from '../../../../components/ui/Button';
 import { Kbd } from '../../../../components/ui/Kbd';
 import { Code } from '../../../../components/ui/Code';
-import { Gamepad2, HelpCircle, Zap } from 'lucide-react';
+import { Gamepad2, HelpCircle, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Input } from '../../../../components/ui/Input';
-import { apiFetch, getGPlayMeta, type GPlayMeta } from '../../../../utils/api';
+import { apiFetch, type PublicBrand } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 
 // =====================================================
 // Skeleton Card — ditampilkan saat loading
@@ -37,31 +40,6 @@ const GameCardSkeleton: React.FC = () => (
 );
 
 // =====================================================
-// Fallback statis — muncul kalau API mati/belum sync
-// =====================================================
-const FALLBACK_GAMES: GameItem[] = [
-  { id: 'mobile-legends', name: 'Mobile Legends', publisher: 'Moonton', category: 'GAME', googlePlayId: 'com.mobile.legends' },
-  { id: 'free-fire', name: 'Free Fire', publisher: 'Garena', category: 'GAME', googlePlayId: 'com.dts.freefireth' },
-  { id: 'pubg-mobile', name: 'PUBG Mobile', publisher: 'Tencent', category: 'GAME', googlePlayId: 'com.tencent.ig' },
-  { id: 'genshin-impact', name: 'Genshin Impact', publisher: 'miHoYo', category: 'GAME', googlePlayId: 'com.miHoYo.GenshinImpact' },
-];
-
-// =====================================================
-// Helper: Ubah Brand dari API → GameItem untuk GameCard
-// =====================================================
-const brandToGameItem = (brand: any, gplayData?: GPlayMeta | null): GameItem => {
-  const catName = brand.category?.name || (typeof brand.category === 'string' ? brand.category : 'GAME');
-  return {
-    id: brand.slug || String(brand.id),
-    name: gplayData?.title || brand.name || '',
-    publisher: gplayData?.developer || brand.publisher || 'Official',
-    category: catName.toUpperCase(),
-    image: gplayData?.icon || brand.thumbnail || null,
-    googlePlayId: brand.googlePlayId || null,
-  };
-};
-
-// =====================================================
 // HOME PAGE
 // =====================================================
 export const Home: React.FC = () => {
@@ -69,61 +47,56 @@ export const Home: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Data dari API
-  const [games, setGames] = useState<GameItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // =====================================================
-  // Fetch brands dari DB, lalu enrich dengan Google Play
-  // =====================================================
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-
-      const dbBrands = await apiFetch<any[]>('/brands').catch(() => null);
-
-      if (!dbBrands || dbBrands.length === 0) {
-        // API gagal / DB kosong → pakai fallback statis
-        setGames(FALLBACK_GAMES);
-        setLoading(false);
-        return;
+  // 1. Fetch brands dari TanStack Query (cache bersama dengan SearchBar/SearchPage)
+  const { data: dbBrands, isLoading: loading, isError, refetch } = useQuery<PublicBrand[]>({
+    queryKey: queryKeys.public.brands.all,
+    queryFn: async () => {
+      const data = await apiFetch<PublicBrand[]>('/brands');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid /brands response: expected array');
       }
-
-      // Untuk setiap brand yang punya googlePlayId, fetch metadata Google Play
-      const enriched = await Promise.all(
-        dbBrands.map(async (brand) => {
-          if (brand.googlePlayId) {
-            const meta = await getGPlayMeta(brand.googlePlayId);
-            return brandToGameItem(brand, meta);
-          }
-          return brandToGameItem(brand, null);
-        })
-      );
-
-      setGames(enriched);
-      setLoading(false);
-    };
-
-    load();
-  }, []);
-
-  // =====================================================
-  // Filter & Search
-  // =====================================================
-  const ITEMS_PER_PAGE = 12;
-  const filtered = games.filter((g) => {
-    const matchSearch =
-      g.name.toLowerCase().includes(search.toLowerCase()) ||
-      g.publisher.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeCategory === 'ALL' || g.category === activeCategory;
-    return matchSearch && matchCat;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // 2. Map ke GameItem[] murni dari PublicBrand[]
+  // Menggunakan brand.slug sebagai id agar konsisten dengan SearchPage & checkout route /checkout/game/:slug
+  const games: GameItem[] = useMemo(() => {
+    if (!dbBrands) return [];
 
-  // Ambil tab kategori unik dari data
-  const uniqueCategories = ['ALL', ...Array.from(new Set(games.map((g) => g.category)))];
+    return dbBrands.map((brand: PublicBrand): GameItem => ({
+      id: brand.slug,
+      name: brand.name,
+      publisher: brand.publisher || 'OFFICIAL',
+      category: brand.category.name.toUpperCase(),
+      image: brand.thumbnail,
+      googlePlayId: brand.googlePlayId,
+      estYear: new Date(brand.createdAt).getFullYear().toString(),
+    }));
+  }, [dbBrands]);
+
+  // Filter & Search
+  const ITEMS_PER_PAGE = 12;
+  const filtered = useMemo(() => {
+    return games.filter((g) => {
+      const matchSearch =
+        g.name.toLowerCase().includes(search.toLowerCase()) ||
+        g.publisher.toLowerCase().includes(search.toLowerCase());
+      const matchCat = activeCategory === 'ALL' || g.category === activeCategory;
+      return matchSearch && matchCat;
+    });
+  }, [games, search, activeCategory]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = useMemo(() => {
+    return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filtered, currentPage, ITEMS_PER_PAGE]);
+
+  const uniqueCategories = useMemo(() => {
+    return ['ALL', ...Array.from(new Set(games.map((g) => g.category)))];
+  }, [games]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-black overflow-x-hidden">
@@ -166,8 +139,8 @@ export const Home: React.FC = () => {
               <Avatar fallback="GI" variant="purple" size="sm" />
             </AvatarGroup>
             <div className="flex flex-col text-left leading-none">
-              <span className="text-xs font-black text-black">150.000+ GAMER</span>
-              <span className="text-[10px] font-bold text-gray-600">SUDAH TOP UP HARI INI</span>
+              <span className="text-xs font-black text-black">TOP UP GAME MUDAH</span>
+              <span className="text-[10px] font-bold text-gray-600">PROSES OTOMATIS SETELAH PEMBAYARAN</span>
             </div>
           </div>
         </div>
@@ -199,15 +172,33 @@ export const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* Game Grid */}
+        {/* Game Grid / State Renderer */}
         {loading ? (
-          // Skeleton saat loading
+          // 1. Loading State (Skeleton)
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <GameCardSkeleton key={i} />
             ))}
           </div>
+        ) : isError ? (
+          // 2. API Error State
+          <Card variant="cream" className="p-8 text-center flex flex-col items-center justify-center gap-3">
+            <AlertCircle className="w-10 h-10 text-red-500 stroke-[3]" />
+            <h3 className="font-black text-base uppercase text-black">GAGAL MEMUAT DATA KATALOG</h3>
+            <p className="text-xs font-bold text-gray-600">Terjadi kesalahan saat menghubungkan ke server NETSTORE.</p>
+            <Button variant="yellow" size="sm" onClick={() => refetch()} className="mt-2 font-black">
+              <RefreshCw className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+              COBA LAGI
+            </Button>
+          </Card>
+        ) : games.length === 0 ? (
+          // 3. Database Empty State
+          <Card variant="cream" className="p-12 text-center">
+            <h3 className="font-black text-lg uppercase text-black">BELUM ADA GAME TERSEDIA</h3>
+            <p className="text-xs font-bold text-gray-600 mt-1">Data brand belum ditambahkan atau disinkronisasi di Panel Admin.</p>
+          </Card>
         ) : paginated.length > 0 ? (
+          // 4. Success State (Data Loaded)
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {paginated.map((game) => (
@@ -222,10 +213,10 @@ export const Home: React.FC = () => {
             )}
           </>
         ) : (
-          // Hasil pencarian kosong
+          // 5. Local Search Filter Empty State
           <Card variant="cream" className="p-12 text-center">
-            <h3 className="font-black text-lg uppercase">GAME TIDAK DITEMUKAN</h3>
-            <p className="text-xs font-bold text-gray-600 mt-1">Coba kata kunci pencarian yang lain.</p>
+            <h3 className="font-black text-lg uppercase text-black">GAME TIDAK DITEMUKAN</h3>
+            <p className="text-xs font-bold text-gray-600 mt-1">Coba kata kunci pencarian atau filter yang lain.</p>
           </Card>
         )}
 

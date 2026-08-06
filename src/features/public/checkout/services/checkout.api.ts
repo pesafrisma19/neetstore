@@ -1,5 +1,6 @@
 import { api } from '../../../../services/api';
 import type { PublicInvoiceResponse } from '../types/invoice.types';
+import type { PublicVoucherCheckResponse, PublicNeetflixValidationResponse, CheckoutPayload, CheckoutSuccessResponse } from '../../../../utils/api';
 
 export const checkoutApi = {
   getBrandBySlug: async (slug: string) => {
@@ -12,13 +13,13 @@ export const checkoutApi = {
     return res.data;
   },
 
-  checkVoucher: async (code: string) => {
-    const res = await api.get(`/vouchers/check/${code}`);
+  checkVoucher: async (code: string): Promise<PublicVoucherCheckResponse> => {
+    const res = await api.post<PublicVoucherCheckResponse>('/voucher/check', { code });
     return res.data;
   },
 
-  checkoutPayment: async (data: any, idempotencyKey: string) => {
-    const res = await api.post('/transactions/checkout', data, {
+  checkoutPayment: async (data: CheckoutPayload, idempotencyKey: string): Promise<CheckoutSuccessResponse> => {
+    const res = await api.post<CheckoutSuccessResponse>('/transactions/checkout', data, {
       headers: {
         'x-idempotency-key': idempotencyKey
       }
@@ -31,8 +32,8 @@ export const checkoutApi = {
     return res.data;
   },
 
-  validateNeetflixAccount: async (brandId: number, userId: string, zoneId?: string) => {
-    const res = await api.post('/neetflix/validate', { brandId, userId, zoneId });
+  validateNeetflixAccount: async (brandId: number, userId: string, zoneId?: string): Promise<PublicNeetflixValidationResponse> => {
+    const res = await api.post<PublicNeetflixValidationResponse>('/neetflix/validate', { brandId, userId, zoneId });
     return res.data;
   }
 };
