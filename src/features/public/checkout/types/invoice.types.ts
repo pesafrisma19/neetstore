@@ -36,12 +36,4 @@ export interface PublicInvoiceResponse {
   createdAt: string;
 
   sn?: string;
-
-  adminDebug?: {
-    digiflazzSku?: string;
-    providerRef?: string;
-    providerPrice?: number;
-    profit?: number;
-    providerMessage?: string;
-  };
 }

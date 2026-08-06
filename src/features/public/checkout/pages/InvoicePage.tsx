@@ -6,7 +6,7 @@ import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { 
   Copy, ArrowLeft, Clock, CheckCircle, XCircle, ChevronRight, 
-  AlertTriangle, ShieldCheck, Sparkles, Check, Calendar, MapPin, 
+  AlertTriangle, Sparkles, Check, Calendar, MapPin, 
   ExternalLink, Receipt, Tag, ShieldAlert
 } from 'lucide-react';
 
@@ -15,14 +15,12 @@ import { Footer } from '../../../../components/layout/Footer';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { useAuth } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
 import type { PublicInvoiceResponse } from '../types/invoice.types';
 
 export const InvoicePage: React.FC = () => {
   const { orderId } = useParams();
   const invoiceNumber = orderId || '';
-  const { user } = useAuth();
 
   const [copied, setCopied] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -538,40 +536,6 @@ export const InvoicePage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* ========================================================================= */}
-        {/* BLOK 4: ADMIN DEBUG PANEL (KHUSUS ROLE ADMIN)                             */}
-        {/* ========================================================================= */}
-        {user?.role === 'ADMIN' && transaction.adminDebug && (
-          <Card variant="purple" className="p-0 overflow-hidden border-4 border-black rounded-2xl shadow-[5px_5px_0px_0px_#000]">
-            <div className="bg-yellow-400 p-2.5 border-b-2 border-black flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
-              <h2 className="text-xs font-black uppercase text-black m-0">ADMIN DEBUG VIEW (RESTRICTED DTO)</h2>
-            </div>
-            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-white text-xs">
-              <div>
-                <span className="text-[10px] font-bold text-gray-300 block">Digiflazz SKU</span>
-                <span className="font-mono">{transaction.adminDebug.digiflazzSku || '-'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-gray-300 block">Provider Ref</span>
-                <span className="font-mono">{transaction.adminDebug.providerRef || '-'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-gray-300 block">Harga Modal Provider</span>
-                <span className="font-mono text-amber-300">{transaction.adminDebug.providerPrice ? formatRupiah(transaction.adminDebug.providerPrice) : '-'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-gray-300 block">Profit Bersih</span>
-                <span className="font-mono text-emerald-300">{transaction.adminDebug.profit ? formatRupiah(transaction.adminDebug.profit) : '-'}</span>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="text-[10px] font-bold text-gray-300 block">Provider Message</span>
-                <span className="font-mono text-red-300">{transaction.adminDebug.providerMessage || '-'}</span>
-              </div>
-            </div>
-          </Card>
-        )}
 
       </main>
       <Footer />
