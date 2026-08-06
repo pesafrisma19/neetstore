@@ -222,39 +222,35 @@ export const InvoicePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action panel — satu bidang putih, border-top tebal pemisah dari header */}
-              <div className="border-t-2 border-black/10 bg-white/70 p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row items-stretch gap-3">
+              {/* Action panel — putih solid + border-top tebal, kontras tegas dari header kuning.
+                  Semua item shrink-to-content (bukan flex-1) supaya nggak ada box kosong melompong,
+                  row-nya di-center jadi tetap rapi walau total lebar konten < lebar container. */}
+              <div className="border-t-4 border-black bg-white p-3 sm:p-4">
+                <div className="flex flex-wrap items-stretch justify-center gap-3">
                   {transaction.paymentMethod === 'QRIS' && transaction.paymentUrl && !transaction.paymentUrl.startsWith('http') && (
-                    <div className="flex items-center gap-3 bg-white p-2.5 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
-                      <QRCodeSVG value={transaction.paymentUrl} size={64} level="M" />
-                      <div className="sm:hidden">
-                        <span className="text-[9px] font-extrabold uppercase tracking-wider block text-gray-500">Scan QRIS</span>
-                        <span className="text-xs font-black">Bayar via e-wallet</span>
-                      </div>
+                    <div className="flex items-center justify-center bg-white p-2 border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] shrink-0">
+                      <QRCodeSVG value={transaction.paymentUrl} size={72} level="M" />
                     </div>
                   )}
 
-                  <div className="flex-1 flex flex-col sm:flex-row gap-3">
-                    {timeLeft !== null && (
-                      <div className="flex-1 bg-white px-4 py-2.5 border-2 border-black rounded-xl text-center flex flex-col justify-center shadow-[2px_2px_0px_0px_#000]">
-                        <span className="text-[9px] font-extrabold uppercase tracking-wider block text-gray-500">Sisa Waktu Pembayaran</span>
-                        <span className="text-lg sm:text-xl font-black tabular-nums tracking-tight text-red-600">
-                          {formatTime(timeLeft)}
-                        </span>
-                      </div>
-                    )}
+                  {timeLeft !== null && (
+                    <div className="bg-white px-6 py-2 border-2 border-black rounded-xl text-center flex flex-col items-center justify-center gap-0.5 shadow-[3px_3px_0px_0px_#000] shrink-0">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-500">Sisa Waktu Pembayaran</span>
+                      <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tight text-red-600 whitespace-nowrap">
+                        {formatTime(timeLeft)}
+                      </span>
+                    </div>
+                  )}
 
-                    <Button
-                      variant="white"
-                      size="sm"
-                      onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
-                      className="font-black border-2 border-black text-xs py-2 px-4 shadow-[2px_2px_0px_0px_#000] sm:self-stretch"
-                    >
-                      <Copy className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
-                      {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="white"
+                    size="sm"
+                    onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
+                    className="font-black border-2 border-black text-xs px-5 shadow-[3px_3px_0px_0px_#000] shrink-0 h-auto"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
+                    {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
+                  </Button>
                 </div>
               </div>
             </div>
