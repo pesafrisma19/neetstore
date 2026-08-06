@@ -83,7 +83,7 @@ export const BannerSlider: React.FC = () => {
     const active = banners[0];
     return (
       <div
-      className="relative w-full max-w-7xl mx-auto aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] rounded-2xl overflow-hidden border-[3.5px] sm:border-[4px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1.5 sm:p-2.5"
+      className="relative w-full max-w-7xl mx-auto aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] rounded-2xl overflow-hidden border-[3.5px] sm:border-[4px] border-[var(--nb-border)] bg-[var(--nb-surface)]"
         style={{
           boxShadow: `8px 8px 0px 0px var(--nb-shadow-${centerTone})`,
         }}
@@ -117,7 +117,7 @@ export const BannerSlider: React.FC = () => {
         {/* ⬅️ BANNER KIRI (PREV) - Tertimpa di belakang kiri */}
         <div
           onClick={prev}
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[65%] sm:w-[58%] md:w-[52%] h-[82%] z-10 -translate-x-[22%] sm:-translate-x-[16%] scale-90 opacity-60 hover:opacity-95 transition-all duration-500 ease-out cursor-pointer overflow-hidden rounded-2xl border-[3.5px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1.5 sm:p-2"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[65%] sm:w-[58%] md:w-[52%] h-[82%] z-10 -translate-x-[22%] sm:-translate-x-[16%] scale-90 opacity-60 hover:opacity-95 transition-all duration-500 ease-out cursor-pointer overflow-hidden rounded-2xl border-[3.5px] border-[var(--nb-border)] bg-[var(--nb-surface)]"
           style={{
             boxShadow: `4px 4px 0px 0px var(--nb-shadow-${leftTone})`,
           }}
@@ -139,7 +139,7 @@ export const BannerSlider: React.FC = () => {
         {/* ➡️ BANNER KANAN (NEXT) - Tertimpa di belakang kanan */}
         <div
           onClick={next}
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-[65%] sm:w-[58%] md:w-[52%] h-[82%] z-10 translate-x-[22%] sm:translate-x-[16%] scale-90 opacity-60 hover:opacity-95 transition-all duration-500 ease-out cursor-pointer overflow-hidden rounded-2xl border-[3.5px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1.5 sm:p-2"
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-[65%] sm:w-[58%] md:w-[52%] h-[82%] z-10 translate-x-[22%] sm:translate-x-[16%] scale-90 opacity-60 hover:opacity-95 transition-all duration-500 ease-out cursor-pointer overflow-hidden rounded-2xl border-[3.5px] border-[var(--nb-border)] bg-[var(--nb-surface)]"
           style={{
             boxShadow: `4px 4px 0px 0px var(--nb-shadow-${rightTone})`,
           }}
@@ -160,7 +160,7 @@ export const BannerSlider: React.FC = () => {
 
         {/* 👑 BANNER TENGAH (AKTIF / FOKUS UTAMA) - Paling Besar di Depan */}
         <div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] sm:w-[75%] md:w-[68%] h-full z-30 scale-100 opacity-100 transition-all duration-500 ease-out overflow-hidden rounded-2xl border-[4px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1.5 sm:p-2.5"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] sm:w-[75%] md:w-[68%] h-full z-30 scale-100 opacity-100 transition-all duration-500 ease-out overflow-hidden rounded-2xl border-[4px] border-[var(--nb-border)] bg-[var(--nb-surface)]"
           style={{
             boxShadow: `8px 8px 0px 0px var(--nb-shadow-${centerTone})`,
           }}
