@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   getAdminRegions,
   getAdminBrands,
@@ -7,6 +8,7 @@ import {
   deleteAdminRegion,
   type RegionData,
 } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
@@ -15,7 +17,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Checkbox } from '../../../../components/ui/Checkbox';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '../../../../components/ui/ToastContext';
 import { COUNTRIES } from '../../../../utils/countries';
 
@@ -29,19 +31,16 @@ const getCountryFlagEmoji = (countryCode: string) => {
 };
 
 export const RegionsPage: React.FC = () => {
-  const [regions, setRegions] = useState<RegionData[]>([]);
-  const [brands, setBrands] = useState<{ id: number; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
 
-  // Filter & Pagination States
+  // Filter & Pagination States (Local UI State)
   const [search, setSearch] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 15;
 
-  // Modal States
+  // Modal States (Local UI State)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRegion, setEditingRegion] = useState<RegionData | null>(null);
   const [formBrandId, setFormBrandId] = useState<string>('');
@@ -52,70 +51,154 @@ export const RegionsPage: React.FC = () => {
   const [formMappingCountries, setFormMappingCountries] = useState<string[]>([]);
   const [countrySearch, setCountrySearch] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [expandedCountries, setExpandedCountries] = useState<Record<number, boolean>>({});
+
+  // Per-row Toggling State
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const toggleExpandCountries = (id: number) => {
     setExpandedCountries((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Toast Context
-  const { addToast } = useToast();
+  // 1. TanStack Query for Brands (Server-State)
+  const { data: brandsRaw = [] } = useQuery({
+    queryKey: queryKeys.admin.brands.all,
+    queryFn: getAdminBrands,
+  });
 
-  const fetchBrands = async () => {
-    try {
-      const data = await getAdminBrands();
-      if (Array.isArray(data)) {
-        setBrands(data.map((b) => ({ id: b.id, name: b.name })));
-        if (data.length > 0 && !formBrandId) {
-          setFormBrandId(String(data[0].id));
-        }
-      }
-    } catch (err) {
-      console.error('Gagal memuat brand:', err);
+  const brands = useMemo(() => {
+    if (Array.isArray(brandsRaw)) {
+      return brandsRaw.map((b: any) => ({ id: b.id, name: b.name }));
     }
-  };
+    return [];
+  }, [brandsRaw]);
 
-  const fetchRegions = async () => {
-    setLoading(true);
-    try {
-      const brandId = selectedBrand !== 'ALL' ? parseInt(selectedBrand) : undefined;
-      const res = await getAdminRegions({
-        brandId,
-        search: search.trim() || undefined,
-        page: currentPage,
-        pageSize,
+  // 2. TanStack Query for Regions (Server-State with pagination & filtering)
+  const queryParams = useMemo(
+    () => ({
+      brandId: selectedBrand !== 'ALL' ? parseInt(selectedBrand) : undefined,
+      search: search.trim() || undefined,
+      page: currentPage,
+      pageSize,
+    }),
+    [selectedBrand, search, currentPage]
+  );
+
+  const {
+    data: regionResult,
+    isLoading: loading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.admin.regions.list(queryParams),
+    queryFn: () => getAdminRegions(queryParams),
+    placeholderData: keepPreviousData,
+  });
+
+  const regions = useMemo(() => {
+    if (regionResult && Array.isArray(regionResult.items)) {
+      return regionResult.items;
+    }
+    return [];
+  }, [regionResult]);
+
+  const totalPages = regionResult?.pagination?.totalPages || 1;
+  const totalCount = regionResult?.pagination?.total || regions.length;
+
+  // Auto-adjust currentPage if page bounds change due to deletion or filtering
+  React.useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  // 3. TanStack Mutation for Create / Edit Region
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        brandId: parseInt(formBrandId),
+        name: formName.trim(),
+        code: formCode.trim() || null,
+        sortOrder: Number(formSortOrder) || 0,
+        mappingMode: formMappingMode,
+        mappingCountries: formMappingCountries,
+        isActive: formIsActive,
+      };
+
+      if (editingRegion) {
+        return updateAdminRegion(editingRegion.id, payload);
+      }
+      return createAdminRegion(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.regions.all });
+      addToast({
+        title: 'SUKSES',
+        message: editingRegion
+          ? `Region "${formName}" berhasil diperbarui!`
+          : `Region "${formName}" berhasil ditambahkan!`,
+        type: 'success',
       });
+      setIsModalOpen(false);
+    },
+    onError: (err: any) => {
+      addToast({
+        title: 'ERROR',
+        message: err.message || 'Gagal menyimpan Region',
+        type: 'error',
+      });
+    },
+  });
 
-      if (res && Array.isArray(res.items)) {
-        setRegions(res.items);
-        if (res.pagination) {
-          setTotalPages(res.pagination.totalPages || 1);
-          setTotalCount(res.pagination.total || 0);
-        } else {
-          setTotalPages(1);
-          setTotalCount(res.items.length);
-        }
-      } else {
-        setRegions([]);
-        setTotalPages(1);
-        setTotalCount(0);
-      }
-    } catch (err: any) {
-      addToast({ title: 'ERROR', message: err.message || 'Gagal memuat daftar Region', type: 'error' });
-      setRegions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 4. TanStack Mutation for Delete Region
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteAdminRegion(id),
+    onMutate: (id) => {
+      setDeletingId(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.regions.all });
+      addToast({ title: 'SUKSES', message: 'Region berhasil dihapus', type: 'success' });
+    },
+    onError: (err: any) => {
+      addToast({
+        title: 'GAGAL HAPUS',
+        message: err.message || 'Tidak dapat menghapus Region yang masih terhubung ke produk',
+        type: 'error',
+      });
+    },
+    onSettled: () => {
+      setDeletingId(null);
+    },
+  });
 
-  useEffect(() => {
-    fetchBrands();
-  }, []);
-
-  useEffect(() => {
-    fetchRegions();
-  }, [selectedBrand, currentPage, search]);
+  // 5. TanStack Mutation for Inline Toggle isActive (Decision 2A)
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, nextActive }: { id: number; nextActive: boolean }) =>
+      updateAdminRegion(id, { isActive: nextActive }),
+    onMutate: ({ id }) => {
+      setTogglingId(id);
+    },
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.regions.all });
+      addToast({
+        title: 'STATUS DIPERBARUI',
+        message: `Status Region "${updated?.name || ''}" kini ${updated?.isActive ? 'AKTIF' : 'NON-AKTIF'}`,
+        type: 'success',
+      });
+    },
+    onError: (err: any) => {
+      addToast({
+        title: 'ERROR TOGGLE',
+        message: err.message || 'Gagal mengubah status Region',
+        type: 'error',
+      });
+    },
+    onSettled: () => {
+      setTogglingId(null);
+    },
+  });
 
   const handleOpenAddModal = () => {
     setEditingRegion(null);
@@ -126,9 +209,7 @@ export const RegionsPage: React.FC = () => {
     setFormMappingCountries([]);
     setCountrySearch('');
     setFormIsActive(true);
-    if (brands.length > 0) {
-      setFormBrandId(selectedBrand !== 'ALL' ? selectedBrand : String(brands[0].id));
-    }
+    setFormBrandId(selectedBrand !== 'ALL' ? selectedBrand : String(brands[0]?.id || ''));
     setIsModalOpen(true);
   };
 
@@ -149,7 +230,7 @@ export const RegionsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmitForm = async (e: React.FormEvent) => {
+  const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
       addToast({ title: 'VALIDASI', message: 'Nama Region wajib diisi', type: 'error' });
@@ -159,53 +240,18 @@ export const RegionsPage: React.FC = () => {
       addToast({ title: 'VALIDASI', message: 'Brand wajib dipilih', type: 'error' });
       return;
     }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        brandId: parseInt(formBrandId),
-        name: formName.trim(),
-        code: formCode.trim() || null,
-        sortOrder: Number(formSortOrder) || 0,
-        mappingMode: formMappingMode,
-        mappingCountries: formMappingCountries,
-        isActive: formIsActive,
-      };
-
-      if (editingRegion) {
-        await updateAdminRegion(editingRegion.id, payload);
-        addToast({ title: 'SUKSES', message: `Region "${formName}" berhasil diperbarui`, type: 'success' });
-      } else {
-        await createAdminRegion(payload);
-        addToast({ title: 'SUKSES', message: `Region "${formName}" berhasil ditambahkan`, type: 'success' });
-      }
-
-      setIsModalOpen(false);
-      fetchRegions();
-    } catch (err: any) {
-      addToast({ title: 'ERROR', message: err.message || 'Gagal menyimpan Region', type: 'error' });
-    } finally {
-      setSubmitting(false);
-    }
+    saveMutation.mutate();
   };
 
-  const handleDelete = async (id: number, name: string) => {
+  const handleDelete = (id: number, name: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus Region "${name}"?`)) {
       return;
     }
+    deleteMutation.mutate(id);
+  };
 
-    try {
-      await deleteAdminRegion(id);
-      addToast({ title: 'SUKSES', message: `Region "${name}" berhasil dihapus`, type: 'success' });
-      fetchRegions();
-    } catch (err: any) {
-      // Menampilkan error backend jika ditolak oleh safe delete guard (attached products)
-      addToast({
-        title: 'GAGAL HAPUS',
-        message: err.message || 'Tidak dapat menghapus Region yang masih terhubung ke produk',
-        type: 'error',
-      });
-    }
+  const handleToggleActive = (region: RegionData) => {
+    toggleActiveMutation.mutate({ id: region.id, nextActive: !region.isActive });
   };
 
   return (
@@ -275,7 +321,15 @@ export const RegionsPage: React.FC = () => {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 font-black uppercase text-[var(--nb-text-muted)]">
+                      <RefreshCw className="w-6 h-6 animate-spin inline-block mr-2 text-[var(--nb-cyan)] stroke-[3]" />
                       Memuat data region...
+                    </TableCell>
+                  </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 font-bold text-red-600 uppercase">
+                      <AlertCircle className="w-6 h-6 inline-block mr-2 stroke-[3]" />
+                      {(error as any)?.message || 'Gagal memuat daftar Region'}
                     </TableCell>
                   </TableRow>
                 ) : regions.length === 0 ? (
@@ -290,6 +344,8 @@ export const RegionsPage: React.FC = () => {
                     const mode = reg.mappingMode || 'ALLOW';
                     const isExpanded = !!expandedCountries[reg.id];
                     const visibleList = isExpanded ? countryList : countryList.slice(0, 4);
+                    const isToggling = togglingId === reg.id;
+                    const isDeleting = deletingId === reg.id;
 
                     return (
                       <TableRow key={reg.id}>
@@ -339,18 +395,42 @@ export const RegionsPage: React.FC = () => {
                         <TableCell className="text-center font-mono font-bold">
                           {reg.sortOrder}
                         </TableCell>
+
+                        {/* Inline Status Toggle Button (Decision 2A) */}
                         <TableCell className="text-center">
-                          <Badge variant={reg.isActive ? 'mint' : 'pink'} size="sm">
-                            {reg.isActive ? 'AKTIF' : 'NON-AKTIF'}
-                          </Badge>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(reg)}
+                            disabled={isToggling}
+                            className="inline-flex items-center gap-1 cursor-pointer transition-transform active:scale-95 disabled:opacity-50"
+                            title="Klik untuk mengubah status aktif/non-aktif secara instan"
+                          >
+                            <Badge variant={reg.isActive ? 'mint' : 'pink'} size="sm" className="flex items-center gap-1 font-black">
+                              {isToggling ? (
+                                <RefreshCw className="w-3 h-3 animate-spin stroke-[3]" />
+                              ) : reg.isActive ? (
+                                <ToggleRight className="w-4 h-4 stroke-[3]" />
+                              ) : (
+                                <ToggleLeft className="w-4 h-4 stroke-[3]" />
+                              )}
+                              <span>{reg.isActive ? 'AKTIF' : 'NON-AKTIF'}</span>
+                            </Badge>
+                          </button>
                         </TableCell>
+
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button variant="purple" size="sm" onClick={() => handleOpenEditModal(reg)}>
                               <Edit className="w-3.5 h-3.5 stroke-[3]" />
                               <span>EDIT</span>
                             </Button>
-                            <Button variant="pink" size="sm" onClick={() => handleDelete(reg.id, reg.name)}>
+                            <Button
+                              variant="pink"
+                              size="sm"
+                              onClick={() => handleDelete(reg.id, reg.name)}
+                              disabled={isDeleting}
+                              isLoading={isDeleting}
+                            >
                               <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
                             </Button>
                           </div>
@@ -554,11 +634,16 @@ export const RegionsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t-2 border-black">
-            <Button variant="white" type="button" onClick={() => setIsModalOpen(false)} disabled={submitting}>
+            <Button variant="white" type="button" onClick={() => setIsModalOpen(false)} disabled={saveMutation.isPending}>
               BATAL
             </Button>
-            <Button variant="yellow" type="submit" disabled={submitting}>
-              {submitting ? 'MENYIMPAN...' : editingRegion ? 'SIMPAN PERUBAHAN' : 'TAMBAH REGION'}
+            <Button
+              variant="yellow"
+              type="submit"
+              isLoading={saveMutation.isPending}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? 'MENYIMPAN...' : editingRegion ? 'SIMPAN PERUBAHAN' : 'TAMBAH REGION'}
             </Button>
           </div>
         </form>

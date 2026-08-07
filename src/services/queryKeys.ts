@@ -31,6 +31,11 @@ export const queryKeys = {
       all: ['admin', 'brands'] as const,
       detail: (id: number) => ['admin', 'brands', 'detail', id] as const,
     },
+    regions: {
+      all: ['admin', 'regions'] as const,
+      list: (params?: { brandId?: number; search?: string; page?: number; pageSize?: number; active?: boolean }) =>
+        ['admin', 'regions', 'list', params] as const,
+    },
     pricingRules: {
       all: ['admin', 'pricing-rules'] as const,
     },
