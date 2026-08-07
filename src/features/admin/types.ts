@@ -1,7 +1,19 @@
 export interface TransactionData { id: any; [key: string]: any; }
 export interface UserData { id: any; [key: string]: any; }
 export interface VoucherData { id: any; [key: string]: any; }
-export interface ProviderData { id: any; [key: string]: any; }
+export interface ProviderData {
+  id: number;
+  name: string;
+  code: string;
+  apiUsername?: string;
+  apiKey?: string;
+  balance?: number;
+  isActive: boolean;
+  isConnected?: boolean;
+  lastSync?: string | Date;
+  _count?: { products: number };
+  [key: string]: any;
+}
 export interface CategoryData { id: any; [key: string]: any; }
 export interface BrandData { id: any; [key: string]: any; }
 export interface ProductCategoryData { id: any; [key: string]: any; }

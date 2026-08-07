@@ -14,6 +14,7 @@ export interface ProviderData {
   apiKey: string;
   balance: number;
   isActive: boolean;
+  isConnected?: boolean;
   updatedAt?: string;
   lastSync?: string | null;
   _count?: {
