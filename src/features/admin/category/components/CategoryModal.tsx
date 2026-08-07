@@ -32,7 +32,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const [iconSearch, setIconSearch] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Available icon keys array
   const allIconKeys = useMemo(() => Object.keys(CATEGORY_ICONS), []);
 
   const filteredIconKeys = useMemo(() => {
@@ -66,7 +65,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'name' && !category) {
-      // Auto generate slug if creating new
       const autoSlug = value
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -85,7 +83,6 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     setFormData((prev) => ({ ...prev, icon: iconName }));
   };
 
-  // Mutation for Create / Update
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -132,66 +129,58 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
       onClose={onClose}
       title={category ? 'EDIT KATEGORI' : 'TAMBAH KATEGORI BARU'}
     >
-      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+      <form onSubmit={handleSubmit} className="space-y-5 text-left">
         {errorMsg && (
-          <div className="p-3 bg-red-100 border-2 border-red-500 rounded-lg text-red-700 text-sm font-bold">
+          <div className="p-3.5 bg-red-100 border-[3px] border-red-600 text-red-900 font-black text-xs uppercase tracking-wide shadow-[3px_3px_0px_0px_var(--nb-shadow)]">
             {errorMsg}
           </div>
         )}
 
-        <div>
-          <label className="block text-xs font-black uppercase text-[var(--nb-text)] mb-1">
-            Nama Kategori
-          </label>
-          <Input
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Contoh: Games, Pulsa, Voucher"
-            required
-          />
-        </div>
+        <Input
+          label="Nama Kategori"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="Contoh: Games, Pulsa, Voucher"
+          required
+        />
 
-        <div>
-          <label className="block text-xs font-black uppercase text-[var(--nb-text)] mb-1">
-            Slug
-          </label>
-          <Input
-            name="slug"
-            value={formData.slug}
-            onChange={handleChange}
-            placeholder="Contoh: games, pulsa, voucher"
-            required
-          />
-        </div>
+        <Input
+          label="Slug (URL Friendly)"
+          name="slug"
+          value={formData.slug}
+          onChange={handleChange}
+          placeholder="Contoh: games, pulsa, voucher"
+          required
+        />
 
         {/* Lucide Icon Picker Section */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-black uppercase text-[var(--nb-text)]">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <label className="text-xs font-black uppercase tracking-wider text-[var(--nb-text)]">
               Icon (Lucide)
             </label>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[var(--nb-surface-alt)] border border-[var(--nb-border)] rounded text-xs font-bold">
-              <span>Preview:</span>
-              <CategoryIcon iconName={formData.icon} className="w-4 h-4 text-[var(--nb-yellow)]" />
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[var(--nb-yellow)] border-[2.5px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] text-xs font-black text-[#000000]">
+              <span>TERPILIH:</span>
+              <CategoryIcon iconName={formData.icon} className="w-4 h-4" />
               <span className="font-mono text-xs">{formData.icon}</span>
             </div>
           </div>
 
           {/* Icon Search */}
-          <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--nb-text-muted)]" />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--nb-text-muted)] pointer-events-none" />
             <input
               type="text"
               value={iconSearch}
               onChange={(e) => setIconSearch(e.target.value)}
-              placeholder="Cari nama icon..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs font-bold bg-[var(--nb-surface)] border-2 border-[var(--nb-border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)]"
+              placeholder="Cari nama icon Lucide..."
+              className="w-full pl-9 pr-3 py-2 font-bold text-xs bg-[var(--nb-input-bg)] border-[3px] border-[var(--nb-border)] text-[var(--nb-text)] placeholder:text-[var(--nb-text-muted)] outline-none focus:bg-[var(--nb-input-focus-bg)] shadow-[2px_2px_0px_0px_var(--nb-shadow-cyan)] transition-all"
             />
           </div>
 
-          {/* Icon Grid */}
-          <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-[var(--nb-surface-alt)] border-2 border-[var(--nb-border)] rounded-lg">
+          {/* Icon Selection Grid */}
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-2.5 bg-[var(--nb-surface-alt)] border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)]">
             {filteredIconKeys.map((iconKey) => {
               const isSelected = formData.icon === iconKey;
               return (
@@ -200,50 +189,64 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
                   type="button"
                   onClick={() => handleSelectIcon(iconKey)}
                   title={iconKey}
-                  className={`relative flex flex-col items-center justify-center p-2 rounded border-2 transition-all ${
+                  className={`relative flex flex-col items-center justify-center p-2.5 border-[2.5px] border-[var(--nb-border)] cursor-pointer transition-all duration-150 ${
                     isSelected
-                      ? 'bg-[var(--nb-yellow)] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] scale-105 z-10'
-                      : 'bg-[var(--nb-surface)] border-transparent hover:border-[var(--nb-border)] hover:bg-[var(--nb-surface-alt)]'
+                      ? 'bg-[var(--nb-yellow)] text-[#000000] shadow-[3px_3px_0px_0px_var(--nb-shadow-purple)] -translate-x-0.5 -translate-y-0.5 font-black z-10'
+                      : 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:bg-[var(--nb-surface-alt)] hover:shadow-[2px_2px_0px_0px_var(--nb-shadow)] active:translate-x-0.5 active:translate-y-0.5'
                   }`}
                 >
                   <CategoryIcon iconName={iconKey} className="w-5 h-5" />
+                  <span className="text-[9px] font-mono font-bold truncate max-w-full mt-1">
+                    {iconKey}
+                  </span>
                   {isSelected && (
-                    <Check className="absolute top-0.5 right-0.5 w-3 h-3 text-black stroke-[3]" />
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[var(--nb-pink)] text-black border border-[var(--nb-border)] flex items-center justify-center rounded-full shadow-[1px_1px_0px_0px_var(--nb-shadow)]">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </span>
                   )}
                 </button>
               );
             })}
             {filteredIconKeys.length === 0 && (
-              <div className="col-span-full py-4 text-center text-xs font-bold text-[var(--nb-text-muted)]">
-                Tidak ada icon yang cocok.
+              <div className="col-span-full py-6 text-center text-xs font-bold text-[var(--nb-text-muted)]">
+                Tidak ada icon yang cocok dengan pencarian "{iconSearch}".
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-[var(--nb-border)]">
+        {/* Status Toggle */}
+        <div className="flex items-center justify-between p-3.5 bg-[var(--nb-surface-alt)] border-[3px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)]">
           <div>
-            <label className="block text-xs font-black uppercase text-[var(--nb-text)]">
+            <label className="block text-xs font-black uppercase tracking-wider text-[var(--nb-text)]">
               Status Kategori
             </label>
-            <span className="text-xs text-[var(--nb-text-muted)]">
-              {formData.isActive ? 'Kategori Aktif' : 'Kategori Nonaktif'}
+            <span className="text-xs font-bold text-[var(--nb-text-muted)]">
+              {formData.isActive ? 'Kategori Aktif (Tampil di Publik)' : 'Kategori Nonaktif (Sembunyikan)'}
             </span>
           </div>
           <Switch checked={formData.isActive} onChange={handleToggle} />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t-2 border-[var(--nb-border)]">
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-2.5 pt-4 border-t-[3px] border-[var(--nb-border)]">
           <Button
             type="button"
             variant="white"
+            size="md"
             onClick={onClose}
             disabled={saveMutation.isPending}
           >
             BATAL
           </Button>
-          <Button type="submit" variant="yellow" disabled={saveMutation.isPending}>
-            <Save className="w-4 h-4 mr-2" />
+          <Button
+            type="submit"
+            variant="yellow"
+            size="md"
+            isLoading={saveMutation.isPending}
+            disabled={saveMutation.isPending}
+          >
+            <Save className="w-4 h-4 mr-2 stroke-[3]" />
             {saveMutation.isPending ? 'MENYIMPAN...' : 'SIMPAN'}
           </Button>
         </div>

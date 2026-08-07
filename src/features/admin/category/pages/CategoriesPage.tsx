@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAdminCategories, deleteAdminCategory } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Plus, Edit, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, AlertCircle, Search } from 'lucide-react';
 import type { CategoryData } from '../../types';
 import { CategoryModal } from '../components/CategoryModal';
 import { CategoryIcon } from '../../../../components/ui/CategoryIcon';
@@ -26,18 +26,50 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
   onDeleteCategory,
   isDeletingId,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+    const q = searchQuery.toLowerCase();
+    return categories.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.slug?.toLowerCase().includes(q) ||
+        c.icon?.toLowerCase().includes(q)
+    );
+  }, [categories, searchQuery]);
+
   return (
     <Card variant="white" shadow="xl" borderWidth="4" className="text-left">
-      <CardHeader headerBg="#FF9F1C" className="flex items-center justify-between flex-wrap gap-2">
-        <CardTitle className="text-base text-[var(--nb-text)]">
-          LEVEL 1: KATEGORI UTAMA (GAMES, PULSA, VOUCHER, PLN)
-        </CardTitle>
+      <CardHeader headerBg="var(--nb-orange)" className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-base font-black text-[var(--nb-text-on-accent)]">
+            LEVEL 1: KATEGORI UTAMA (GAMES, PULSA, VOUCHER, PLN)
+          </CardTitle>
+          <Badge variant="cyan" size="sm">
+            {categories.length} KATEGORI
+          </Badge>
+        </div>
         <Button variant="yellow" size="sm" onClick={onAddCategory}>
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>TAMBAH KATEGORI</span>
         </Button>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="space-y-4">
+        {/* Search & Filter Bar */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--nb-text-muted)] pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari kategori berdasarkan nama, slug, atau icon..."
+            className="w-full pl-10 pr-4 py-2.5 font-bold text-xs bg-[var(--nb-input-bg)] border-[3px] border-[var(--nb-border)] text-[var(--nb-text)] placeholder:text-[var(--nb-text-muted)] outline-none focus:bg-[var(--nb-input-focus-bg)] shadow-[3px_3px_0px_0px_var(--nb-shadow-cyan)] transition-all"
+          />
+        </div>
+
+        {/* Categories Table */}
         <Table>
           <TableHeader>
             <TableRow>
@@ -49,24 +81,24 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.map((c) => (
+            {filteredCategories.map((c) => (
               <TableRow key={c.id}>
                 <TableCell>
-                  <div className="w-9 h-9 flex items-center justify-center bg-[var(--nb-surface-alt)] border-2 border-[var(--nb-border)] rounded-lg shadow-[2px_2px_0px_0px_var(--nb-shadow)]">
+                  <div className="w-10 h-10 flex items-center justify-center bg-[var(--nb-surface-alt)] border-[2.5px] border-[var(--nb-border)] rounded-lg shadow-[2px_2px_0px_0px_var(--nb-shadow-yellow)] shrink-0">
                     <CategoryIcon iconName={c.icon} className="w-5 h-5 text-[var(--nb-text)]" />
                   </div>
                 </TableCell>
                 <TableCell className="font-black text-[var(--nb-text)]">
-                  <div className="flex flex-col">
-                    <span>{c.name}</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-black">{c.name}</span>
                     {c.icon && (
-                      <span className="text-[10px] text-[var(--nb-text-muted)] font-mono font-normal">
+                      <span className="text-[10px] text-[var(--nb-text-muted)] font-mono font-bold">
                         icon: {c.icon}
                       </span>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="font-bold text-[var(--nb-text-muted)] font-mono">
+                <TableCell className="font-bold text-[var(--nb-text-muted)] font-mono text-xs">
                   {c.slug}
                 </TableCell>
                 <TableCell>
@@ -78,13 +110,14 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
                   <div className="flex items-center justify-end gap-2">
                     <Button variant="purple" size="sm" onClick={() => onEditCategory(c)}>
                       <Edit className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>EDIT</span>
+                      <span className="hidden sm:inline">EDIT</span>
                     </Button>
                     <Button
                       variant="pink"
                       size="sm"
                       onClick={() => onDeleteCategory(c.id)}
                       disabled={isDeletingId === c.id}
+                      isLoading={isDeletingId === c.id}
                     >
                       <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
                     </Button>
@@ -92,10 +125,11 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
                 </TableCell>
               </TableRow>
             ))}
-            {categories.length === 0 && (
+
+            {filteredCategories.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-[var(--nb-text-muted)] font-bold">
-                  Belum ada kategori yang ditambahkan.
+                <TableCell colSpan={5} className="text-center py-12 text-[var(--nb-text-muted)] font-bold text-xs uppercase tracking-wider">
+                  {searchQuery ? `Tidak ada kategori yang cocok dengan "${searchQuery}"` : 'Belum ada kategori yang ditambahkan.'}
                 </TableCell>
               </TableRow>
             )}
@@ -169,20 +203,22 @@ export const CategoriesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {isLoading && (
-        <Card variant="white" shadow="md" className="p-8 text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--nb-yellow)] mb-3" />
-          <p className="font-bold text-sm text-[var(--nb-text)]">Memuat data kategori...</p>
+        <Card variant="white" shadow="md" borderWidth="4" className="p-12 text-center border-brutal">
+          <RefreshCw className="w-10 h-10 animate-spin mx-auto text-[var(--nb-yellow)] mb-3 stroke-[3]" />
+          <p className="font-black text-sm uppercase tracking-wider text-[var(--nb-text)]">
+            Memuat Data Kategori...
+          </p>
         </Card>
       )}
 
       {isError && (
-        <Card variant="white" shadow="md" className="p-6 text-center border-2 border-red-500">
-          <AlertCircle className="w-8 h-8 mx-auto text-red-500 mb-2" />
-          <p className="font-bold text-sm text-red-600 mb-4">
+        <Card variant="white" shadow="md" borderWidth="4" className="p-8 text-center border-[4px] border-red-600">
+          <AlertCircle className="w-10 h-10 mx-auto text-red-600 mb-3 stroke-[3]" />
+          <p className="font-black text-sm text-red-600 uppercase tracking-wider mb-4">
             {(error as any)?.message || 'Gagal memuat daftar kategori.'}
           </p>
           <Button variant="yellow" size="sm" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-4 h-4 mr-2 stroke-[3]" />
             COBA LAGI
           </Button>
         </Card>
