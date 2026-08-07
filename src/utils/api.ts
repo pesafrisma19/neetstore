@@ -685,3 +685,7 @@ export const getUserDepositHistory = (params?: { page?: number; limit?: number }
   return apiFetch<any>(`/user/deposit/history${queryString ? `?${queryString}` : ''}`);
 };
 
+export const getUserDepositDetail = (reference: string) => {
+  return apiFetch<any>(`/user/deposit/${encodeURIComponent(reference)}`);
+};
+

@@ -21,7 +21,8 @@ import {
   getDepositPaymentMethods, 
   getPublicSettings, 
   createUserDeposit, 
-  getUserDepositHistory
+  getUserDepositHistory,
+  getUserDepositDetail
 } from '../../../../utils/api';
 import { type PaymentMethodData } from '../../../admin/types';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -36,6 +37,9 @@ export interface UserDepositInvoice {
   totalAmount: number;
   paymentMethod: string;
   paymentUrl: string | null;
+  checkoutUrl?: string | null;
+  qrString?: string | null;
+  qrImageUrl?: string | null;
   status: 'PENDING' | 'SUCCESS' | 'FAILED';
   failureReason: string | null;
   paidAt: string | null;
@@ -169,13 +173,20 @@ export const UserDepositSection: React.FC = () => {
       }, intentIdempotencyKey);
 
       if (res.success && res.data) {
-        const invData = res.data.deposit;
+        const createdDeposit = res.data.deposit || res.data;
         setActiveInvoice({
-          ...invData,
+          ...createdDeposit,
           instructions: res.data.instructions,
           tokopayData: res.data.tokopayData,
         });
-        resetIntentKey(); // Reset intent key so next deposit gets a fresh new key!
+        resetIntentKey();
+        setTimeout(() => {
+          const el = document.getElementById('active-deposit-invoice-card');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+        refetchHistory();
       }
     } catch (err: any) {
       alert(err?.message || 'Gagal membuat deposit.');
@@ -184,12 +195,31 @@ export const UserDepositSection: React.FC = () => {
     }
   };
 
+  const handleViewInvoiceDetail = async (item: UserDepositInvoice) => {
+    try {
+      const res = await getUserDepositDetail(item.paymentRef);
+      if (res.success && res.data) {
+        setActiveInvoice(res.data);
+      } else {
+        setActiveInvoice(item);
+      }
+    } catch {
+      setActiveInvoice(item);
+    }
+    setTimeout(() => {
+      const el = document.getElementById('active-deposit-invoice-card');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   return (
     <div className="space-y-6 text-left font-sans">
       
       {/* INVOICE TIKET DEPOSIT AKTIF / TERAKHIR */}
       {activeInvoice && (
-        <Card variant="white" shadow="xl" className="border-[4px] border-black overflow-hidden">
+        <Card id="active-deposit-invoice-card" variant="white" shadow="xl" className="border-[4px] border-black overflow-hidden">
           <CardHeader 
             headerBg={
               activeInvoice.status === 'SUCCESS' ? '#6EE7B7' : 
@@ -269,35 +299,49 @@ export const UserDepositSection: React.FC = () => {
               )}
             </div>
 
-            {/* QRIS / VA / Instructions Display */}
+            {/* QRIS / Checkout URL / Instructions Display */}
             {activeInvoice.status === 'PENDING' && (
               <div className="space-y-4 pt-2 border-t-[2px] border-dashed border-neutral-300">
-                {activeInvoice.paymentUrl ? (
+                {/* QR Code Image Display */}
+                {(activeInvoice.qrImageUrl || activeInvoice.qrString || (activeInvoice.paymentUrl && !activeInvoice.paymentUrl.startsWith('http'))) && (
                   <div className="text-center p-4 bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex flex-col items-center gap-3">
                     <div className="flex items-center gap-2 font-black uppercase text-sm">
                       <QrCode className="w-5 h-5 stroke-[2.5]" />
-                      <span>SCAN QRIS / KLIK LINK PEMBAYARAN</span>
+                      <span>SCAN KODE QRIS PEMBAYARAN</span>
                     </div>
-                    {activeInvoice.paymentUrl.startsWith('http') ? (
-                      <a 
-                        href={activeInvoice.paymentUrl} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 bg-[var(--nb-yellow)] hover:bg-yellow-400 text-black border-[3px] border-black font-black px-6 py-3 text-sm shadow-[4px_4px_0px_0px_#000]"
-                      >
-                        BAYAR SEKARANG <ExternalLink className="w-4 h-4" />
-                      </a>
-                    ) : (
-                      <div className="p-3 bg-white border-2 border-black">
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(activeInvoice.paymentUrl)}`} 
-                          alt="QRIS Deposit"
-                          className="w-48 h-48 mx-auto"
-                        />
-                      </div>
-                    )}
+                    <div className="p-3 bg-white border-2 border-black">
+                      <img 
+                        src={activeInvoice.qrImageUrl || `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(activeInvoice.qrString || activeInvoice.paymentUrl || '')}`} 
+                        alt="QRIS Deposit"
+                        className="w-48 h-48 mx-auto"
+                      />
+                    </div>
+                    <p className="text-[11px] font-bold text-neutral-600 max-w-xs">
+                      Buka aplikasi e-wallet (DANA, OVO, ShopeePay, GoPay) atau m-Banking Anda, lalu scan QR Code di atas.
+                    </p>
                   </div>
-                ) : (
+                )}
+
+                {/* Gateway Web Checkout Button */}
+                {(activeInvoice.checkoutUrl || (activeInvoice.paymentUrl && activeInvoice.paymentUrl.startsWith('http'))) && (
+                  <div className="text-center p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2 font-black uppercase text-xs text-neutral-800">
+                      <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                      <span>HALAMAN PEMBAYARAN GATEWAY</span>
+                    </div>
+                    <a 
+                      href={activeInvoice.checkoutUrl || activeInvoice.paymentUrl!} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[var(--nb-yellow)] hover:bg-yellow-400 text-black border-[3px] border-black font-black px-6 py-3 text-sm shadow-[4px_4px_0px_0px_#000] transition-transform active:translate-y-0.5"
+                    >
+                      BUKA HALAMAN PEMBAYARAN <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                )}
+
+                {/* Manual Instructions Display */}
+                {!activeInvoice.qrImageUrl && !activeInvoice.qrString && !activeInvoice.checkoutUrl && (!activeInvoice.paymentUrl || (!activeInvoice.paymentUrl.startsWith('http') && !activeInvoice.paymentUrl.startsWith('000201'))) && (
                   <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-2">
                     <div className="font-black uppercase text-sm text-black flex items-center gap-2">
                       <AlertCircle className="w-5 h-5 text-yellow-700 stroke-[2.5]" />
@@ -544,7 +588,7 @@ export const UserDepositSection: React.FC = () => {
                         <Button
                           variant="white"
                           size="sm"
-                          onClick={() => setActiveInvoice(h)}
+                          onClick={() => handleViewInvoiceDetail(h)}
                           className="text-[10px] p-1.5 font-black uppercase"
                         >
                           LIHAT INVOICE
