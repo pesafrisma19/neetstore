@@ -50,16 +50,24 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await updateAdminPaymentGateway(gateway.id, {
+      const res = await updateAdminPaymentGateway(gateway.id, {
         merchantId: merchantId.trim(),
         secretKey: secretKey.trim(),
       });
 
-      addToast({
-        title: 'KREDENSIAL DISIMPAN! 💾',
-        message: 'Merchant ID dan Secret Key TokoPay berhasil diperbarui.',
-        type: 'success',
-      });
+      if (res.isConnected) {
+        addToast({
+          title: 'KREDENSIAL DISIMPAN & TERHUBUNG! 🟢',
+          message: res.connectionMessage || 'Merchant ID dan Secret Key valid. Saldo berhasil disinkronkan.',
+          type: 'success',
+        });
+      } else {
+        addToast({
+          title: 'KREDENSIAL DISIMPAN (TIDAK TERHUBUNG) ⚠️',
+          message: res.connectionMessage || 'Kredensial disimpan, namun koneksi ke TokoPay tidak valid / ditolak.',
+          type: 'error',
+        });
+      }
       onSuccess();
       onClose();
     } catch (err: any) {

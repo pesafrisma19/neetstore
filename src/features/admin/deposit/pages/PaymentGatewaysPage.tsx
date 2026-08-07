@@ -239,9 +239,20 @@ export const PaymentGatewaysPage: React.FC = () => {
                 <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
                   Saldo Merchant
                 </span>
-                <span className="text-2xl font-black text-black font-mono">
-                  Rp {(tokopayGateway.balance || 0).toLocaleString('id-ID')}
-                </span>
+                {tokopayGateway.isConnected ? (
+                  <span className="text-2xl font-black text-black font-mono">
+                    Rp {(tokopayGateway.balance || 0).toLocaleString('id-ID')}
+                  </span>
+                ) : (
+                  <div>
+                    <span className="text-2xl font-black text-neutral-400 font-mono">
+                      —
+                    </span>
+                    <span className="text-[10px] font-bold text-red-500 block mt-0.5">
+                      Tidak tersedia (Terputus)
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
@@ -267,7 +278,9 @@ export const PaymentGatewaysPage: React.FC = () => {
                   LAST SYNC
                 </span>
                 <div className="text-sm font-black uppercase text-black font-mono tracking-tight">
-                  {tokopayGateway.lastSync ? new Date(tokopayGateway.lastSync).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : 'BELUM SYNC'}
+                  {tokopayGateway.isConnected && tokopayGateway.lastSync
+                    ? new Date(tokopayGateway.lastSync).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })
+                    : 'GAGAL / BELUM SYNC'}
                 </div>
               </div>
             </div>
@@ -299,7 +312,7 @@ export const PaymentGatewaysPage: React.FC = () => {
                   className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
                 >
                   <ShieldCheck className={`w-4 h-4 stroke-[3] ${testConnectionMutation.isPending ? 'animate-spin' : ''}`} />
-                  <span>{testConnectionMutation.isPending ? 'MENGUJI...' : '2. TEST KONEKSI & SYNC SALDO'}</span>
+                  <span>{testConnectionMutation.isPending ? 'MENGUJI...' : '2. TES & SINKRONKAN KONEKSI'}</span>
                 </Button>
 
                 <Button
