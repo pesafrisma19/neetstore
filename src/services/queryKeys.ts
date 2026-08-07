@@ -27,9 +27,15 @@ export const queryKeys = {
     dashboard: {
       stats: ['admin', 'dashboard', 'stats'] as const,
     },
+    categories: {
+      all: ['admin', 'categories'] as const,
+    },
     brands: {
       all: ['admin', 'brands'] as const,
       detail: (id: number) => ['admin', 'brands', 'detail', id] as const,
+    },
+    providers: {
+      all: ['admin', 'providers'] as const,
     },
     regions: {
       all: ['admin', 'regions'] as const,
@@ -40,6 +46,11 @@ export const queryKeys = {
       all: ['admin', 'product-categories'] as const,
       list: (params?: { search?: string; page?: number; pageSize?: number; active?: boolean }) =>
         ['admin', 'product-categories', 'list', params] as const,
+    },
+    products: {
+      all: ['admin', 'products'] as const,
+      list: (params?: { page?: number; limit?: number; search?: string; categoryId?: string; brandId?: string; productCategoryId?: string; status?: string }) =>
+        ['admin', 'products', 'list', params] as const,
     },
     pricingRules: {
       all: ['admin', 'pricing-rules'] as const,

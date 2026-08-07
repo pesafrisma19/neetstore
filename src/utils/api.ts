@@ -632,6 +632,15 @@ export const deleteAdminProductCategory = (id: number) =>
   apiFetch<{ message: string }>(`/admin/product-categories/${id}`, { method: 'DELETE' });
 
 // =====================================================
+// PRODUCT API WRAPPERS
+// =====================================================
+export const updateAdminProduct = (id: number, data: import('../features/admin/types').UpdateAdminProductInput) =>
+  apiFetch<import('../features/admin/types').ProductData>(`/admin/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
+export const deleteAdminProduct = (id: number) =>
+  apiFetch<{ message: string }>(`/admin/products/${id}`, { method: 'DELETE' });
+
+// =====================================================
 
 export const getAdminErrorLogs = () => apiFetch<any[]>('/admin/logs/error');
 export const getAdminDashboardStats = () => apiFetch<any>('/admin/dashboard/stats');
