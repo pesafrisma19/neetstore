@@ -662,3 +662,26 @@ export const confirmAdminDeposit = (id: number) =>
 export const rejectAdminDeposit = (id: number, reason?: string) =>
   apiFetch<any>(`/admin/deposits/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
 
+// User Deposit API Wrappers
+export const getDepositPaymentMethods = () =>
+  apiFetch<import('../features/admin/types').PaymentMethodData[]>('/payment-methods/deposit');
+
+export const getPublicSettings = () =>
+  apiFetch<Record<string, any>>('/settings');
+
+export const createUserDeposit = (data: { amount: number; paymentMethodCode: string }, idempotencyKey?: string) => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (idempotencyKey) {
+    headers['X-Idempotency-Key'] = idempotencyKey;
+  }
+  return apiFetch<any>('/user/deposit', { method: 'POST', headers, body: JSON.stringify(data) });
+};
+
+export const getUserDepositHistory = (params?: { page?: number; limit?: number }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  const queryString = query.toString();
+  return apiFetch<any>(`/user/deposit/history${queryString ? `?${queryString}` : ''}`);
+};
+

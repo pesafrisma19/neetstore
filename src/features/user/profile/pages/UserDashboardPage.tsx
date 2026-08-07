@@ -10,8 +10,6 @@ import { Button } from '../../../../components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
 import { Switch } from '../../../../components/ui/Switch';
-import { Select } from '../../../../components/ui/Select';
-import { Dialog } from '../../../../components/ui/Dialog';
 import { Textarea } from '../../../../components/ui/Textarea';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { Wallet, History, Shield, Zap, RefreshCw, CheckCircle, Clock, PlusCircle } from 'lucide-react';
@@ -19,14 +17,22 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { apiFetch, type UserTransactionItem, isTransactionPaymentStatus, isTransactionOrderStatus } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
+import { UserDepositSection } from '../components/UserDepositSection';
 
 export const UserDashboardPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
   const [notifyEmail, setNotifyEmail] = useState(false);
-  const [depositModalOpen, setDepositModalOpen] = useState(false);
-  const [selectedBank, setSelectedBank] = useState('qris');
+  const [activeTab, setActiveTab] = useState('history');
+
+  const handleOpenDepositTab = () => {
+    setActiveTab('topup');
+    const tabEl = document.getElementById('user-dashboard-tabs');
+    if (tabEl) {
+      tabEl.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   // Protected Route Logic: HANYA redirect jika auth bootstrap selesai (!isLoading) DAN user null
   React.useEffect(() => {
@@ -127,7 +133,7 @@ export const UserDashboardPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="pink" size="md" onClick={() => setDepositModalOpen(true)}>
+              <Button variant="pink" size="md" onClick={handleOpenDepositTab}>
                 <PlusCircle className="w-4 h-4 stroke-[3]" />
                 DEPOSIT SALDO
               </Button>
@@ -175,12 +181,13 @@ export const UserDashboardPage: React.FC = () => {
         </div>
 
         {/* Dashboard Tabs & Content */}
-        <Tabs defaultValue="history">
-          <TabsList>
-            <TabsTrigger value="history">RIWAYAT TRANSAKSI</TabsTrigger>
-            <TabsTrigger value="topup">ISI SALDO AKUN</TabsTrigger>
-            <TabsTrigger value="settings">PENGATURAN AKUN</TabsTrigger>
-          </TabsList>
+        <div id="user-dashboard-tabs">
+          <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="history">RIWAYAT TRANSAKSI</TabsTrigger>
+              <TabsTrigger value="topup">ISI SALDO AKUN</TabsTrigger>
+              <TabsTrigger value="settings">PENGATURAN AKUN</TabsTrigger>
+            </TabsList>
 
           {/* History Tab using Table Component Primitives */}
           <TabsContent value="history">
@@ -252,42 +259,9 @@ export const UserDashboardPage: React.FC = () => {
 
           {/* Top Up Balance Tab */}
           <TabsContent value="topup">
-            <Card variant="white" shadow="lg" className="mt-4">
-              <CardHeader headerBg="#FFDC00">
-                <CardTitle>DEPOSIT SALDO AKUN NETSTORE</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4 max-w-md">
-                <p className="text-xs font-bold text-[var(--nb-text-muted)]">
-                  Isi saldo akun kamu untuk checkout top-up game secara instan tanpa perlu bayar via bank setiap kali bertransaksi.
-                </p>
-
-                <Select
-                  label="Metode Deposit"
-                  value={selectedBank}
-                  onChange={(e) => setSelectedBank(e.target.value)}
-                  options={[
-                    { value: 'qris', label: 'QRIS Instant (Tanpa Admin)' },
-                    { value: 'bca', label: 'BCA Virtual Account' },
-                    { value: 'mandiri', label: 'Mandiri Virtual Account' },
-                  ]}
-                />
-
-                <div className="grid grid-cols-2 gap-3">
-                  {['Rp 50.000', 'Rp 100.000', 'Rp 250.000', 'Rp 500.000'].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      className="p-3 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface)] hover:bg-[var(--nb-yellow)] font-black text-sm shadow-[2px_2px_0px_0px_var(--nb-shadow)] cursor-pointer"
-                    >
-                      {amt}
-                    </button>
-                  ))}
-                </div>
-                <Button variant="pink" size="md" onClick={() => setDepositModalOpen(true)}>
-                  DEPOSIT SEKARANG
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="mt-4">
+              <UserDepositSection />
+            </div>
           </TabsContent>
 
           {/* Settings Tab using Switch Primitive */}
@@ -340,27 +314,8 @@ export const UserDashboardPage: React.FC = () => {
             </Card>
           </TabsContent>
 
-        </Tabs>
-
-        {/* Dialog Modal Primitive */}
-        <Dialog
-          isOpen={depositModalOpen}
-          onClose={() => setDepositModalOpen(false)}
-          title="DEPOSIT SALDO INSTAN"
-        >
-          <div className="flex flex-col gap-4 text-left">
-            <p className="text-xs font-bold text-[var(--nb-text-muted)]">
-              Pilih nominal deposit saldo yang ingin ditambahkan ke akun Anda:
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {['Rp 50.000', 'Rp 100.000', 'Rp 250.000', 'Rp 500.000'].map((amt) => (
-                <Button key={amt} variant="white" size="sm" onClick={() => setDepositModalOpen(false)}>
-                  {amt}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </Dialog>
+          </Tabs>
+        </div>
 
       </main>
 
