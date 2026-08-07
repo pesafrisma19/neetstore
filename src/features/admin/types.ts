@@ -51,6 +51,23 @@ export interface UpdateAdminProductInput {
 }
 
 export interface PricingRuleData { id: any; [key: string]: any; }
-export interface PaymentMethodData { id: any; [key: string]: any; }
+export interface PaymentMethodData {
+  id: number;
+  name: string;
+  code: string;
+  type: string;
+  paymentGatewayId?: number | null;
+  feeFlat: number;
+  feePercent: number;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  iconUrl?: string | null;
+  instructions?: string | null;
+  isActive: boolean;
+  forTransaction: boolean;
+  forDeposit: boolean;
+  gateway?: { id: number; name: string; code: string };
+  [key: string]: any;
+}
 export interface BannerData { id: any; [key: string]: any; }
 export interface SettingData { id: any; [key: string]: any; }

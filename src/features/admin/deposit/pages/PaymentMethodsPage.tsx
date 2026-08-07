@@ -19,6 +19,7 @@ interface TabPaymentMethodsProps {
   onAddPayment: () => void;
   onEditPayment: (pm: PaymentMethodData) => void;
   onDeletePayment: (id: number) => void;
+  onToggleScope: (id: number, payload: Partial<PaymentMethodData>) => void;
 }
 
 export const TabPaymentMethods: React.FC<TabPaymentMethodsProps> = ({
@@ -26,11 +27,12 @@ export const TabPaymentMethods: React.FC<TabPaymentMethodsProps> = ({
   onAddPayment,
   onEditPayment,
   onDeletePayment,
+  onToggleScope,
 }) => {
   return (
     <Card variant="white" shadow="xl" borderWidth="4" className="text-left">
       <CardHeader headerBg="#00F0FF" className="flex items-center justify-between">
-        <CardTitle className="text-base text-[var(--nb-text)]">LEVEL 5: METODE PEMBAYARAN (QRIS, VA, E-WALLET, RETAIL)</CardTitle>
+        <CardTitle className="text-base text-[var(--nb-text)]">LEVEL 5: METODE PEMBAYARAN & SCOPE USAGE</CardTitle>
         <Button variant="yellow" size="sm" onClick={onAddPayment}>
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>TAMBAH METODE BAYAR</span>
@@ -42,10 +44,12 @@ export const TabPaymentMethods: React.FC<TabPaymentMethodsProps> = ({
             <TableRow>
               <TableHead>KODE</TableHead>
               <TableHead>NAMA METODE</TableHead>
-              <TableHead>TIPE KATEGORI</TableHead>
-              <TableHead>GATEWAY PROVIDER</TableHead>
-              <TableHead>RUMUS BIAYA ADMIN</TableHead>
-              <TableHead>STATUS</TableHead>
+              <TableHead>TIPE</TableHead>
+              <TableHead>GATEWAY</TableHead>
+              <TableHead>BIAYA ADMIN</TableHead>
+              <TableHead>STATUS MASTER</TableHead>
+              <TableHead>CHECKOUT TOKO</TableHead>
+              <TableHead>DEPOSIT USER</TableHead>
               <TableHead className="text-right">AKSI</TableHead>
             </TableRow>
           </TableHeader>
@@ -69,15 +73,50 @@ export const TabPaymentMethods: React.FC<TabPaymentMethodsProps> = ({
                     ? `Rp ${pm.feeFlat.toLocaleString('id-ID')}`
                     : 'Gratis (0)'}
                 </TableCell>
+
+                {/* Master Active Status */}
                 <TableCell>
-                  <Badge variant={pm.isActive ? 'mint' : 'pink'} size="sm">
-                    {pm.isActive ? 'AKTIF' : 'NONAKTIF'}
-                  </Badge>
+                  <button
+                    type="button"
+                    onClick={() => onToggleScope(pm.id, { isActive: !pm.isActive })}
+                    className="cursor-pointer"
+                  >
+                    <Badge variant={pm.isActive ? 'mint' : 'pink'} size="sm">
+                      {pm.isActive ? 'AKTIF' : 'NONAKTIF'}
+                    </Badge>
+                  </button>
                 </TableCell>
+
+                {/* Checkout Scope */}
+                <TableCell>
+                  <button
+                    type="button"
+                    onClick={() => onToggleScope(pm.id, { forTransaction: !pm.forTransaction })}
+                    className="cursor-pointer"
+                  >
+                    <Badge variant={pm.forTransaction ? 'mint' : 'pink'} size="sm">
+                      {pm.forTransaction ? 'CHECKOUT: ON' : 'CHECKOUT: OFF'}
+                    </Badge>
+                  </button>
+                </TableCell>
+
+                {/* Deposit Scope */}
+                <TableCell>
+                  <button
+                    type="button"
+                    onClick={() => onToggleScope(pm.id, { forDeposit: !pm.forDeposit })}
+                    className="cursor-pointer"
+                  >
+                    <Badge variant={pm.forDeposit ? 'yellow' : 'white'} size="sm">
+                      {pm.forDeposit ? 'DEPOSIT: ON' : 'DEPOSIT: OFF'}
+                    </Badge>
+                  </button>
+                </TableCell>
+
                 <TableCell className="text-right flex items-center justify-end gap-2">
                   <Button variant="yellow" size="sm" onClick={() => onEditPayment(pm)}>
                     <Edit className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>EDIT LENGKAP</span>
+                    <span>EDIT</span>
                   </Button>
                   <Button variant="pink" size="sm" onClick={() => onDeletePayment(pm.id)}>
                     <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
@@ -106,7 +145,6 @@ export const PaymentMethodsPage: React.FC = () => {
           .catch(() => null),
         apiFetch<PaymentGatewayData[]>('/admin/payment-gateways').catch(() => null)
       ]);
-      // Guard Array.isArray — mencegah TypeError jika semua endpoint gagal
       setPaymentMethods(Array.isArray(methodsData) ? methodsData : []);
       setGateways(Array.isArray(gatewaysData) ? gatewaysData : []);
     } catch (e) {
@@ -128,6 +166,18 @@ export const PaymentMethodsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleToggleScope = async (id: number, payload: Partial<PaymentMethodData>) => {
+    try {
+      await apiFetch(`/admin/payment-methods/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      fetchAll();
+    } catch (err) {
+      console.error('Failed to toggle payment method scope:', err);
+    }
+  };
+
   const handleDeletePayment = async (id: number) => {
     if (!window.confirm('Yakin ingin menghapus metode bayar ini?')) return;
     try {
@@ -146,6 +196,7 @@ export const PaymentMethodsPage: React.FC = () => {
         onAddPayment={handleAddPayment}
         onEditPayment={handleEditPayment}
         onDeletePayment={handleDeletePayment}
+        onToggleScope={handleToggleScope}
       />
       <PaymentMethodModal
         isOpen={isModalOpen}

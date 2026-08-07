@@ -36,6 +36,8 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     feePercent: 0,
     instructions: '',
     isActive: true,
+    forTransaction: true,
+    forDeposit: false,
     paymentGatewayId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +52,8 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         feePercent: paymentMethod.feePercent || 0,
         instructions: paymentMethod.instructions || '',
         isActive: paymentMethod.isActive ?? true,
+        forTransaction: paymentMethod.forTransaction ?? true,
+        forDeposit: paymentMethod.forDeposit ?? false,
         paymentGatewayId: paymentMethod.paymentGatewayId ? String(paymentMethod.paymentGatewayId) : '',
       });
     } else {
@@ -61,6 +65,8 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         feePercent: 0,
         instructions: '',
         isActive: true,
+        forTransaction: true,
+        forDeposit: false,
         paymentGatewayId: '',
       });
     }
@@ -197,16 +203,42 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">STATUS</label>
-              <Select
-                value={formData.isActive ? 'true' : 'false'}
-                onChange={e => setFormData({ ...formData, isActive: e.target.value === 'true' })}
-                options={[
-                  { value: 'true', label: 'AKTIF (Tampil)' },
-                  { value: 'false', label: 'TIDAK AKTIF (Sembunyi)' }
-                ]}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-700 mb-1">STATUS MASTER</label>
+                <Select
+                  value={formData.isActive ? 'true' : 'false'}
+                  onChange={e => setFormData({ ...formData, isActive: e.target.value === 'true' })}
+                  options={[
+                    { value: 'true', label: 'AKTIF' },
+                    { value: 'false', label: 'NONAKTIF' }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-700 mb-1">CHECKOUT TOKO</label>
+                <Select
+                  value={formData.forTransaction ? 'true' : 'false'}
+                  onChange={e => setFormData({ ...formData, forTransaction: e.target.value === 'true' })}
+                  options={[
+                    { value: 'true', label: 'TAMPIL' },
+                    { value: 'false', label: 'SEMBUNYI' }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-gray-700 mb-1">DEPOSIT USER</label>
+                <Select
+                  value={formData.forDeposit ? 'true' : 'false'}
+                  onChange={e => setFormData({ ...formData, forDeposit: e.target.value === 'true' })}
+                  options={[
+                    { value: 'true', label: 'TAMPIL' },
+                    { value: 'false', label: 'SEMBUNYI' }
+                  ]}
+                />
+              </div>
             </div>
 
             <div className="pt-4 flex justify-end gap-2">
