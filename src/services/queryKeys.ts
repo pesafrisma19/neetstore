@@ -29,6 +29,7 @@ export const queryKeys = {
     },
     brands: {
       all: ['admin', 'brands'] as const,
+      detail: (id: number) => ['admin', 'brands', 'detail', id] as const,
     },
     banners: {
       all: ['admin', 'banners'] as const,

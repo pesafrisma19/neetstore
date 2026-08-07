@@ -410,6 +410,7 @@ export const requestDigiflazzDeposit = (data: { amount: number; bank: string; ow
 
 /** Ambil seluruh daftar brand game dari Database untuk Admin Panel & Home */
 export const getAdminBrands = () => apiFetch<any[]>('/admin/brands');
+export const getAdminBrandById = (id: number) => apiFetch<any>(`/admin/brands/${id}`);
 export const getAdminCategories = () => apiFetch<any[]>('/admin/categories');
 export const createAdminCategory = (data: any) => apiFetch<any>('/admin/categories', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const updateAdminCategory = (id: number, data: any) => apiFetch<any>(`/admin/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });

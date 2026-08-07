@@ -15,6 +15,7 @@ import { ProvidersPage } from '../features/admin/provider/pages/ProvidersPage';
 import { AdminOverviewPage } from '../features/admin/overview/pages/AdminOverviewPage';
 import { CategoriesPage } from '../features/admin/category/pages/CategoriesPage';
 import { BrandsPage } from '../features/admin/brand/pages/BrandsPage';
+import { BrandFormPage } from '../features/admin/brand/pages/BrandFormPage';
 import { ProductsPage } from '../features/admin/product/pages/ProductsPage';
 import { PricingRulesPage } from '../features/admin/pricing-rule/pages/PricingRulesPage';
 import { PaymentMethodsPage } from '../features/admin/deposit/pages/PaymentMethodsPage';
@@ -76,6 +77,8 @@ export const AppRoutes = () => {
         {/* 2. Layanan */}
         <Route path="providers" element={<ProvidersPage />} />
         <Route path="brands" element={<BrandsPage />} />
+        <Route path="brands/new" element={<BrandFormPage />} />
+        <Route path="brands/:id/edit" element={<BrandFormPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="regions" element={<RegionsPage />} />
         <Route path="product-categories" element={<ProductCategoriesPage />} />
