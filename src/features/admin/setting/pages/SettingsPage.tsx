@@ -129,29 +129,56 @@ export const TabSettings: React.FC<TabSettingsProps> = ({ onShowToast }) => {
         </CardContent>
       </Card>
 
-      {/* 2. ATURAN PREFIX INVOICE NOTA */}
+      {/* 2. ATURAN LIMIT DEPOSIT & PREFIX REFERENCE */}
       <Card variant="white" shadow="xl" borderWidth="4">
         <CardHeader headerBg="#6EE7B7" className="flex items-center justify-between">
           <CardTitle className="text-base text-[var(--nb-text)] flex items-center gap-2">
             <FileText className="w-5 h-5 stroke-[3]" />
-            <span>PENGATURAN PREFIX INVOICE NOTA</span>
+            <span>PENGATURAN LIMIT DEPOSIT &amp; PREFIX REFERENCE</span>
           </CardTitle>
-          <Badge variant="purple" size="sm">FORMAT INVOICE</Badge>
+          <Badge variant="purple" size="sm">KONFIGURASI SISTEM</Badge>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Prefix Kode Invoice Nota"
-              value={settings.invoicePrefix}
-              onChange={(e) => setSettings({ ...settings, invoicePrefix: e.target.value.toUpperCase() })}
-              placeholder="INV-"
-              helperText="Format invoice transaksi (Contoh: INV-, NST-, NET-)."
+              label="Nominal Minimum Deposit (Rp)"
+              type="number"
+              value={(settings as any).min_deposit_amount ?? 10000}
+              onChange={(e) => setSettings({ ...settings, min_deposit_amount: parseInt(e.target.value) || 0 } as any)}
+              helperText="Batas minimal pengisian saldo deposit user."
             />
 
-            <div className="p-3 bg-[var(--nb-surface-alt)] border-[2.5px] border-[var(--nb-border)] shadow-[2.5px_2.5px_0px_0px_#000] flex flex-col gap-1">
-              <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)]">CONTOH NOTA HASIL:</span>
-              <span className="text-sm font-black text-[var(--nb-text)]">{settings.invoicePrefix || 'INV-'}2026-88912</span>
-            </div>
+            <Input
+              label="Nominal Maksimum Deposit (Rp)"
+              type="number"
+              value={(settings as any).max_deposit_amount ?? 5000000}
+              onChange={(e) => setSettings({ ...settings, max_deposit_amount: parseInt(e.target.value) || 0 } as any)}
+              helperText="Batas maksimal pengisian saldo deposit user dalam 1 kali transaksi."
+            />
+
+            <Input
+              label="Batas Kadaluarsa Transfer Manual (Jam)"
+              type="number"
+              value={(settings as any).manual_deposit_expiry_hours ?? 24}
+              onChange={(e) => setSettings({ ...settings, manual_deposit_expiry_hours: parseInt(e.target.value) || 24 } as any)}
+              helperText="Batas waktu (jam) tiket transfer manual aktif sebelum otomatis FAILED/EXPIRED."
+            />
+
+            <Input
+              label="Prefix Reference Deposit"
+              value={(settings as any).deposit_reference_prefix ?? 'DEP'}
+              onChange={(e) => setSettings({ ...settings, deposit_reference_prefix: e.target.value.toUpperCase() } as any)}
+              placeholder="DEP"
+              helperText="Format prefix reference ID deposit (Contoh: DEP-)."
+            />
+
+            <Input
+              label="Prefix Reference Transaksi Toko"
+              value={(settings as any).transaction_reference_prefix ?? 'TRX'}
+              onChange={(e) => setSettings({ ...settings, transaction_reference_prefix: e.target.value.toUpperCase() } as any)}
+              placeholder="TRX"
+              helperText="Format prefix reference ID transaksi toko (Contoh: TRX-)."
+            />
           </div>
         </CardContent>
       </Card>

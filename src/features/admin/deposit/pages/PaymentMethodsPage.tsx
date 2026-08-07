@@ -50,6 +50,7 @@ export const TabPaymentMethods: React.FC<TabPaymentMethodsProps> = ({
               <TableHead>STATUS MASTER</TableHead>
               <TableHead>CHECKOUT TOKO</TableHead>
               <TableHead>DEPOSIT USER</TableHead>
+              <TableHead>KODE UNIK</TableHead>
               <TableHead className="text-right">AKSI</TableHead>
             </TableRow>
           </TableHeader>
@@ -109,6 +110,19 @@ export const TabPaymentMethods: React.FC<TabPaymentMethodsProps> = ({
                   >
                     <Badge variant={pm.forDeposit ? 'yellow' : 'white'} size="sm">
                       {pm.forDeposit ? 'DEPOSIT: ON' : 'DEPOSIT: OFF'}
+                    </Badge>
+                  </button>
+                </TableCell>
+
+                {/* Unique Code */}
+                <TableCell>
+                  <button
+                    type="button"
+                    onClick={() => onToggleScope(pm.id, { useUniqueCode: !pm.useUniqueCode })}
+                    className="cursor-pointer"
+                  >
+                    <Badge variant={pm.useUniqueCode ? 'cyan' : 'white'} size="sm">
+                      {pm.useUniqueCode ? 'KODE UNIK: ON' : 'KODE UNIK: OFF'}
                     </Badge>
                   </button>
                 </TableCell>

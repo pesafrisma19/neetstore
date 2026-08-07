@@ -7,23 +7,29 @@ import {
   Wallet, 
   RefreshCw, 
   Search, 
-  ArrowUpRight, 
-  ArrowDownRight,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
-import { getAdminMutations } from '../../../../utils/api';
+import { getAdminDeposits, confirmAdminDeposit, rejectAdminDeposit } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 
-export interface MutationItem {
+export interface DepositItem {
   id: number;
-  userId?: number;
-  type: 'CREDIT' | 'DEBIT';
+  userId: number;
   amount: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  description?: string;
+  fee: number;
+  uniqueCode: number;
+  totalAmount: number;
+  paymentMethod: string;
+  paymentRef: string;
+  paymentUrl: string | null;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  failureReason: string | null;
+  paidAt: string | null;
   createdAt: string;
   user?: {
     username: string;
@@ -32,30 +38,26 @@ export interface MutationItem {
 }
 
 export const DepositsPage: React.FC = () => {
-
-  // Local UI State
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(15);
-  const [filterType, setFilterType] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [processingId, setProcessingId] = useState<number | null>(null);
 
-  // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setPage(1); // Reset page on new search
+      setPage(1);
     }, 350);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Reset page on filter tab change
-  const handleFilterChange = (type: string) => {
-    setFilterType(type);
+  const handleFilterChange = (status: string) => {
+    setStatusFilter(status);
     setPage(1);
   };
 
-  // TanStack Query: Load Deposits / Mutations
   const {
     data: depositsResponse,
     isLoading,
@@ -68,22 +70,49 @@ export const DepositsPage: React.FC = () => {
       page,
       limit,
       search: debouncedSearch,
-      type: filterType,
+      status: statusFilter,
     }),
     queryFn: () =>
-      getAdminMutations({
+      getAdminDeposits({
         page,
         limit,
         search: debouncedSearch,
-        type: filterType,
+        status: statusFilter,
       }),
     placeholderData: keepPreviousData,
   });
 
-  const deposits: MutationItem[] = (depositsResponse as unknown as MutationItem[]) || [];
+  const deposits: DepositItem[] = (depositsResponse as any)?.data || [];
   const _meta = (depositsResponse as any)?._meta || { totalCount: 0, totalPages: 1 };
   const totalPages = _meta.totalPages || 1;
   const totalCount = _meta.totalCount || 0;
+
+  const handleConfirm = async (id: number) => {
+    if (!window.confirm('Konfirmasi pembayaran deposit ini? Saldo user akan bertambah otomatis.')) return;
+    setProcessingId(id);
+    try {
+      await confirmAdminDeposit(id);
+      refetch();
+    } catch (err: any) {
+      alert(err?.message || 'Gagal mengonfirmasi deposit');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    const reason = window.prompt('Alasan penolakan deposit:', 'Bukti transfer tidak sesuai');
+    if (reason === null) return;
+    setProcessingId(id);
+    try {
+      await rejectAdminDeposit(id, reason);
+      refetch();
+    } catch (err: any) {
+      alert(err?.message || 'Gagal menolak deposit');
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-6xl text-left font-sans pb-12">
@@ -92,10 +121,10 @@ export const DepositsPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="cyan" size="sm" className="border-2 font-black uppercase">
-              TRANSACTIONS / FINANCE
+              DEPOSITS MANAGEMENT
             </Badge>
             <Badge variant="white" size="sm" className="border-2 font-mono">
-              TOTAL FOUND: {totalCount}
+              TOTAL DEPOSITS: {totalCount}
             </Badge>
             {isFetching && !isLoading && (
               <Badge variant="pink" size="sm" className="border-2 font-mono animate-pulse">
@@ -105,10 +134,10 @@ export const DepositsPage: React.FC = () => {
           </div>
           <h1 className="text-3xl font-black uppercase tracking-tight text-black flex items-center gap-2">
             <span>💰</span>
-            <span>USER DEPOSITS & MUTATIONS</span>
+            <span>MANAJEMEN DEPOSIT USER</span>
           </h1>
           <p className="text-sm font-bold text-black/80 mt-1">
-            Riwayat pengisian saldo (top-up) pengguna dan catatan mutasi keluar-masuk dana.
+            Riwayat tiket pengisian saldo user, verifikasi manual, dan status pembayaran.
           </p>
         </div>
 
@@ -130,14 +159,15 @@ export const DepositsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
         <div className="flex flex-wrap gap-2">
           {[
-            { id: 'ALL', label: '📋 SEMUA MUTASI' },
-            { id: 'CREDIT', label: '🟢 SALDO MASUK (CREDIT)' },
-            { id: 'DEBIT', label: '🔴 SALDO KELUAR (DEBIT)' },
+            { id: 'ALL', label: 'SEMUA' },
+            { id: 'PENDING', label: '⏳ PENDING' },
+            { id: 'SUCCESS', label: '✅ SUCCESS' },
+            { id: 'FAILED', label: '❌ FAILED' },
           ].map((tab) => (
             <Button
               key={tab.id}
               type="button"
-              variant={filterType === tab.id ? 'yellow' : 'white'}
+              variant={statusFilter === tab.id ? 'yellow' : 'white'}
               size="sm"
               onClick={() => handleFilterChange(tab.id)}
               className="font-black uppercase text-xs"
@@ -152,7 +182,7 @@ export const DepositsPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari Username / Email / Keterangan..."
+            placeholder="Cari Ref / Username / Email..."
             className="w-full bg-white border-[2px] border-black px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)]"
           />
           <Search className="w-4 h-4 stroke-[2.5] text-neutral-400 absolute right-2.5 top-2" />
@@ -163,33 +193,20 @@ export const DepositsPage: React.FC = () => {
       {isLoading ? (
         <Card variant="white" className="p-12 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
           <RefreshCw className="w-10 h-10 stroke-[2] mx-auto mb-3 animate-spin text-neutral-400" />
-          <h3 className="text-lg font-black uppercase">MEMUAT RIWAYAT MUTASI...</h3>
-          <p className="text-xs font-bold text-neutral-500 mt-1">Mengambil data mutasi saldo pengguna dari server.</p>
+          <h3 className="text-lg font-black uppercase">MEMUAT DAFTAR DEPOSIT...</h3>
         </Card>
       ) : isError ? (
         <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
           <AlertTriangle className="w-12 h-12 stroke-[2] mx-auto mb-3 text-red-500" />
-          <h3 className="text-lg font-black uppercase text-red-600">GAGAL MEMUAT MUTASI</h3>
+          <h3 className="text-lg font-black uppercase text-red-600">GAGAL MEMUAT DEPOSIT</h3>
           <p className="text-xs font-bold text-neutral-600 mt-1">
-            {(error as any)?.message || 'Terjadi kesalahan saat terhubung ke server backend.'}
+            {(error as any)?.message || 'Terjadi kesalahan sistem.'}
           </p>
-          <div className="mt-4">
-            <Button variant="yellow" size="sm" onClick={() => refetch()} className="font-black uppercase">
-              <RefreshCw className="w-4 h-4 mr-2" /> COBA LAGI
-            </Button>
-          </div>
         </Card>
       ) : deposits.length === 0 ? (
         <Card variant="white" className="p-8 text-center border-[3px] border-black shadow-[6px_6px_0px_0px_#000]">
           <Wallet className="w-12 h-12 stroke-[2] mx-auto mb-3 text-neutral-400" />
-          <h3 className="text-lg font-black uppercase">
-            {debouncedSearch ? 'TIDAK DITEMUKAN HASIL PENCARIAN' : 'BELUM ADA RIWAYAT DEPOSIT / MUTASI'}
-          </h3>
-          <p className="text-xs font-bold text-neutral-500 mt-1">
-            {debouncedSearch
-              ? `Tidak ada catatan mutasi yang cocok dengan pencarian "${debouncedSearch}".`
-              : `Belum ada transaksi pengisian saldo atau perubahan mutasi yang tercatat.`}
-          </p>
+          <h3 className="text-lg font-black uppercase">BELUM ADA DATA DEPOSIT</h3>
         </Card>
       ) : (
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
@@ -197,68 +214,90 @@ export const DepositsPage: React.FC = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3">ID Mutasi</th>
-                  <th className="p-3">Pengguna / User</th>
-                  <th className="p-3">Tipe & Keterangan</th>
-                  <th className="p-3">Nominal (Rp)</th>
-                  <th className="p-3">Saldo Sebelum / Sesudah</th>
-                  <th className="p-3">Ref ID</th>
-                  <th className="p-3 text-right">Waktu</th>
+                  <th className="p-3">Reference ID</th>
+                  <th className="p-3">Pengguna</th>
+                  <th className="p-3">Metode</th>
+                  <th className="p-3">Nominal Saldo</th>
+                  <th className="p-3">Admin Fee &amp; Unik</th>
+                  <th className="p-3">Total Bayar</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Aksi / Waktu</th>
                 </tr>
               </thead>
               <tbody className="divide-y-[2px] divide-black text-sm font-bold">
                 {deposits.map((d) => (
                   <tr key={d.id} className="hover:bg-yellow-50 transition-colors">
-                    <td className="p-3 font-mono">#DEP-{d.id}</td>
+                    <td className="p-3 font-mono font-black text-xs">{d.paymentRef}</td>
                     <td className="p-3">
                       <div className="font-black text-black">
-                        {d.user?.username || `User #${d.userId || '-'}`}
+                        {d.user?.username || `User #${d.userId}`}
                       </div>
                       <div className="text-xs font-mono text-neutral-500">
-                        {d.user?.email || 'System / Merchant'}
+                        {d.user?.email || '-'}
                       </div>
+                    </td>
+                    <td className="p-3 text-xs">
+                      <Badge variant="purple" size="sm" className="font-bold">
+                        {d.paymentMethod}
+                      </Badge>
+                    </td>
+                    <td className="p-3 font-black text-green-700">
+                      Rp {d.amount.toLocaleString('id-ID')}
+                    </td>
+                    <td className="p-3 text-xs font-mono text-neutral-600">
+                      <div>Fee: Rp {d.fee.toLocaleString('id-ID')}</div>
+                      {d.uniqueCode > 0 && <div className="text-purple-700">Kode Unik: +{d.uniqueCode}</div>}
+                    </td>
+                    <td className="p-3 font-black text-blue-700">
+                      Rp {d.totalAmount.toLocaleString('id-ID')}
                     </td>
                     <td className="p-3">
-                      <div className="flex items-center gap-1.5">
-                        <Badge
-                          variant={d.type === 'CREDIT' ? 'mint' : 'pink'}
-                          size="sm"
-                          className="font-black uppercase text-[10px]"
-                        >
-                          {d.type === 'CREDIT' ? (
-                            <ArrowDownRight className="w-3 h-3 inline mr-1" />
-                          ) : (
-                            <ArrowUpRight className="w-3 h-3 inline mr-1" />
-                          )}
-                          {d.type}
-                        </Badge>
-                        <span className="text-xs font-bold text-neutral-700">
-                          {d.description || 'Deposit / Transaksi'}
-                        </span>
-                      </div>
+                      <Badge 
+                        variant={d.status === 'SUCCESS' ? 'mint' : d.status === 'PENDING' ? 'yellow' : 'pink'}
+                        size="sm"
+                        className="font-black uppercase text-[10px]"
+                      >
+                        {d.status === 'SUCCESS' && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                        {d.status === 'PENDING' && <Clock className="w-3 h-3 inline mr-1" />}
+                        {d.status === 'FAILED' && <XCircle className="w-3 h-3 inline mr-1" />}
+                        {d.status}
+                      </Badge>
+                      {d.failureReason && (
+                        <div className="text-[10px] font-mono text-red-600 mt-0.5">{d.failureReason}</div>
+                      )}
                     </td>
-                    <td
-                      className={`p-3 font-black ${
-                        d.type === 'CREDIT' ? 'text-green-700' : 'text-red-600'
-                      }`}
-                    >
-                      {d.type === 'CREDIT' ? '+' : '-'} Rp {(d.amount || 0).toLocaleString('id-ID')}
-                    </td>
-                    <td className="p-3 font-mono text-xs text-neutral-600">
-                      <div>Awal: Rp {(d.balanceBefore || 0).toLocaleString('id-ID')}</div>
-                      <div>Akhir: Rp {(d.balanceAfter || 0).toLocaleString('id-ID')}</div>
-                    </td>
-                    <td className="p-3 font-mono text-xs text-neutral-500">
-                      -
-                    </td>
-                    <td className="p-3 text-right text-xs font-mono text-neutral-500">
-                      {new Date(d.createdAt).toLocaleString('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                    <td className="p-3 text-right">
+                      {d.status === 'PENDING' ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="mint"
+                            size="sm"
+                            onClick={() => handleConfirm(d.id)}
+                            disabled={processingId === d.id}
+                            className="font-black text-xs"
+                          >
+                            KONFIRMASI
+                          </Button>
+                          <Button
+                            variant="pink"
+                            size="sm"
+                            onClick={() => handleReject(d.id)}
+                            disabled={processingId === d.id}
+                            className="font-black text-xs"
+                          >
+                            TOLAK
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] font-mono text-neutral-500">
+                          {new Date(d.paidAt || d.createdAt).toLocaleString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -269,7 +308,7 @@ export const DepositsPage: React.FC = () => {
           {/* 4. PAGINATION FOOTER */}
           <div className="bg-neutral-100 border-t-[3px] border-black p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
             <div className="text-neutral-600">
-              Menampilkan {deposits.length} dari {totalCount} mutasi (Halaman {page} dari {totalPages})
+              Menampilkan {deposits.length} dari {totalCount} deposit (Halaman {page} dari {totalPages})
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -300,4 +339,3 @@ export const DepositsPage: React.FC = () => {
     </div>
   );
 };
-

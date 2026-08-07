@@ -644,3 +644,21 @@ export const deleteAdminProduct = (id: number) =>
 
 export const getAdminErrorLogs = () => apiFetch<any[]>('/admin/logs/error');
 export const getAdminDashboardStats = () => apiFetch<any>('/admin/dashboard/stats');
+
+// Deposit Admin Wrappers
+export const getAdminDeposits = (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.status) query.append('status', params.status);
+  if (params?.search) query.append('search', params.search);
+  const queryString = query.toString();
+  return apiFetch<any>(`/admin/deposits${queryString ? `?${queryString}` : ''}`);
+};
+
+export const confirmAdminDeposit = (id: number) =>
+  apiFetch<any>(`/admin/deposits/${id}/confirm`, { method: 'POST' });
+
+export const rejectAdminDeposit = (id: number, reason?: string) =>
+  apiFetch<any>(`/admin/deposits/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+

@@ -66,6 +66,7 @@ export interface PaymentMethodData {
   isActive: boolean;
   forTransaction: boolean;
   forDeposit: boolean;
+  useUniqueCode: boolean;
   gateway?: { id: number; name: string; code: string };
   [key: string]: any;
 }

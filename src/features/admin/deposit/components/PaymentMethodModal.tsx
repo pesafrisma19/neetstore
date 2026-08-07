@@ -34,10 +34,13 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
     type: 'EWALLET',
     feeFlat: 0,
     feePercent: 0,
+    minAmount: '' as string | number,
+    maxAmount: '' as string | number,
     instructions: '',
     isActive: true,
     forTransaction: true,
     forDeposit: false,
+    useUniqueCode: false,
     paymentGatewayId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,10 +53,13 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         type: paymentMethod.type || 'EWALLET',
         feeFlat: paymentMethod.feeFlat || 0,
         feePercent: paymentMethod.feePercent || 0,
+        minAmount: paymentMethod.minAmount !== undefined && paymentMethod.minAmount !== null ? paymentMethod.minAmount : '',
+        maxAmount: paymentMethod.maxAmount !== undefined && paymentMethod.maxAmount !== null ? paymentMethod.maxAmount : '',
         instructions: paymentMethod.instructions || '',
         isActive: paymentMethod.isActive ?? true,
         forTransaction: paymentMethod.forTransaction ?? true,
         forDeposit: paymentMethod.forDeposit ?? false,
+        useUniqueCode: paymentMethod.useUniqueCode ?? false,
         paymentGatewayId: paymentMethod.paymentGatewayId ? String(paymentMethod.paymentGatewayId) : '',
       });
     } else {
@@ -63,10 +69,13 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         type: 'EWALLET',
         feeFlat: 0,
         feePercent: 0,
+        minAmount: '',
+        maxAmount: '',
         instructions: '',
         isActive: true,
         forTransaction: true,
         forDeposit: false,
+        useUniqueCode: false,
         paymentGatewayId: '',
       });
     }
@@ -82,6 +91,8 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
         ...formData,
         feeFlat: Number(formData.feeFlat),
         feePercent: Number(formData.feePercent),
+        minAmount: formData.minAmount !== '' && formData.minAmount !== null ? Number(formData.minAmount) : null,
+        maxAmount: formData.maxAmount !== '' && formData.maxAmount !== null ? Number(formData.maxAmount) : null,
         paymentGatewayId: formData.paymentGatewayId ? Number(formData.paymentGatewayId) : undefined,
       };
 
@@ -192,6 +203,27 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">MINIMUM TRANSAKSI (Rp)</label>
+                <Input 
+                  type="number"
+                  placeholder="Kosongkan jika tanpa limit"
+                  value={formData.minAmount}
+                  onChange={e => setFormData({ ...formData, minAmount: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">MAXIMUM TRANSAKSI (Rp)</label>
+                <Input 
+                  type="number"
+                  placeholder="Kosongkan jika tanpa limit"
+                  value={formData.maxAmount}
+                  onChange={e => setFormData({ ...formData, maxAmount: e.target.value })}
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">INSTRUKSI / CARA BAYAR</label>
               <textarea 
@@ -203,9 +235,9 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-black uppercase text-gray-700 mb-1">STATUS MASTER</label>
+                <label className="block text-[11px] font-black uppercase text-gray-700 mb-1">STATUS MASTER</label>
                 <Select
                   value={formData.isActive ? 'true' : 'false'}
                   onChange={e => setFormData({ ...formData, isActive: e.target.value === 'true' })}
@@ -217,7 +249,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-black uppercase text-gray-700 mb-1">CHECKOUT TOKO</label>
+                <label className="block text-[11px] font-black uppercase text-gray-700 mb-1">CHECKOUT TOKO</label>
                 <Select
                   value={formData.forTransaction ? 'true' : 'false'}
                   onChange={e => setFormData({ ...formData, forTransaction: e.target.value === 'true' })}
@@ -229,13 +261,25 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-black uppercase text-gray-700 mb-1">DEPOSIT USER</label>
+                <label className="block text-[11px] font-black uppercase text-gray-700 mb-1">DEPOSIT USER</label>
                 <Select
                   value={formData.forDeposit ? 'true' : 'false'}
                   onChange={e => setFormData({ ...formData, forDeposit: e.target.value === 'true' })}
                   options={[
                     { value: 'true', label: 'TAMPIL' },
                     { value: 'false', label: 'SEMBUNYI' }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black uppercase text-gray-700 mb-1">KODE UNIK</label>
+                <Select
+                  value={formData.useUniqueCode ? 'true' : 'false'}
+                  onChange={e => setFormData({ ...formData, useUniqueCode: e.target.value === 'true' })}
+                  options={[
+                    { value: 'true', label: 'ON (01-99)' },
+                    { value: 'false', label: 'OFF' }
                   ]}
                 />
               </div>
