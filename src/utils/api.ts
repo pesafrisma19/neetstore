@@ -476,9 +476,10 @@ export const getAdminProducts = (params?: {
 
 // === Pricing Rules ===
 export const getAdminPricingRules = () => apiFetch<any[]>('/admin/pricing-rules');
-export const createAdminPricingRule = (data: any) => apiFetch<any>('/admin/pricing-rules', { method: 'POST', body: data });
-export const updateAdminPricingRule = (id: number, data: any) => apiFetch<any>(`/admin/pricing-rules/${id}`, { method: 'PATCH', body: data });
+export const createAdminPricingRule = (data: any) => apiFetch<any>('/admin/pricing-rules', { method: 'POST', body: JSON.stringify(data) });
+export const updateAdminPricingRule = (id: number, data: any) => apiFetch<any>(`/admin/pricing-rules/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const deleteAdminPricingRule = (id: number) => apiFetch<{ message: string }>(`/admin/pricing-rules/${id}`, { method: 'DELETE' });
+export const repriceAdminPricingRules = () => apiFetch<{ updatedCount: number; message: string }>('/admin/pricing-rules/reprice', { method: 'POST' });
 
 // === Users ===
 export const getAdminUsers = () => apiFetch<any[]>('/admin/users');
