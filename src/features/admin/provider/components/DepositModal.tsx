@@ -4,7 +4,6 @@ import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { useToast } from '../../../../components/ui/ToastContext';
 import { requestDigiflazzDeposit } from '../../../../utils/api';
-import { Wallet, Copy, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface DepositModalProps {
   isOpen: boolean;
@@ -57,7 +56,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
       } else if ((res as any)?.data) {
         setTicket((res as any).data);
         addToast({
-          title: 'TIKET DEPOSIT DIBUAT! 🚀',
+          title: 'TIKET DEPOSIT DIBUAT',
           message: `Berhasil mendapatkan tiket transfer bank ${bank}.`,
           type: 'success',
         });
@@ -76,7 +75,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     addToast({
-      title: 'DISALIN 📋',
+      title: 'DISALIN',
       message: `${label} berhasil disalin ke clipboard!`,
       type: 'success',
     });
@@ -156,24 +155,20 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
                 BATAL
               </Button>
               <Button type="submit" variant="purple" size="md" disabled={isSubmitting}>
-                <Wallet className="w-4 h-4 stroke-[3]" />
-                <span>{isSubmitting ? 'MEMBUAT TIKET...' : 'BUAT TIKET DEPOSIT 🚀'}</span>
+                <span>{isSubmitting ? 'MEMBUAT TIKET...' : 'BUAT TIKET DEPOSIT'}</span>
               </Button>
             </div>
           </form>
         ) : (
-          /* STEP 2: Tiket Deposit Hasil API Digiflazz (Wow Neon Brutalism Box) */
+          /* STEP 2: Tiket Deposit Hasil API Digiflazz */
           <div className="space-y-4">
-            <div className="bg-[var(--nb-yellow)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000] flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 stroke-[3] text-black shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-black uppercase text-sm text-black">
-                  TIKET DEPOSIT DIGIFLAZZ RESMI (RC: {ticket.rc})
-                </h4>
-                <p className="text-xs font-bold text-black/90">
-                  Transfer persis nominal di bawah agar otomatis masuk ke saldo Digiflazz Anda!
-                </p>
-              </div>
+            <div className="bg-[var(--nb-yellow)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+              <h4 className="font-black uppercase text-sm text-black">
+                TIKET DEPOSIT DIGIFLAZZ RESMI (RC: {ticket.rc})
+              </h4>
+              <p className="text-xs font-bold text-black/90 mt-1">
+                Transfer persis nominal di bawah agar otomatis masuk ke saldo Digiflazz Anda.
+              </p>
             </div>
 
             <div className="bg-white border-[3px] border-black p-5 space-y-4 shadow-[6px_6px_0px_0px_#000]">
@@ -199,7 +194,6 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
                   onClick={() => handleCopy(ticket.account_no, 'Nomor Rekening')}
                   className="font-black uppercase text-xs"
                 >
-                  <Copy className="w-3.5 h-3.5 stroke-[3]" />
                   <span>SALIN</span>
                 </Button>
               </div>
@@ -221,7 +215,6 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
                   onClick={() => handleCopy(String(ticket.amount), 'Nominal Transfer')}
                   className="font-black uppercase text-xs"
                 >
-                  <Copy className="w-3.5 h-3.5 stroke-[3]" />
                   <span>SALIN</span>
                 </Button>
               </div>
@@ -241,7 +234,6 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
                     onClick={() => handleCopy(ticket.notes, 'Berita Transfer')}
                     className="font-black uppercase text-xs"
                   >
-                    <Copy className="w-3.5 h-3.5 stroke-[3]" />
                     <span>SALIN</span>
                   </Button>
                 </div>
@@ -256,7 +248,6 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
                 onClick={() => setTicket(null)}
                 className="font-black uppercase text-xs"
               >
-                <ArrowLeft className="w-3.5 h-3.5 stroke-[3]" />
                 <span>BUAT TIKET LAIN</span>
               </Button>
 
@@ -265,10 +256,9 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, onS
                 variant="purple"
                 size="md"
                 onClick={handleResetAndClose}
-                className="font-black uppercase"
+                className="font-black uppercase text-xs"
               >
-                <CheckCircle2 className="w-4 h-4 stroke-[3]" />
-                <span>SELESAI & CEK SALDO</span>
+                <span>SELESAI & REFRESH</span>
               </Button>
             </div>
           </div>
