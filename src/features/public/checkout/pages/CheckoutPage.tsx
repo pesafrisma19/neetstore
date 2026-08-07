@@ -22,7 +22,7 @@ import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
 import { calculateCheckoutBreakdown, type DiscountType } from '../../../../utils/checkoutCalculator';
-import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
+import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 
 const optimizeGoogleBanner = (url: string) => {
@@ -381,7 +381,7 @@ export const CheckoutPage: React.FC = () => {
   // Phase 4: Neetflix Validation States & Region Lock UX
   const [nickname, setNickname] = useState('');
   const [detectedRegionCode, setDetectedRegionCode] = useState('');
-  const [firstTopupTiers, setFirstTopupTiers] = useState<any[]>([]);
+  const [firstTopupTiers, setFirstTopupTiers] = useState<FirstTopupTier[]>([]);
   const [isRegionLocked, setIsRegionLocked] = useState(false);
   const [showAllRegionsOverride, setShowAllRegionsOverride] = useState(false);
   const [validMatchedRegionIds, setValidMatchedRegionIds] = useState<number[]>([]);
@@ -904,7 +904,15 @@ export const CheckoutPage: React.FC = () => {
         if (
           d.firstTopupTiers !== undefined &&
           (!Array.isArray(d.firstTopupTiers) ||
-            !d.firstTopupTiers.every((tier) => typeof tier === 'string'))
+            !d.firstTopupTiers.every(
+              (tier) =>
+                typeof tier === 'object' &&
+                tier !== null &&
+                (tier.id === undefined || typeof tier.id === 'string' || typeof tier.id === 'number') &&
+                (tier.name === undefined || typeof tier.name === 'string') &&
+                (tier.diamonds === undefined || (typeof tier.diamonds === 'number' && Number.isFinite(tier.diamonds))) &&
+                (tier.available === undefined || typeof tier.available === 'boolean')
+            ))
         ) {
           throw new Error('First topup tiers dari server tidak valid.');
         }
@@ -1685,7 +1693,7 @@ export const CheckoutPage: React.FC = () => {
                           // Phase 4: Matching logic for First Topup 2X Diamond
                           const sanitizeForMatch = (str: string) => (str || '').replace(/💎/g, '').replace(/\s+/g, '').toLowerCase();
                           const tierMatch = firstTopupTiers.find(t => {
-                            const safeTier = sanitizeForMatch(t.name);
+                            const safeTier = sanitizeForMatch(t?.name || '');
                             const safeItem = sanitizeForMatch(item.name);
                             return safeTier && safeItem.includes(safeTier);
                           });

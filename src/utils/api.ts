@@ -178,6 +178,13 @@ export interface PublicVoucherCheckResponse {
   discountValue: number;
 }
 
+export interface FirstTopupTier {
+  id?: string | number;
+  name?: string;
+  diamonds?: number;
+  available?: boolean;
+}
+
 export interface PublicNeetflixValidationResult {
   nickname: string;
   detectedRegionCode?: string;
@@ -186,7 +193,7 @@ export interface PublicNeetflixValidationResult {
   matchedRegionId?: number | null;
   matchedRegionIds?: number[];
   firstTopupAvailable?: boolean;
-  firstTopupTiers?: string[];
+  firstTopupTiers?: FirstTopupTier[];
 }
 
 export interface PublicNeetflixValidationResponse {
