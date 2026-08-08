@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
@@ -7,74 +8,29 @@ import {
   XCircle, 
   Clock, 
   RefreshCw,
-  CreditCard
+  CreditCard,
+  RotateCcw
 } from 'lucide-react';
-import { getAdminTransactions } from '../../../../utils/api';
-import { useToast } from '../../../../components/ui/ToastContext';
-
-export interface ReportTxItem {
-  id: number;
-  paymentMethod: string;
-  orderStatus: string;
-  paymentStatus: string;
-  amount?: number;
-  totalPrice?: number;
-  createdAt: string;
-}
+import { getAdminTransactionReport } from '../../../../utils/api';
+import { queryKeys } from '../../../../services/queryKeys';
 
 export const ReportsTransactionsPage: React.FC = () => {
-  const { addToast } = useToast();
-  const [transactions, setTransactions] = useState<ReportTxItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [period, setPeriod] = useState<string>('all');
 
-  const fetchAnalytics = async () => {
-    setLoading(true);
-    try {
-      const data = await getAdminTransactions();
-      setTransactions(data || []);
-    } catch (err: any) {
-      addToast({
-        title: 'GAGAL MEMUAT DATA ANALITIK',
-        message: err.message || 'Gagal mengambil data analitik transaksi.',
-        type: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  const totalCount = transactions.length;
-  const successCount = transactions.filter(
-    (t) => t.orderStatus === 'SUCCESS' || t.paymentStatus === 'PAID'
-  ).length;
-  const failedCount = transactions.filter(
-    (t) => t.orderStatus === 'FAILED'
-  ).length;
-  const pendingCount = transactions.filter(
-    (t) => t.orderStatus === 'PENDING' || t.orderStatus === 'PROCESS'
-  ).length;
-
-  const successRate =
-    totalCount > 0 ? ((successCount / totalCount) * 100).toFixed(1) : '0.0';
-
-  // Analitik berdasarkan Metode Pembayaran
-  const methodMap: Record<string, { name: string; count: number; volume: number }> =
-    {};
-
-  transactions.forEach((t) => {
-    const key = (t.paymentMethod || 'OTHER').toUpperCase();
-    if (!methodMap[key]) {
-      methodMap[key] = { name: key, count: 0, volume: 0 };
-    }
-    methodMap[key].count += 1;
-    methodMap[key].volume += t.amount || t.totalPrice || 0;
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: queryKeys.admin.reports.transactions({ period }),
+    queryFn: () => getAdminTransactionReport({ period }),
+    placeholderData: keepPreviousData,
   });
 
-  const methodList = Object.values(methodMap).sort((a, b) => b.volume - a.volume);
+  const totalCount = data?.total || 0;
+  const successCount = data?.success || 0;
+  const processCount = data?.process || 0;
+  const pendingCount = data?.pending || 0;
+  const failedCount = data?.failed || 0;
+  const refundedCount = data?.refunded || 0;
+  const successRate = data?.successRate || 0;
+  const paymentMethods = data?.paymentMethods || [];
 
   return (
     <div className="space-y-6 max-w-6xl text-left font-sans pb-12">
@@ -88,13 +44,18 @@ export const ReportsTransactionsPage: React.FC = () => {
             <Badge variant="white" size="sm" className="border-2 font-mono">
               TOTAL RECORD: {totalCount} TX
             </Badge>
+            {isFetching && !isLoading && (
+              <Badge variant="pink" size="sm" className="border-2 font-mono animate-pulse">
+                REFRESHING...
+              </Badge>
+            )}
           </div>
           <h1 className="text-3xl font-black uppercase tracking-tight text-black flex items-center gap-2">
             <span>📊</span>
             <span>TRANSACTION ANALYTICS</span>
           </h1>
           <p className="text-sm font-bold text-black/80 mt-1">
-            Analitik performa transaksi, rasio keberhasilan (success rate), dan distribusi payment gateway.
+            Analitik performa transaksi, rasio keberhasilan (orderStatus = SUCCESS), dan distribusi gateway per-periode.
           </p>
         </div>
 
@@ -102,46 +63,75 @@ export const ReportsTransactionsPage: React.FC = () => {
           <Button
             variant="white"
             size="md"
-            onClick={fetchAnalytics}
+            onClick={() => refetch()}
+            disabled={isFetching}
             className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
           >
-            <RefreshCw className={`w-4 h-4 stroke-[3] ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 stroke-[3] ${isFetching ? 'animate-spin' : ''}`} />
             <span>REFRESH</span>
           </Button>
         </div>
       </div>
 
-      {/* 2. STATS KARTU KINERJA TRANSAKSI */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* 2. FILTER PERIODE */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+        <span className="text-xs font-black uppercase text-neutral-600">
+          PILIH RENTANG WAKTU ANALITIK:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'SEMUA WAKTU' },
+            { id: 'this_month', label: 'BULAN INI' },
+            { id: '30d', label: '30 HARI TERAKHIR' },
+            { id: '7d', label: '7 HARI TERAKHIR' },
+            { id: 'today', label: 'HARI INI (WIB)' },
+          ].map((item) => (
+            <Button
+              key={item.id}
+              variant={period === item.id ? 'yellow' : 'white'}
+              size="sm"
+              onClick={() => setPeriod(item.id)}
+              className="font-black uppercase text-xs"
+            >
+              {item.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. STATS KARTU KINERJA TRANSAKSI */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card variant="white" className="border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
           <div className="text-xs font-black uppercase text-neutral-500 mb-1">
             SUCCESS RATE
           </div>
-          <div className="text-2xl font-black text-green-700">{successRate}%</div>
+          <div className="text-2xl font-black text-green-700">{isLoading ? '...' : `${successRate}%`}</div>
           <div className="text-[10px] font-bold text-neutral-500">
-            Rasio order berhasil
+            Rasio SUCCESS / Total
           </div>
         </Card>
 
         <Card variant="white" className="border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
           <div className="text-xs font-black uppercase text-neutral-500 mb-1 flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4 stroke-[2.5] text-green-600" />
-            <span>SUCCESS ORDERS</span>
+            <span>SUCCESS</span>
           </div>
-          <div className="text-2xl font-black text-black">{successCount}</div>
+          <div className="text-2xl font-black text-black">{isLoading ? '...' : successCount}</div>
           <div className="text-[10px] font-bold text-neutral-500">
-            Pesanan selesai / terbayar
+            Order selesai sukses
           </div>
         </Card>
 
         <Card variant="white" className="border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
           <div className="text-xs font-black uppercase text-neutral-500 mb-1 flex items-center gap-1">
             <Clock className="w-4 h-4 stroke-[2.5] text-amber-600" />
-            <span>PENDING / PROCESS</span>
+            <span>PROCESS / PENDING</span>
           </div>
-          <div className="text-2xl font-black text-amber-600">{pendingCount}</div>
+          <div className="text-2xl font-black text-amber-600">
+            {isLoading ? '...' : processCount + pendingCount}
+          </div>
           <div className="text-[10px] font-bold text-neutral-500">
-            Sedang diproses sistem
+            {processCount} Process, {pendingCount} Pending
           </div>
         </Card>
 
@@ -150,14 +140,25 @@ export const ReportsTransactionsPage: React.FC = () => {
             <XCircle className="w-4 h-4 stroke-[2.5] text-red-600" />
             <span>FAILED ORDERS</span>
           </div>
-          <div className="text-2xl font-black text-red-600">{failedCount}</div>
+          <div className="text-2xl font-black text-red-600">{isLoading ? '...' : failedCount}</div>
           <div className="text-[10px] font-bold text-neutral-500">
-            Gagal dari provider / batal
+            Status order = FAILED
+          </div>
+        </Card>
+
+        <Card variant="white" className="border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+          <div className="text-xs font-black uppercase text-neutral-500 mb-1 flex items-center gap-1">
+            <RotateCcw className="w-4 h-4 stroke-[2.5] text-purple-600" />
+            <span>REFUNDED</span>
+          </div>
+          <div className="text-2xl font-black text-purple-600">{isLoading ? '...' : refundedCount}</div>
+          <div className="text-[10px] font-bold text-neutral-500">
+            PaymentStatus = REFUND
           </div>
         </Card>
       </div>
 
-      {/* 3. TABEL ANALITIK PER METODE PEMBAYARAN */}
+      {/* 4. TABEL ANALITIK PER METODE PEMBAYARAN */}
       <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
         <div className="p-4 bg-neutral-900 text-white border-b-[3px] border-black flex items-center justify-between">
           <h3 className="text-sm font-black uppercase flex items-center gap-2">
@@ -165,13 +166,17 @@ export const ReportsTransactionsPage: React.FC = () => {
             <span>DISTRIBUSI TRANSAKSI PER METODE PEMBAYARAN</span>
           </h3>
           <Badge variant="yellow" size="sm" className="font-black uppercase text-[10px]">
-            GATEWAY STATS
+            DATABASE FULL RANGE
           </Badge>
         </div>
 
-        {methodList.length === 0 ? (
+        {isLoading ? (
           <div className="p-8 text-center text-xs font-bold text-neutral-500">
-            Belum ada data transaksi yang tercatat.
+            Memuat data analitik...
+          </div>
+        ) : paymentMethods.length === 0 ? (
+          <div className="p-8 text-center text-xs font-bold text-neutral-500">
+            Belum ada data transaksi yang tercatat pada periode ini.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -185,28 +190,22 @@ export const ReportsTransactionsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y-[2px] divide-black text-sm font-bold">
-                {methodList.map((m, idx) => {
-                  const totalVolume = methodList.reduce((acc, el) => acc + el.volume, 0);
-                  const share =
-                    totalVolume > 0 ? ((m.volume / totalVolume) * 100).toFixed(1) : '0';
-
-                  return (
-                    <tr key={idx} className="hover:bg-yellow-50 transition-colors">
-                      <td className="p-3 font-black text-black flex items-center gap-2">
-                        <Badge variant="cyan" size="sm" className="font-bold">
-                          {m.name}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-center font-mono font-black">{m.count} TX</td>
-                      <td className="p-3 text-right font-black text-green-700">
-                        Rp {m.volume.toLocaleString('id-ID')}
-                      </td>
-                      <td className="p-3 text-right font-mono text-xs">
-                        {share}%
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paymentMethods.map((m, idx) => (
+                  <tr key={idx} className="hover:bg-yellow-50 transition-colors">
+                    <td className="p-3 font-black text-black flex items-center gap-2">
+                      <Badge variant="cyan" size="sm" className="font-bold">
+                        {m.name}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-center font-mono font-black">{m.count} TX</td>
+                    <td className="p-3 text-right font-black text-green-700">
+                      Rp {m.volume.toLocaleString('id-ID')}
+                    </td>
+                    <td className="p-3 text-right font-mono text-xs">
+                      {m.share}%
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

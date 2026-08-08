@@ -95,5 +95,10 @@ export const queryKeys = {
       webhook: (params?: any) => ['admin', 'logs', 'webhook', params] as const,
       error: (params?: any) => ['admin', 'logs', 'error', params] as const,
     },
+    reports: {
+      sales: (params?: any) => ['admin', 'reports', 'sales', params] as const,
+      transactions: (params?: any) => ['admin', 'reports', 'transactions', params] as const,
+      deposits: (params?: any) => ['admin', 'reports', 'deposits', params] as const,
+    },
   },
 } as const;

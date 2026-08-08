@@ -631,6 +631,87 @@ export const getAdminErrorLogs = (params?: { page?: number; limit?: number; leve
   );
 };
 
+// === Reports ===
+export interface AdminReportQueryParams {
+  period?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export const getAdminSalesReport = (params?: AdminReportQueryParams) => {
+  const query = new URLSearchParams();
+  if (params?.period) query.append('period', params.period);
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
+  const qStr = query.toString();
+  return apiFetch<{
+    revenue: number;
+    profit: number;
+    successfulOrders: number;
+    totalOrders: number;
+    topProducts: Array<{
+      productId: number;
+      name: string;
+      sku: string;
+      soldQuantity: number;
+      revenue: number;
+      profit: number;
+    }>;
+  }>(`/admin/reports/sales${qStr ? `?${qStr}` : ''}`);
+};
+
+export const getAdminTransactionReport = (params?: AdminReportQueryParams) => {
+  const query = new URLSearchParams();
+  if (params?.period) query.append('period', params.period);
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
+  const qStr = query.toString();
+  return apiFetch<{
+    total: number;
+    success: number;
+    process: number;
+    pending: number;
+    failed: number;
+    refunded: number;
+    successRate: number;
+    paymentMethods: Array<{
+      name: string;
+      count: number;
+      volume: number;
+      share: number;
+    }>;
+  }>(`/admin/reports/transactions${qStr ? `?${qStr}` : ''}`);
+};
+
+export const getAdminDepositReport = (params?: AdminReportQueryParams) => {
+  const query = new URLSearchParams();
+  if (params?.period) query.append('period', params.period);
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
+  const qStr = query.toString();
+  return apiFetch<{
+    totalSuccessfulDeposit: number;
+    successfulAmount: number;
+    pendingAmount: number;
+    failedAmount: number;
+    countSuccess: number;
+    countPending: number;
+    countFailed: number;
+    totalCount: number;
+    latestDeposits: Array<{
+      id: number;
+      paymentRef: string;
+      userId: number;
+      username: string;
+      amount: number;
+      totalAmount: number;
+      paymentMethod: string;
+      status: string;
+      createdAt: string;
+    }>;
+  }>(`/admin/reports/deposits${qStr ? `?${qStr}` : ''}`);
+};
+
 // =====================================================
 // REGION & PRODUCT CATEGORY & PROVIDER MAPPING TYPES
 // =====================================================
