@@ -70,12 +70,11 @@ export const BannerSlider: React.FC = () => {
         {active.title && (
           <div className="absolute top-3.5 left-3.5 z-40 pointer-events-none">
             <Badge
-              variant="yellow"
+              variant={centerTone as any}
               size="sm"
-              className="border-[2.5px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 bg-[var(--nb-yellow)] text-black"
+              className="border-[2.5px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
             >
-              <span>🏷️</span>
-              <span>{active.title}</span>
+              {active.title}
             </Badge>
           </div>
         )}
@@ -159,12 +158,11 @@ export const BannerSlider: React.FC = () => {
           {activeBanner.title && (
             <div className="absolute top-3.5 left-3.5 z-40 pointer-events-none">
               <Badge
-                variant="yellow"
+                variant={centerTone as any}
                 size="sm"
-                className="border-[2.5px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 bg-[var(--nb-yellow)] text-black"
+                className="border-[2.5px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
               >
-                <span>🏷️</span>
-                <span>{activeBanner.title}</span>
+                {activeBanner.title}
               </Badge>
             </div>
           )}
