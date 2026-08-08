@@ -25,8 +25,12 @@ export const LoginPage: React.FC = () => {
 
     try {
       const data = await authApi.login({ username, password });
-      loginUser(data.token, data.user?.role === 'ADMIN');
-      navigate('/');
+      const profile = await loginUser(data.token, data.user?.role === 'ADMIN');
+      if (profile?.role === 'ADMIN') {
+        navigate('/secret-admin-dashboard');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login gagal.');
     } finally {

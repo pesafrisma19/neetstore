@@ -17,7 +17,7 @@ export interface UserProfile {
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
-  loginUser: (token: string, adminToken?: boolean) => void;
+  loginUser: (token: string, adminToken?: boolean) => Promise<UserProfile | null>;
   logoutUser: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -37,8 +37,6 @@ export function removePersistedAttemptsForOwner(targetOwnerScope: string): void 
     for (const [hash, item] of Object.entries(map)) {
       if (item && typeof item === 'object') {
         const obj = item as Record<string, unknown>;
-        // Hapus HANYA attempt PREPARED yang belum pernah dikirim.
-        // Attempt IN_FLIGHT atau UNKNOWN_RESULT TETAP DIPERTAHANKAN di storage untuk owner ini.
         if (obj.ownerScope === targetOwnerScope && obj.status === 'PREPARED') {
           delete map[hash];
           modified = true;
@@ -62,25 +60,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const bootstrapAttempted = useRef(false); // apakah bootstrap sudah pernah dijalankan
   const hadSession = useRef(false);         // apakah user pernah login di sesi ini
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (): Promise<UserProfile | null> => {
     try {
-      // Menggunakan Axios instance yang sudah ada interceptornya!
       const res = await api.get('/user/me');
       setUser(res.data);
+      return res.data;
     } catch (e) {
       console.error('Gagal mengambil profil', e);
       setUser(null);
       setAccessToken(null);
+      localStorage.removeItem('netstore_has_session');
+      return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Tahap 4.4: Silent Refresh Bootstrap
+  // Silent Refresh Bootstrap
   const bootstrapAuth = async () => {
+    // KONDISI 1 FIX: Jika user belum pernah login (tidak ada marker netstore_has_session)
+    // dan tidak ada access token di memory, jangan kirim request POST /api/auth/refresh (cegah 401 sia-sia untuk Guest)
+    const hasSessionMarker = localStorage.getItem('netstore_has_session') === '1';
+    if (!hasSessionMarker && !getAccessToken()) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Jika interceptor sudah sedang me-refresh (karena ada request lain yang 401),
-      // jangan panggil refresh kedua — tunggu sebentar dan gunakan token yang sudah di-set
       if (getIsRefreshing()) {
         await new Promise(resolve => setTimeout(resolve, 600));
         if (getAccessToken()) {
@@ -91,21 +97,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // Kunci flag sebelum memanggil refresh agar interceptor tidak memanggil bersamaan
       setIsRefreshing(true);
       const res = await api.post('/auth/refresh');
       const newToken = res.data.token;
       setAccessToken(newToken);
-      processQueue(null, newToken); // Bebaskan semua request yang antre
+      localStorage.setItem('netstore_has_session', '1');
+      processQueue(null, newToken);
       setIsRefreshing(false);
       bootstrapAttempted.current = true;
-      hadSession.current = true;    // Berhasil → user punya sesi valid
+      hadSession.current = true;
       await fetchProfile();
     } catch (error) {
-      processQueue(error, null); // Tolak semua request yang antre
+      processQueue(error, null);
       setIsRefreshing(false);
       bootstrapAttempted.current = true;
-      // hadSession tetap false jika sebelumnya memang belum login
+      localStorage.removeItem('netstore_has_session');
+      setAccessToken(null);
+      setUser(null);
       setIsLoading(false);
     }
   };
@@ -113,29 +121,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     bootstrapAuth();
 
-    // Listener 1: Tab lain melakukan logout (Tahap 4.5)
     const bc = new BroadcastChannel('auth_channel');
     bc.onmessage = (event) => {
       if (event.data.type === 'LOGOUT') {
         setAccessToken(null);
         setUser(null);
+        localStorage.removeItem('netstore_has_session');
       }
     };
 
-    // Listener 2: Axios Interceptor gagal refresh (Force Logout)
     const handleForceLogout = () => {
       setAccessToken(null);
       setUser(null);
+      localStorage.removeItem('netstore_has_session');
       queryClient.removeQueries({ queryKey: queryKeys.user.root });
     };
     window.addEventListener('auth:logout', handleForceLogout);
 
-    // Listener 3: Auto refresh saat user kembali ke tab ini setelah lama pergi
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !getAccessToken()) {
-        // Hanya re-bootstrap jika user memang pernah punya sesi valid.
-        // Jika belum pernah login sama sekali, tidak perlu coba lagi.
-        if (hadSession.current) {
+        if (hadSession.current || localStorage.getItem('netstore_has_session') === '1') {
           bootstrapAuth();
         }
       }
@@ -149,11 +154,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const loginUser = (token: string, isAdmin = false) => {
+  const loginUser = async (token: string, isAdmin = false): Promise<UserProfile | null> => {
     setAccessToken(token, isAdmin);
-    hadSession.current = true; // User explicitly login
+    hadSession.current = true;
+    localStorage.setItem('netstore_has_session', '1');
     setIsLoading(true);
-    fetchProfile();
+    return await fetchProfile();
   };
 
   const logoutUser = async () => {
@@ -163,15 +169,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (e) {
       console.error('Logout error', e);
     } finally {
+      localStorage.removeItem('netstore_has_session');
       setAccessToken(null);
       setUser(null);
-      hadSession.current = false; // Reset sesi setelah logout
+      hadSession.current = false;
       queryClient.removeQueries({ queryKey: queryKeys.user.root });
       if (previousUserId) {
         removePersistedAttemptsForOwner(`user:${previousUserId}`);
       }
 
-      // Beri tahu tab lain
       const bc = new BroadcastChannel('auth_channel');
       bc.postMessage({ type: 'LOGOUT' });
       bc.close();

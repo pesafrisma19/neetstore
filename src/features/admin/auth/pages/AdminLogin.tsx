@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Input } from '../../../../components/ui/Input';
@@ -6,16 +6,26 @@ import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Sticker } from '../../../../components/ui/Sticker';
 import { login } from '../../../../utils/api';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { ShieldAlert, Lock, User, KeyRound, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
+  const { user, loginUser, isLoading: authLoading } = useAuth();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [secretPin, setSecretPin] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Auto redirect jika user sudah login sebagai Admin
+  useEffect(() => {
+    if (!authLoading && user && user.role === 'ADMIN') {
+      navigate('/secret-admin-dashboard');
+    }
+  }, [user, authLoading, navigate]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +40,18 @@ export const AdminLogin: React.FC = () => {
     try {
       const res = await login(username, password);
       if (res && res.token) {
-        if (res.user?.role === 'ADMIN' || res.role === 'ADMIN') {
-          // It's an admin, save as adminToken
+        const role = res.user?.role || res.role;
+        if (role === 'ADMIN') {
+          // Sync token & user profile ke AuthContext secara synchronously sebelum navigate!
           localStorage.setItem('adminToken', res.token);
           localStorage.setItem('adminUser', JSON.stringify({ name: res.user?.username || username, role: 'ADMIN' }));
-          navigate('/secret-admin-dashboard');
+          
+          const profile = await loginUser(res.token, true);
+          if (profile && profile.role === 'ADMIN') {
+            navigate('/secret-admin-dashboard');
+          } else {
+            setErrorMsg('Akses Ditolak: Profil bukan Admin.');
+          }
         } else {
           setErrorMsg('Kredensial Admin Salah atau Tidak Memiliki Akses!');
         }

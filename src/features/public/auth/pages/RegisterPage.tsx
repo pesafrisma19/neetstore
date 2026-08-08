@@ -26,7 +26,7 @@ export const RegisterPage: React.FC = () => {
 
     try {
       const data = await authApi.register({ username, password, phone: regPhone || undefined });
-      loginUser(data.token, data.user?.role === 'ADMIN');
+      await loginUser(data.token, data.user?.role === 'ADMIN');
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registrasi gagal.');
