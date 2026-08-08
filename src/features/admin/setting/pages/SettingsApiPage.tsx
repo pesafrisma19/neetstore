@@ -8,12 +8,14 @@ import {
   Mail, 
   MessageSquare, 
   Send, 
-  CheckCircle, 
-  XCircle, 
+  CheckCircle2, 
   Eye, 
   EyeOff, 
   Lock,
-  RefreshCw
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react';
 import { 
   getAdminSettings, 
@@ -25,16 +27,19 @@ import {
   sendFonnteTestMessage
 } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
+import { queryClient } from '../../../../services/queryClient';
+import { queryKeys } from '../../../../services/queryKeys';
+
+type ConnectionState = 'IDLE' | 'TESTING' | 'CONNECTED' | 'FAILED';
 
 export const SettingsApiPage: React.FC = () => {
   const { addToast } = useToast();
   
-  // Settings state
+  // Settings State from Backend
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  // Form input states for secret keys (populated only when admin types a new key)
+  // Form input states for secret keys (populated ONLY when admin types a new secret)
   const [neetflixApiKeyInput, setNeetflixApiKeyInput] = useState('');
   const [smtpPasswordInput, setSmtpPasswordInput] = useState('');
   const [fonnteTokenInput, setFonnteTokenInput] = useState('');
@@ -44,11 +49,21 @@ export const SettingsApiPage: React.FC = () => {
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [showFonnteToken, setShowFonnteToken] = useState(false);
 
-  // Loading states for actions
-  const [testingNeetflix, setTestingNeetflix] = useState(false);
-  const [testingSmtp, setTestingSmtp] = useState(false);
-  const [testingFonnte, setTestingFonnte] = useState(false);
-  
+  // Per-card Saving Loading States
+  const [savingNeetflix, setSavingNeetflix] = useState(false);
+  const [savingSmtp, setSavingSmtp] = useState(false);
+  const [savingFonnte, setSavingFonnte] = useState(false);
+
+  // Real Session Connection Test States (IDLE on page load, updated ONLY by real test action)
+  const [neetflixConnState, setNeetflixConnState] = useState<ConnectionState>('IDLE');
+  const [neetflixConnMsg, setNeetflixConnMsg] = useState('');
+
+  const [smtpConnState, setSmtpConnState] = useState<ConnectionState>('IDLE');
+  const [smtpConnMsg, setSmtpConnMsg] = useState('');
+
+  const [fonnteConnState, setFonnteConnState] = useState<ConnectionState>('IDLE');
+  const [fonnteConnMsg, setFonnteConnMsg] = useState('');
+
   const [sendingSmtpTest, setSendingSmtpTest] = useState(false);
   const [sendingFonnteTest, setSendingFonnteTest] = useState(false);
 
@@ -82,88 +97,146 @@ export const SettingsApiPage: React.FC = () => {
     setSettings((prev: any) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-
+  // =======================================================
+  // SCOPED SAVE 1: NEETFLIX ONLY
+  // =======================================================
+  const handleSaveNeetflix = async () => {
+    setSavingNeetflix(true);
     const payload: Record<string, any> = {
-      neetflix_api_url: (settings.neetflix_api_url || '').trim(),
+      neetflix_api_url: (settings.neetflix_api_url || 'https://api.neetflix.monster').trim(),
+    };
+
+    if (neetflixApiKeyInput.trim()) {
+      payload.neetflix_api_key = neetflixApiKeyInput.trim();
+    }
+
+    try {
+      await updateAdminSettings(payload);
+      queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
+      addToast({ title: 'Neetflix Disimpan', message: 'Pengaturan Neetflix Validator berhasil diperbarui.', type: 'success' });
+      setNeetflixApiKeyInput('');
+      await fetchSettings();
+    } catch (err: any) {
+      addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
+    } finally {
+      setSavingNeetflix(false);
+    }
+  };
+
+  // =======================================================
+  // SCOPED SAVE 2: SMTP ONLY
+  // =======================================================
+  const handleSaveSmtp = async () => {
+    setSavingSmtp(true);
+    const payload: Record<string, any> = {
       smtp_host: (settings.smtp_host || '').trim(),
       smtp_port: Number(settings.smtp_port) || 587,
       smtp_user: (settings.smtp_user || '').trim(),
       smtp_from_name: (settings.smtp_from_name || '').trim(),
       smtp_from_email: (settings.smtp_from_email || '').trim(),
       smtp_secure: Boolean(settings.smtp_secure),
-      fonnte_api_url: (settings.fonnte_api_url || 'https://api.fonnte.com').trim(),
     };
 
-    if (neetflixApiKeyInput.trim()) {
-      payload.neetflix_api_key = neetflixApiKeyInput.trim();
-    }
     if (smtpPasswordInput.trim()) {
       payload.smtp_password = smtpPasswordInput.trim();
     }
+
+    try {
+      await updateAdminSettings(payload);
+      queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
+      addToast({ title: 'SMTP Disimpan', message: 'Pengaturan SMTP Email Server berhasil diperbarui.', type: 'success' });
+      setSmtpPasswordInput('');
+      await fetchSettings();
+    } catch (err: any) {
+      addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
+    } finally {
+      setSavingSmtp(false);
+    }
+  };
+
+  // =======================================================
+  // SCOPED SAVE 3: FONNTE ONLY
+  // =======================================================
+  const handleSaveFonnte = async () => {
+    setSavingFonnte(true);
+    const payload: Record<string, any> = {
+      fonnte_api_url: (settings.fonnte_api_url || 'https://api.fonnte.com').trim(),
+    };
+
     if (fonnteTokenInput.trim()) {
       payload.fonnte_token = fonnteTokenInput.trim();
     }
 
     try {
       await updateAdminSettings(payload);
-      addToast({ title: 'Pengaturan Disimpan', message: 'Pengaturan API Integration berhasil diperbarui.', type: 'success' });
-      
-      setNeetflixApiKeyInput('');
-      setSmtpPasswordInput('');
+      queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
+      addToast({ title: 'Fonnte Disimpan', message: 'Pengaturan Fonnte WhatsApp Gateway berhasil diperbarui.', type: 'success' });
       setFonnteTokenInput('');
-
-      fetchSettings();
+      await fetchSettings();
     } catch (err: any) {
       addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
     } finally {
-      setSaving(false);
+      setSavingFonnte(false);
     }
   };
 
-  // Actions: Neetflix
+  // =======================================================
+  // REAL CONNECTION TEST 1: NEETFLIX
+  // =======================================================
   const handleTestNeetflix = async () => {
-    setTestingNeetflix(true);
+    setNeetflixConnState('TESTING');
+    setNeetflixConnMsg('');
     try {
       const res = await testNeetflixConnection();
       if (res?.success) {
+        setNeetflixConnState('CONNECTED');
+        setNeetflixConnMsg(`Server OK (${res.data?.supportedGamesCount || 0} game)`);
         addToast({ 
           title: 'Koneksi Neetflix Aktif', 
           message: `Status server OK. Game terdukung: ${res.data?.supportedGamesCount || 0}`, 
           type: 'success' 
         });
       } else {
+        setNeetflixConnState('FAILED');
+        setNeetflixConnMsg('Respons API tidak valid');
         addToast({ title: 'Koneksi Neetflix Gagal', message: 'Respons API tidak valid.', type: 'error' });
       }
     } catch (err: any) {
-      addToast({ title: 'Koneksi Neetflix Gagal', message: err.message || 'API Key salah atau server offline.', type: 'error' });
-    } finally {
-      setTestingNeetflix(false);
+      const errMsg = err.message || 'API Key salah atau server offline';
+      setNeetflixConnState('FAILED');
+      setNeetflixConnMsg(errMsg);
+      addToast({ title: 'Koneksi Neetflix Gagal', message: errMsg, type: 'error' });
     }
   };
 
-  // Actions: SMTP Test Connection
+  // =======================================================
+  // REAL CONNECTION TEST 2: SMTP
+  // =======================================================
   const handleTestSmtpConnection = async () => {
-    setTestingSmtp(true);
+    setSmtpConnState('TESTING');
+    setSmtpConnMsg('');
     try {
       const res = await testSmtpConnection();
       if (res?.success) {
+        setSmtpConnState('CONNECTED');
+        setSmtpConnMsg(res.message || 'Koneksi SMTP Server terverifikasi');
         addToast({ title: 'Koneksi SMTP Berhasil', message: res.message || 'Koneksi ke server SMTP terverifikasi.', type: 'success' });
       } else {
+        setSmtpConnState('FAILED');
+        setSmtpConnMsg('Gagal terhubung ke SMTP Server');
         addToast({ title: 'Koneksi SMTP Gagal', message: 'Tidak dapat terhubung ke server SMTP.', type: 'error' });
       }
     } catch (err: any) {
       const msg = err.message?.includes('535') 
-        ? 'Autentikasi SMTP gagal. Periksa username dan password.' 
-        : (err.message || 'Koneksi SMTP gagal.');
+        ? 'Autentikasi SMTP gagal' 
+        : (err.message || 'Koneksi SMTP gagal');
+      setSmtpConnState('FAILED');
+      setSmtpConnMsg(msg);
       addToast({ title: 'Koneksi SMTP Gagal', message: msg, type: 'error' });
-    } finally {
-      setTestingSmtp(false);
     }
   };
 
-  // Actions: Send Test Email
+  // Send Test Email Action
   const handleSendTestEmail = async () => {
     if (!smtpTargetEmail || !smtpTargetEmail.includes('@')) {
       addToast({ title: 'Validasi Gagal', message: 'Alamat email tujuan tes tidak valid.', type: 'error' });
@@ -187,24 +260,32 @@ export const SettingsApiPage: React.FC = () => {
     }
   };
 
-  // Actions: Fonnte Test Connection
+  // =======================================================
+  // REAL CONNECTION TEST 3: FONNTE
+  // =======================================================
   const handleTestFonnteConnection = async () => {
-    setTestingFonnte(true);
+    setFonnteConnState('TESTING');
+    setFonnteConnMsg('');
     try {
       const res = await testFonnteConnection();
       if (res?.success) {
+        setFonnteConnState('CONNECTED');
+        setFonnteConnMsg(res.message || 'Device terhubung');
         addToast({ title: 'Koneksi Fonnte Berhasil', message: res.message || 'Token Fonnte valid dan device aktif.', type: 'success' });
       } else {
+        setFonnteConnState('FAILED');
+        setFonnteConnMsg('Token Fonnte tidak terverifikasi');
         addToast({ title: 'Koneksi Fonnte Gagal', message: 'Token Fonnte tidak terverifikasi.', type: 'error' });
       }
     } catch (err: any) {
-      addToast({ title: 'Koneksi Fonnte Gagal', message: err.message, type: 'error' });
-    } finally {
-      setTestingFonnte(false);
+      const msg = err.message || 'Gagal terhubung ke Fonnte';
+      setFonnteConnState('FAILED');
+      setFonnteConnMsg(msg);
+      addToast({ title: 'Koneksi Fonnte Gagal', message: msg, type: 'error' });
     }
   };
 
-  // Actions: Send Test WhatsApp
+  // Send Test WhatsApp Action
   const handleSendTestWhatsApp = async () => {
     if (!fonnteTargetPhone) {
       addToast({ title: 'Validasi Gagal', message: 'Nomor WhatsApp tujuan tes wajib diisi.', type: 'error' });
@@ -229,32 +310,50 @@ export const SettingsApiPage: React.FC = () => {
     }
   };
 
+  // Helper render for connection status badge
+  const renderConnectionBadge = (state: ConnectionState, msg?: string) => {
+    if (state === 'TESTING') {
+      return (
+        <Badge variant="yellow" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          <span className="hidden sm:inline">Menguji...</span>
+        </Badge>
+      );
+    }
+    if (state === 'CONNECTED') {
+      return (
+        <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0" title={msg}>
+          <Wifi className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Terhubung</span>
+          <span className="sm:hidden">Wifi</span>
+        </Badge>
+      );
+    }
+    if (state === 'FAILED') {
+      return (
+        <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0" title={msg}>
+          <WifiOff className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Gagal Terhubung</span>
+          <span className="sm:hidden">Gagal</span>
+        </Badge>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6 max-w-6xl text-left font-sans pb-16">
-      {/* HEADER BANNER */}
-      <div className="bg-[var(--nb-yellow)] border-[3px] border-[var(--nb-border)] p-6 shadow-[var(--nb-shadow)] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Badge variant="cyan" size="sm" className="font-black uppercase mb-2">
-            INTEGRATION SERVICES
-          </Badge>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-[var(--nb-text)] flex items-center gap-2">
-            <span>API INTEGRATION</span>
-          </h1>
-          <p className="text-sm font-bold text-[var(--nb-text-muted)] mt-1">
-            Kelola layanan eksternal untuk validasi akun, email, dan WhatsApp.
-          </p>
-        </div>
-
-        <Button
-          variant="mint"
-          size="lg"
-          onClick={handleSave}
-          disabled={saving || loading}
-          className="font-black uppercase shrink-0"
-        >
-          <Save className="w-5 h-5 stroke-[3]" />
-          <span>{saving ? 'MENYIMPAN...' : 'SIMPAN PENGATURAN'}</span>
-        </Button>
+      {/* HEADER BANNER (NO GLOBAL SAVE BUTTON) */}
+      <div className="bg-[var(--nb-yellow)] border-[3px] border-[var(--nb-border)] p-6 shadow-[var(--nb-shadow)]">
+        <Badge variant="cyan" size="sm" className="font-black uppercase mb-2">
+          INTEGRATION SERVICES
+        </Badge>
+        <h1 className="text-3xl font-black uppercase tracking-tight text-[var(--nb-text)] flex items-center gap-2">
+          <span>API INTEGRATION</span>
+        </h1>
+        <p className="text-sm font-bold text-[var(--nb-text-muted)] mt-1">
+          Kelola layanan eksternal untuk validasi akun, email, dan WhatsApp. Setiap integrasi memiliki tombol simpan masing-masing.
+        </p>
       </div>
 
       {/* ROW 1 DESKTOP: NEETFLIX VALIDATOR & SMTP EMAIL */}
@@ -264,20 +363,28 @@ export const SettingsApiPage: React.FC = () => {
         <Card variant="white" className="flex flex-col justify-between">
           <div>
             <CardHeader headerBg="var(--nb-purple)">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2 text-base font-black uppercase">
                   <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
-                  Neetflix Validator API
+                  Neetflix Validator
                 </CardTitle>
-                {settings.neetflix_api_key_configured ? (
-                  <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" /> Terkonfigurasi
-                  </Badge>
-                ) : (
-                  <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
-                    <XCircle className="w-3.5 h-3.5" /> Belum Dikonfigurasi
-                  </Badge>
-                )}
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {renderConnectionBadge(neetflixConnState, neetflixConnMsg)}
+                  {settings.neetflix_api_key_configured ? (
+                    <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Terkonfigurasi</span>
+                      <span className="sm:hidden">✓</span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Belum Dikonfigurasi</span>
+                      <span className="sm:hidden">!</span>
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 p-5">
@@ -303,37 +410,86 @@ export const SettingsApiPage: React.FC = () => {
                     type={showNeetflixKey ? 'text' : 'password'}
                     value={neetflixApiKeyInput}
                     onChange={(e) => setNeetflixApiKeyInput(e.target.value)}
-                    placeholder={settings.neetflix_api_key_configured ? 'API key sudah dikonfigurasi' : 'Masukkan API key baru'}
+                    placeholder={settings.neetflix_api_key_configured ? 'Credential sudah tersimpan' : 'Masukkan API key baru'}
                     className="w-full p-2.5 pr-10 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNeetflixKey(!showNeetflixKey)}
                     className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
+                    title="Lihat key baru yang diketik"
                   >
                     {showNeetflixKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {settings.neetflix_api_key_configured && !neetflixApiKeyInput && (
                   <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-600" /> API key aktif tersimpan di server.
+                    <Lock className="w-3 h-3 text-emerald-600" /> Tersimpan. Isi hanya jika ingin mengganti.
                   </p>
                 )}
               </div>
             </CardContent>
           </div>
 
-          <div className="p-5 pt-0">
-            <Button
-              variant="dark"
-              size="md"
-              onClick={handleTestNeetflix}
-              disabled={testingNeetflix}
-              className="w-full font-black uppercase text-xs"
-            >
-              <RefreshCw className={`w-4 h-4 ${testingNeetflix ? 'animate-spin' : ''}`} />
-              <span>{testingNeetflix ? 'Menguji...' : 'Tes Koneksi'}</span>
-            </Button>
+          {/* CARD 1 FOOTER ACTIONS */}
+          <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-4 pt-4 flex items-center justify-between gap-2">
+            <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate">
+              {neetflixConnMsg && <span className="font-mono text-[10px]">{neetflixConnMsg}</span>}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* DESKTOP TEST BUTTON */}
+              <Button
+                variant="dark"
+                size="sm"
+                onClick={handleTestNeetflix}
+                disabled={neetflixConnState === 'TESTING'}
+                className="hidden sm:inline-flex font-black uppercase text-xs"
+                title="Tes Koneksi Neetflix API"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${neetflixConnState === 'TESTING' ? 'animate-spin' : ''}`} />
+                <span>{neetflixConnState === 'TESTING' ? 'Menguji...' : 'Test Koneksi'}</span>
+              </Button>
+
+              {/* MOBILE TEST BUTTON (ICON ONLY) */}
+              <Button
+                variant="dark"
+                size="sm"
+                onClick={handleTestNeetflix}
+                disabled={neetflixConnState === 'TESTING'}
+                className="sm:hidden font-black uppercase text-xs p-2.5"
+                title="Test Koneksi"
+                aria-label="Test Koneksi"
+              >
+                <RefreshCw className={`w-4 h-4 ${neetflixConnState === 'TESTING' ? 'animate-spin' : ''}`} />
+              </Button>
+
+              {/* DESKTOP SAVE BUTTON */}
+              <Button
+                variant="mint"
+                size="sm"
+                onClick={handleSaveNeetflix}
+                disabled={savingNeetflix || loading}
+                className="hidden sm:inline-flex font-black uppercase text-xs"
+                title="Simpan Pengaturan Neetflix"
+              >
+                <Save className="w-3.5 h-3.5 stroke-[3]" />
+                <span>{savingNeetflix ? 'Menyimpan...' : 'Simpan Neetflix'}</span>
+              </Button>
+
+              {/* MOBILE SAVE BUTTON (ICON ONLY) */}
+              <Button
+                variant="mint"
+                size="sm"
+                onClick={handleSaveNeetflix}
+                disabled={savingNeetflix || loading}
+                className="sm:hidden font-black uppercase text-xs p-2.5"
+                title="Simpan Neetflix"
+                aria-label="Simpan Neetflix"
+              >
+                <Save className="w-4 h-4 stroke-[3]" />
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -341,20 +497,28 @@ export const SettingsApiPage: React.FC = () => {
         <Card variant="white" className="flex flex-col justify-between">
           <div>
             <CardHeader headerBg="var(--nb-cyan)">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2 text-base font-black uppercase">
                   <Mail className="w-5 h-5 stroke-[2.5]" />
                   SMTP Email Server
                 </CardTitle>
-                {settings.smtp_password_configured && settings.smtp_host ? (
-                  <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" /> Terkonfigurasi
-                  </Badge>
-                ) : (
-                  <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
-                    <XCircle className="w-3.5 h-3.5" /> Belum Dikonfigurasi
-                  </Badge>
-                )}
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {renderConnectionBadge(smtpConnState, smtpConnMsg)}
+                  {settings.smtp_password_configured && settings.smtp_host ? (
+                    <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Terkonfigurasi</span>
+                      <span className="sm:hidden">✓</span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Belum Dikonfigurasi</span>
+                      <span className="sm:hidden">!</span>
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 p-5">
@@ -408,13 +572,14 @@ export const SettingsApiPage: React.FC = () => {
                       type={showSmtpPassword ? 'text' : 'password'}
                       value={smtpPasswordInput}
                       onChange={(e) => setSmtpPasswordInput(e.target.value)}
-                      placeholder={settings.smtp_password_configured ? 'Password sudah dikonfigurasi' : 'Password SMTP'}
+                      placeholder={settings.smtp_password_configured ? 'Credential sudah tersimpan' : 'Masukkan Password baru'}
                       className="w-full p-2.5 pr-8 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowSmtpPassword(!showSmtpPassword)}
                       className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
+                      title="Lihat password baru yang diketik"
                     >
                       {showSmtpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -464,132 +629,243 @@ export const SettingsApiPage: React.FC = () => {
             </CardContent>
           </div>
 
-          <div className="p-5 pt-0 grid grid-cols-2 gap-3">
-            <Button
-              variant="dark"
-              size="md"
-              onClick={handleTestSmtpConnection}
-              disabled={testingSmtp}
-              className="font-black uppercase text-xs"
-            >
-              <RefreshCw className={`w-4 h-4 ${testingSmtp ? 'animate-spin' : ''}`} />
-              <span>{testingSmtp ? 'Memeriksa...' : 'Tes Koneksi'}</span>
-            </Button>
+          {/* CARD 2 FOOTER ACTIONS */}
+          <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-4 pt-4 flex items-center justify-between gap-2">
+            <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate">
+              {smtpConnMsg && <span className="font-mono text-[10px]">{smtpConnMsg}</span>}
+            </div>
 
-            <Button
-              variant="mint"
-              size="md"
-              onClick={() => setSmtpModalOpen(true)}
-              className="font-black uppercase text-xs"
-            >
-              <Send className="w-4 h-4" />
-              <span>Kirim Email Tes</span>
-            </Button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* DESKTOP ACTIONS */}
+              <Button
+                variant="dark"
+                size="sm"
+                onClick={handleTestSmtpConnection}
+                disabled={smtpConnState === 'TESTING'}
+                className="hidden sm:inline-flex font-black uppercase text-xs"
+                title="Tes Koneksi SMTP"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${smtpConnState === 'TESTING' ? 'animate-spin' : ''}`} />
+                <span>{smtpConnState === 'TESTING' ? 'Memeriksa...' : 'Test Koneksi'}</span>
+              </Button>
+
+              <Button
+                variant="cyan"
+                size="sm"
+                onClick={() => setSmtpModalOpen(true)}
+                className="hidden sm:inline-flex font-black uppercase text-xs"
+                title="Kirim Email Tes"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Kirim Email Tes</span>
+              </Button>
+
+              <Button
+                variant="mint"
+                size="sm"
+                onClick={handleSaveSmtp}
+                disabled={savingSmtp || loading}
+                className="hidden sm:inline-flex font-black uppercase text-xs"
+                title="Simpan Pengaturan SMTP"
+              >
+                <Save className="w-3.5 h-3.5 stroke-[3]" />
+                <span>{savingSmtp ? 'Menyimpan...' : 'Simpan SMTP'}</span>
+              </Button>
+
+              {/* MOBILE ACTIONS (ICON ONLY) */}
+              <Button
+                variant="dark"
+                size="sm"
+                onClick={handleTestSmtpConnection}
+                disabled={smtpConnState === 'TESTING'}
+                className="sm:hidden font-black uppercase text-xs p-2.5"
+                title="Test Koneksi"
+                aria-label="Test Koneksi"
+              >
+                <RefreshCw className={`w-4 h-4 ${smtpConnState === 'TESTING' ? 'animate-spin' : ''}`} />
+              </Button>
+
+              <Button
+                variant="cyan"
+                size="sm"
+                onClick={() => setSmtpModalOpen(true)}
+                className="sm:hidden font-black uppercase text-xs p-2.5"
+                title="Kirim Email Tes"
+                aria-label="Kirim Email Tes"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="mint"
+                size="sm"
+                onClick={handleSaveSmtp}
+                disabled={savingSmtp || loading}
+                className="sm:hidden font-black uppercase text-xs p-2.5"
+                title="Simpan SMTP"
+                aria-label="Simpan SMTP"
+              >
+                <Save className="w-4 h-4 stroke-[3]" />
+              </Button>
+            </div>
           </div>
         </Card>
 
       </div>
 
-      {/* ROW 2: FONNTE WHATSAPP (FULL WIDTH DESKTOP) */}
+      {/* CARD 3: FONNTE WHATSAPP GATEWAY (COMPACT FULL WIDTH DESKTOP) */}
       <Card variant="white">
         <CardHeader headerBg="var(--nb-mint)">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2 text-base font-black uppercase text-[var(--nb-text)]">
               <MessageSquare className="w-5 h-5 stroke-[2.5]" />
               Fonnte WhatsApp Gateway
             </CardTitle>
-            {settings.fonnte_token_configured ? (
-              <Badge variant="yellow" size="sm" className="font-black uppercase flex items-center gap-1">
-                <CheckCircle className="w-3.5 h-3.5" /> Terkonfigurasi
-              </Badge>
-            ) : (
-              <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
-                <XCircle className="w-3.5 h-3.5" /> Belum Dikonfigurasi
-              </Badge>
-            )}
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {renderConnectionBadge(fonnteConnState, fonnteConnMsg)}
+              {settings.fonnte_token_configured ? (
+                <Badge variant="yellow" size="sm" className="font-black uppercase flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Terkonfigurasi</span>
+                  <span className="sm:hidden">✓</span>
+                </Badge>
+              ) : (
+                <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Belum Dikonfigurasi</span>
+                  <span className="sm:hidden">!</span>
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* KIRI (2 Kolom di LG): FIELDS */}
-            <div className="lg:col-span-2 space-y-4">
-              <div>
-                <label className="block text-xs font-black uppercase mb-1 text-[var(--nb-text)]">
-                  API Base URL
-                </label>
-                <input
-                  type="text"
-                  value={settings.fonnte_api_url || 'https://api.fonnte.com'}
-                  onChange={(e) => handleChange('fonnte_api_url', e.target.value)}
-                  placeholder="https://api.fonnte.com"
-                  className="w-full p-2.5 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-black uppercase mb-1 text-[var(--nb-text)]">
-                  Device Account Token
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    type={showFonnteToken ? 'text' : 'password'}
-                    value={fonnteTokenInput}
-                    onChange={(e) => setFonnteTokenInput(e.target.value)}
-                    placeholder={settings.fonnte_token_configured ? 'Token sudah dikonfigurasi' : 'Masukkan Token Fonnte'}
-                    className="w-full p-2.5 pr-10 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowFonnteToken(!showFonnteToken)}
-                    className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
-                  >
-                    {showFonnteToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {settings.fonnte_token_configured && !fonnteTokenInput && (
-                  <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-600" /> Token aktif tersimpan di server.
-                  </p>
-                )}
-              </div>
+        <CardContent className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-[var(--nb-text)]">
+                API Base URL
+              </label>
+              <input
+                type="text"
+                value={settings.fonnte_api_url || 'https://api.fonnte.com'}
+                onChange={(e) => handleChange('fonnte_api_url', e.target.value)}
+                placeholder="https://api.fonnte.com"
+                className="w-full p-2.5 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
+              />
             </div>
 
-            {/* KANAN (1 Kolom di LG): STATUS RINGKASAN & ACTIONS */}
-            <div className="flex flex-col justify-between p-4 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] space-y-4">
-              <div>
-                <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] tracking-wider block mb-1">
-                  STATUS LAYANAN WHATSAPP
-                </span>
-                <p className="text-xs font-bold text-[var(--nb-text)]">
-                  Layanan pengiriman notifikasi otomatis invoice, transaksi, dan verifikasi via Fonnte WhatsApp API Gateway.
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-[var(--nb-text)]">
+                Device Account Token
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type={showFonnteToken ? 'text' : 'password'}
+                  value={fonnteTokenInput}
+                  onChange={(e) => setFonnteTokenInput(e.target.value)}
+                  placeholder={settings.fonnte_token_configured ? 'Credential sudah tersimpan' : 'Masukkan Token Fonnte baru'}
+                  className="w-full p-2.5 pr-10 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowFonnteToken(!showFonnteToken)}
+                  className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
+                  title="Lihat token baru yang diketik"
+                >
+                  {showFonnteToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {settings.fonnte_token_configured && !fonnteTokenInput && (
+                <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-emerald-600" /> Tersimpan. Isi hanya jika ingin mengganti.
                 </p>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <Button
-                  variant="dark"
-                  size="md"
-                  onClick={handleTestFonnteConnection}
-                  disabled={testingFonnte}
-                  className="w-full font-black uppercase text-xs justify-center"
-                >
-                  <RefreshCw className={`w-4 h-4 ${testingFonnte ? 'animate-spin' : ''}`} />
-                  <span>{testingFonnte ? 'Memeriksa Device...' : 'Tes Koneksi'}</span>
-                </Button>
-
-                <Button
-                  variant="mint"
-                  size="md"
-                  onClick={() => setFonnteModalOpen(true)}
-                  className="w-full font-black uppercase text-xs justify-center"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>Kirim WA Tes</span>
-                </Button>
-              </div>
+              )}
             </div>
           </div>
         </CardContent>
+
+        {/* CARD 3 FOOTER ACTIONS */}
+        <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-2 pt-4 flex items-center justify-between gap-2">
+          <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate">
+            {fonnteConnMsg && <span className="font-mono text-[10px]">{fonnteConnMsg}</span>}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* DESKTOP ACTIONS */}
+            <Button
+              variant="dark"
+              size="sm"
+              onClick={handleTestFonnteConnection}
+              disabled={fonnteConnState === 'TESTING'}
+              className="hidden sm:inline-flex font-black uppercase text-xs"
+              title="Tes Koneksi Device Fonnte"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${fonnteConnState === 'TESTING' ? 'animate-spin' : ''}`} />
+              <span>{fonnteConnState === 'TESTING' ? 'Memeriksa...' : 'Test Koneksi'}</span>
+            </Button>
+
+            <Button
+              variant="cyan"
+              size="sm"
+              onClick={() => setFonnteModalOpen(true)}
+              className="hidden sm:inline-flex font-black uppercase text-xs"
+              title="Kirim WhatsApp Tes"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Kirim WA Tes</span>
+            </Button>
+
+            <Button
+              variant="mint"
+              size="sm"
+              onClick={handleSaveFonnte}
+              disabled={savingFonnte || loading}
+              className="hidden sm:inline-flex font-black uppercase text-xs"
+              title="Simpan Pengaturan Fonnte"
+            >
+              <Save className="w-3.5 h-3.5 stroke-[3]" />
+              <span>{savingFonnte ? 'Menyimpan...' : 'Simpan Fonnte'}</span>
+            </Button>
+
+            {/* MOBILE ACTIONS (ICON ONLY) */}
+            <Button
+              variant="dark"
+              size="sm"
+              onClick={handleTestFonnteConnection}
+              disabled={fonnteConnState === 'TESTING'}
+              className="sm:hidden font-black uppercase text-xs p-2.5"
+              title="Test Koneksi"
+              aria-label="Test Koneksi"
+            >
+              <RefreshCw className={`w-4 h-4 ${fonnteConnState === 'TESTING' ? 'animate-spin' : ''}`} />
+            </Button>
+
+            <Button
+              variant="cyan"
+              size="sm"
+              onClick={() => setFonnteModalOpen(true)}
+              className="sm:hidden font-black uppercase text-xs p-2.5"
+              title="Kirim WA Tes"
+              aria-label="Kirim WA Tes"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="mint"
+              size="sm"
+              onClick={handleSaveFonnte}
+              disabled={savingFonnte || loading}
+              className="sm:hidden font-black uppercase text-xs p-2.5"
+              title="Simpan Fonnte"
+              aria-label="Simpan Fonnte"
+            >
+              <Save className="w-4 h-4 stroke-[3]" />
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* DIALOG MODAL: SEND SMTP TEST EMAIL */}
