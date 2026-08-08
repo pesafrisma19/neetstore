@@ -2,46 +2,104 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { Save, HardDrive, Terminal, Zap, Clock } from 'lucide-react';
-import { getAdminSettings, updateAdminSettings } from '../../../../utils/api';
+import { Save, Clock, RefreshCw, Play, Pause, CheckCircle2 } from 'lucide-react';
+import { getAdminSettings, updateAdminSettings, getAdminCronStatus, getAdminProviders } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const SettingsSystemPage: React.FC = () => {
   const { addToast } = useToast();
-  const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const fetchSettings = async () => {
+  // DB Settings State
+  const [pricelistEnabled, setPricelistEnabled] = useState(true);
+  const [pricelistInterval, setPricelistInterval] = useState(5);
+
+  const [ordersEnabled, setOrdersEnabled] = useState(true);
+  const [ordersInterval, setOrdersInterval] = useState(1);
+
+  const [depositsEnabled, setDepositsEnabled] = useState(true);
+  const [depositsInterval, setDepositsInterval] = useState(2);
+
+  const [gplayEnabled, setGplayEnabled] = useState(true);
+  const [gplayHour, setGplayHour] = useState(0);
+
+  // Real Runtime Status State
+  const [cronStatusMap, setCronStatusMap] = useState<Record<string, any>>({});
+  const [digiflazzLastSync, setDigiflazzLastSync] = useState<string | null>(null);
+
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await getAdminSettings();
-      setSettings(data || {});
+      const [data, statusMap, providers] = await Promise.all([
+        getAdminSettings(),
+        getAdminCronStatus().catch(() => ({})),
+        getAdminProviders().catch(() => []),
+      ]);
+
+      if (data) {
+        setPricelistEnabled(Boolean(data.cron_pricelist_enabled ?? true));
+        setPricelistInterval(Math.max(5, Number(data.cron_pricelist_interval_minutes) || 5));
+
+        setOrdersEnabled(Boolean(data.cron_orders_enabled ?? true));
+        setOrdersInterval(Math.max(1, Number(data.cron_orders_interval_minutes) || 1));
+
+        setDepositsEnabled(Boolean(data.cron_deposits_enabled ?? true));
+        setDepositsInterval(Math.max(1, Number(data.cron_deposits_interval_minutes) || 2));
+
+        setGplayEnabled(Boolean(data.cron_gplay_enabled ?? true));
+        setGplayHour(Math.min(23, Math.max(0, Number(data.cron_gplay_hour) ?? 0)));
+      }
+
+      setCronStatusMap(statusMap || {});
+
+      const digi = (providers || []).find((p: any) => p.code === 'digiflazz');
+      if (digi && digi.lastSync) {
+        setDigiflazzLastSync(digi.lastSync);
+      }
     } catch (err: any) {
-      addToast({ title: 'GAGAL MEMUAT SISTEM', message: err.message, type: 'error' });
+      addToast({ title: 'GAGAL MEMUAT SETTING', message: err.message, type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSettings();
+    fetchData();
   }, []);
 
-  const handleChange = (key: string, value: any) => {
-    setSettings((prev: any) => ({ ...prev, [key]: value }));
-  };
-
   const handleSave = async () => {
+    if (pricelistInterval < 5) {
+      addToast({ title: 'VALIDASI GAGAL', message: 'Interval Sync Pricelist Digiflazz minimal 5 menit.', type: 'error' });
+      return;
+    }
+    if (ordersInterval < 1) {
+      addToast({ title: 'VALIDASI GAGAL', message: 'Interval Sync Orders minimal 1 menit.', type: 'error' });
+      return;
+    }
+    if (depositsInterval < 1) {
+      addToast({ title: 'VALIDASI GAGAL', message: 'Interval Sync Deposits minimal 1 menit.', type: 'error' });
+      return;
+    }
+
     setSaving(true);
     try {
       await updateAdminSettings({
-        cache_enabled: settings.cache_enabled,
-        cron_enabled: settings.cron_enabled,
-        session_timeout: settings.session_timeout,
-        debug_mode: settings.debug_mode,
+        cron_pricelist_enabled: pricelistEnabled,
+        cron_pricelist_interval_minutes: Number(pricelistInterval),
+
+        cron_orders_enabled: ordersEnabled,
+        cron_orders_interval_minutes: Number(ordersInterval),
+
+        cron_deposits_enabled: depositsEnabled,
+        cron_deposits_interval_minutes: Number(depositsInterval),
+
+        cron_gplay_enabled: gplayEnabled,
+        cron_gplay_hour: Number(gplayHour),
       });
-      addToast({ title: 'SISTEM DISIMPAN', message: 'System Settings berhasil diperbarui.', type: 'success' });
+
+      addToast({ title: 'CRON JOBS DISIMPAN', message: 'Pengaturan Cron Manager berhasil diperbarui secara runtime tanpa restart server.', type: 'success' });
+      fetchData();
     } catch (err: any) {
       addToast({ title: 'GAGAL MENYIMPAN', message: err.message, type: 'error' });
     } finally {
@@ -49,105 +107,264 @@ export const SettingsSystemPage: React.FC = () => {
     }
   };
 
+  const renderStatusBadge = (jobKey: string, isEnabled: boolean) => {
+    const liveState = cronStatusMap[jobKey];
+    if (!isEnabled || !liveState?.enabled) {
+      return (
+        <Badge variant="pink" size="sm" className="font-mono font-black gap-1">
+          <Pause className="w-3 h-3" /> DISABLED
+        </Badge>
+      );
+    }
+    if (liveState?.isExecuting) {
+      return (
+        <Badge variant="yellow" size="sm" className="font-mono font-black gap-1 animate-pulse">
+          <RefreshCw className="w-3 h-3 animate-spin" /> EXECUTING...
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="cyan" size="sm" className="font-mono font-black gap-1">
+        <Play className="w-3 h-3 fill-black" /> RUNNING
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-4xl text-left font-sans pb-12">
+      {/* HEADER PAGE */}
       <div className="bg-[var(--nb-yellow)] border-[4px] border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <Badge variant="cyan" size="sm" className="border-2 font-black uppercase mb-2">
-            ADVANCED
+            RUNTIME SCHEDULER MANAGER
           </Badge>
           <h1 className="text-3xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <span>⚙️</span>
-            <span>SYSTEM CONFIGURATION</span>
+            <Clock className="w-8 h-8 text-black" />
+            <span>SISTEM CRON JOBS</span>
           </h1>
           <p className="text-sm font-bold text-black/80 mt-1">
-            Konfigurasi level server: Redis Cache, Cron Jobs, Session Timeout, dan Debug Mode.
+            Pengelolaan tugas latar belakang otomatis. Perubahan interval & toggle langsung aktif tanpa perlu restart VPS.
           </p>
         </div>
 
-        <Button
-          variant="mint"
-          size="lg"
-          onClick={handleSave}
-          disabled={saving || loading}
-          className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-        >
-          <Save className="w-5 h-5 stroke-[3]" />
-          <span>{saving ? 'MENYIMPAN...' : 'SIMPAN SISTEM'}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="white"
+            size="md"
+            onClick={fetchData}
+            disabled={loading}
+            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+          >
+            <RefreshCw className={`w-4 h-4 stroke-[3] ${loading ? 'animate-spin' : ''}`} />
+            <span>REFRESH</span>
+          </Button>
+          <Button
+            variant="mint"
+            size="md"
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+          >
+            <Save className="w-4 h-4 stroke-[3]" />
+            <span>{saving ? 'MENYIMPAN...' : 'SIMPAN CONFIG'}</span>
+          </Button>
+        </div>
       </div>
 
-      <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-6 space-y-6">
-        <div className="space-y-6">
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b-[3px] border-black pb-6">
-            <div className="p-4 bg-yellow-50 border-[3px] border-black">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-5 h-5 text-yellow-600 stroke-[2.5]" />
-                <h3 className="text-sm font-black uppercase text-yellow-800">Redis Cache</h3>
+      {/* 4 CRON JOB CARDS */}
+      <div className="space-y-4">
+        {/* CARD 1: SYNC PRICELIST DIGIFLAZZ */}
+        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-md">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📦</span>
+                <h3 className="text-base font-black uppercase">1. Sync Pricelist Digiflazz</h3>
+                {renderStatusBadge('pricelist', pricelistEnabled)}
               </div>
-              <p className="text-xs font-bold text-neutral-600 mb-4">Meningkatkan kecepatan loading halaman produk dengan menyimpannya di memori sementara (RAM).</p>
-              <label className="flex items-center gap-2 font-black uppercase cursor-pointer text-sm">
-                <input 
-                  type="checkbox" 
-                  checked={settings.cache_enabled || false}
-                  onChange={(e) => handleChange('cache_enabled', e.target.checked)}
-                  className="w-5 h-5 accent-yellow-600" 
-                />
-                AKTIFKAN CACHE ENGINE
-              </label>
+              <p className="text-xs font-bold text-neutral-600">
+                Memperbarui katalog produk & harga supplier Digiflazz secara otomatis. (Min. 5 menit sesuai limitasi resmi supplier).
+              </p>
+              {digiflazzLastSync && (
+                <p className="text-[11px] font-mono font-bold text-cyan-800 flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-700" />
+                  <span>Terakhir Sync LIVE: {new Date(digiflazzLastSync).toLocaleString('id-ID')}</span>
+                </p>
+              )}
             </div>
 
-            <div className="p-4 bg-cyan-50 border-[3px] border-black">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-5 h-5 text-cyan-700 stroke-[2.5]" />
-                <h3 className="text-sm font-black uppercase text-cyan-900">Background Cron Jobs</h3>
+            <div className="flex items-center gap-4 bg-yellow-50 p-3 border-[2px] border-black">
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Interval Sync</label>
+                <select
+                  value={pricelistInterval}
+                  onChange={(e) => setPricelistInterval(Number(e.target.value))}
+                  disabled={!pricelistEnabled}
+                  className="p-2 bg-white border-[2px] border-black font-mono font-bold text-xs outline-none shadow-[2px_2px_0px_0px_#000]"
+                >
+                  <option value={5}>Setiap 5 Menit (Default)</option>
+                  <option value={10}>Setiap 10 Menit</option>
+                  <option value={15}>Setiap 15 Menit</option>
+                  <option value={30}>Setiap 30 Menit</option>
+                  <option value={60}>Setiap 60 Menit</option>
+                </select>
               </div>
-              <p className="text-xs font-bold text-neutral-600 mb-4">Otomatis sinkronisasi status transaksi & harga produk dari Digiflazz setiap beberapa menit secara gaib di latar belakang.</p>
-              <label className="flex items-center gap-2 font-black uppercase cursor-pointer text-sm">
-                <input 
-                  type="checkbox" 
-                  checked={settings.cron_enabled || false}
-                  onChange={(e) => handleChange('cron_enabled', e.target.checked)}
-                  className="w-5 h-5 accent-cyan-700" 
-                />
-                AKTIFKAN CRON SYNC
-              </label>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Status Switch</label>
+                <label className="flex items-center gap-2 cursor-pointer font-black text-xs uppercase">
+                  <input
+                    type="checkbox"
+                    checked={pricelistEnabled}
+                    onChange={(e) => setPricelistEnabled(e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <span>{pricelistEnabled ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
             </div>
           </div>
+        </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="flex items-center gap-2 text-sm font-black uppercase mb-1">
-                <HardDrive className="w-4 h-4" /> Session Timeout (Detik)
-              </label>
-              <p className="text-xs font-bold text-neutral-500 mb-2">Batas waktu tidak ada aktivitas (Idle) sebelum user / admin otomatis logout.</p>
-              <input
-                type="number"
-                value={settings.session_timeout || 3600}
-                onChange={(e) => handleChange('session_timeout', parseInt(e.target.value))}
-                className="w-full p-3 bg-neutral-100 border-[3px] border-black font-mono font-bold focus:bg-yellow-50 outline-none"
-                min={60}
-                max={86400}
-              />
+        {/* CARD 2: SYNC ORDERS DIGIFLAZZ */}
+        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-md">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚡</span>
+                <h3 className="text-base font-black uppercase">2. Sync Orders Digiflazz</h3>
+                {renderStatusBadge('orders', ordersEnabled)}
+              </div>
+              <p className="text-xs font-bold text-neutral-600">
+                Polling status transaksi status PROCESS ke Digiflazz & otomatis mengembalikan saldo (Refund) jika transaksi gagal.
+              </p>
             </div>
 
-            <div className="flex flex-col justify-end">
-              <label className="flex items-center gap-3 font-black uppercase bg-red-50 p-4 border-[3px] border-black cursor-pointer hover:bg-red-100 text-red-900">
-                <input 
-                  type="checkbox" 
-                  checked={settings.debug_mode || false}
-                  onChange={(e) => handleChange('debug_mode', e.target.checked)}
-                  className="w-6 h-6 accent-red-600" 
-                />
-                <Terminal className="w-6 h-6" />
-                Aktifkan Debug Mode (Dev Only)
-              </label>
+            <div className="flex items-center gap-4 bg-yellow-50 p-3 border-[2px] border-black">
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Interval Sync</label>
+                <select
+                  value={ordersInterval}
+                  onChange={(e) => setOrdersInterval(Number(e.target.value))}
+                  disabled={!ordersEnabled}
+                  className="p-2 bg-white border-[2px] border-black font-mono font-bold text-xs outline-none shadow-[2px_2px_0px_0px_#000]"
+                >
+                  <option value={1}>Setiap 1 Menit (Default)</option>
+                  <option value={2}>Setiap 2 Menit</option>
+                  <option value={5}>Setiap 5 Menit</option>
+                  <option value={10}>Setiap 10 Menit</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Status Switch</label>
+                <label className="flex items-center gap-2 cursor-pointer font-black text-xs uppercase">
+                  <input
+                    type="checkbox"
+                    checked={ordersEnabled}
+                    onChange={(e) => setOrdersEnabled(e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <span>{ordersEnabled ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
             </div>
           </div>
+        </Card>
 
-        </div>
-      </Card>
+        {/* CARD 3: SYNC DEPOSITS */}
+        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-md">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💰</span>
+                <h3 className="text-base font-black uppercase">3. Sync Deposits</h3>
+                {renderStatusBadge('deposits', depositsEnabled)}
+              </div>
+              <p className="text-xs font-bold text-neutral-600">
+                Polling verifikasi status deposit QRIS/Gateway TokoPay & penanganan kedaluwarsa (Expiry) deposit transfer manual.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 bg-yellow-50 p-3 border-[2px] border-black">
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Interval Sync</label>
+                <select
+                  value={depositsInterval}
+                  onChange={(e) => setDepositsInterval(Number(e.target.value))}
+                  disabled={!depositsEnabled}
+                  className="p-2 bg-white border-[2px] border-black font-mono font-bold text-xs outline-none shadow-[2px_2px_0px_0px_#000]"
+                >
+                  <option value={1}>Setiap 1 Menit</option>
+                  <option value={2}>Setiap 2 Menit (Safety Default Aplikasi)</option>
+                  <option value={5}>Setiap 5 Menit</option>
+                  <option value={10}>Setiap 10 Menit</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Status Switch</label>
+                <label className="flex items-center gap-2 cursor-pointer font-black text-xs uppercase">
+                  <input
+                    type="checkbox"
+                    checked={depositsEnabled}
+                    onChange={(e) => setDepositsEnabled(e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <span>{depositsEnabled ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* CARD 4: GOOGLE PLAY METADATA SCRAPER */}
+        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-md">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎮</span>
+                <h3 className="text-base font-black uppercase">4. Google Play Metadata Scraper</h3>
+                {renderStatusBadge('gplay_scraper', gplayEnabled)}
+              </div>
+              <p className="text-xs font-bold text-neutral-600">
+                Otomatis memperbarui icon thumbnail, banner header, screenshots, dan event promo seluruh Brand dari Google Play Store.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 bg-yellow-50 p-3 border-[2px] border-black">
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Jadwal Eksekusi (WIB)</label>
+                <select
+                  value={gplayHour}
+                  onChange={(e) => setGplayHour(Number(e.target.value))}
+                  disabled={!gplayEnabled}
+                  className="p-2 bg-white border-[2px] border-black font-mono font-bold text-xs outline-none shadow-[2px_2px_0px_0px_#000]"
+                >
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <option key={h} value={h}>
+                      Jam {h < 10 ? `0${h}` : h}:00 WIB
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Status Switch</label>
+                <label className="flex items-center gap-2 cursor-pointer font-black text-xs uppercase">
+                  <input
+                    type="checkbox"
+                    checked={gplayEnabled}
+                    onChange={(e) => setGplayEnabled(e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <span>{gplayEnabled ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

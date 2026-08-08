@@ -584,6 +584,7 @@ export const checkoutPayment = (data: any) => apiFetch<any>('/checkout', { metho
 // === Settings ===
 export const getAdminSettings = () => apiFetch<any>('/admin/settings');
 export const updateAdminSettings = (data: any) => apiFetch<any>('/admin/settings', { method: 'POST', body: data });
+export const getAdminCronStatus = () => apiFetch<Record<string, any>>('/admin/settings/cron-status');
 export const testNeetflixConnection = () => apiFetch<any>('/neetflix/test-connection', { method: 'GET' });
 export const testSmtpConnection = () => apiFetch<any>('/admin/settings/smtp/test-connection', { method: 'POST' });
 export const sendSmtpTestEmail = (to: string) => apiFetch<any>('/admin/settings/smtp/send-test', { method: 'POST', body: JSON.stringify({ to }) });
