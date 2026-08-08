@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { 
-  getAdminIntegrationSettings, 
+  getAdminSettings, 
   updateAdminSettings, 
   testNeetflixConnection,
   testSmtpConnection,
@@ -76,7 +76,7 @@ export const SettingsApiPage: React.FC = () => {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const data = await getAdminIntegrationSettings();
+      const data = await getAdminSettings();
       if (data) {
         setSettings(data);
       }
