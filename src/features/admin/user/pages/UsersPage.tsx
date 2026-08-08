@@ -145,6 +145,7 @@ export const UsersPage: React.FC = () => {
                     <TableRow key={u.id}>
                       <TableCell className="font-black text-xs text-black">
                         {u.username}
+                        {u.fullname && <span className="block text-[11px] font-sans font-bold text-neutral-800">{u.fullname}</span>}
                         <span className="block text-[10px] font-mono text-neutral-500">ID #{u.id}</span>
                       </TableCell>
                       <TableCell className="font-mono text-xs font-bold text-neutral-700">
@@ -164,12 +165,22 @@ export const UsersPage: React.FC = () => {
                       </TableCell>
                       <TableCell className="font-mono font-black text-xs text-black">
                         <div>Rp {(u.balance || 0).toLocaleString('id-ID')}</div>
-                        <div className="text-[10px] font-bold text-neutral-500 font-sans">({u.points || 0} Poin)</div>
+                        <div className="text-[10px] font-bold text-neutral-500 font-sans">({(u.points || 0).toLocaleString('id-ID')} Poin)</div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={u.isActive ? 'mint' : 'pink'} size="sm">
-                          {u.isActive ? 'AKTIF' : 'NONAKTIF'}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={u.isActive ? 'mint' : 'pink'} size="sm">
+                            {u.isActive ? 'Status Akun: Aktif' : 'Status Akun: Nonaktif'}
+                          </Badge>
+                          {u.verified && (
+                            <Badge variant="mint" size="sm">
+                              VERIFIED
+                            </Badge>
+                          )}
+                          <Badge variant={u.apiStatus === 'APPROVED' ? 'mint' : u.apiStatus === 'PENDING' ? 'yellow' : 'pink'} size="sm">
+                            API: {u.apiStatus}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button

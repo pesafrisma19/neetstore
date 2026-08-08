@@ -3,16 +3,19 @@ export interface VoucherData { id: any; [key: string]: any; }
 export interface UserData {
   id: number;
   username: string;
+  fullname?: string | null;
   email?: string | null;
   phone?: string | null;
   role: 'USER' | 'ADMIN';
   level: 'MEMBER' | 'RESELLER' | 'VIP';
+  verified?: boolean;
   points: number;
   balance: number;
   isActive: boolean;
   apiStatus: string;
   referralCode?: string;
   createdAt: string;
+  updatedAt?: string;
   [key: string]: any;
 }
 

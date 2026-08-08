@@ -5,8 +5,23 @@ import { getAdminUserDetail } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
+import { Input } from '../../../../components/ui/Input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { User, History, ShoppingBag, X, Phone, Mail, DollarSign } from 'lucide-react';
+import {
+  User,
+  History,
+  ShoppingBag,
+  X,
+  Phone,
+  Mail,
+  DollarSign,
+  Key,
+  ShieldCheck,
+  CreditCard,
+  Copy,
+  Check,
+  Award,
+} from 'lucide-react';
 import { AdjustBalanceModal } from './AdjustBalanceModal';
 
 interface UserDetailModalProps {
@@ -15,8 +30,10 @@ interface UserDetailModalProps {
 }
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'MUTATIONS' | 'TRANSACTIONS'>('MUTATIONS');
+  const [activeTab, setActiveTab] = useState<'MUTATIONS' | 'TRANSACTIONS' | 'DEPOSITS'>('MUTATIONS');
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.admin.users.detail(userId),
@@ -46,17 +63,23 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
     );
   }
 
-  const { user, mutations, transactions } = data;
+  const { user, mutations = [], transactions = [], deposits = [], stats } = data as any;
+
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
+  };
 
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-        <div className="w-full max-w-4xl max-h-[90vh] my-auto overflow-y-auto">
-          <Card variant="white" shadow="xl" borderWidth="4" className="rounded-3xl overflow-hidden text-left">
+        <div className="w-full max-w-5xl max-h-[90vh] my-auto overflow-y-auto">
+          <Card variant="white" shadow="xl" borderWidth="4" className="rounded-3xl overflow-hidden text-left font-sans">
             <CardHeader headerBg="#00F0FF" className="border-b-[4px] border-black flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-black font-black text-base">
                 <User className="w-5 h-5 stroke-[3]" />
-                <span>DETAIL AKUN USER — #{user.id} {user.username.toUpperCase()}</span>
+                <span>DETAIL USER #{user.id} — {user.username.toUpperCase()}</span>
               </CardTitle>
               <button
                 onClick={onClose}
@@ -67,16 +90,17 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
             </CardHeader>
 
             <CardContent className="p-6 space-y-6">
-              {/* SUMMARY CARDS */}
+              {/* PROFILE SUMMARY HEADER */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* CARD 1: INFORMASI PROFIL */}
+                {/* CARD 1: IDENTITAS */}
                 <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[3px_3px_0px_0px_#000] rounded-2xl space-y-2">
                   <div className="flex items-center justify-between border-b-2 border-black/20 pb-2">
-                    <span className="text-[10px] font-black uppercase text-neutral-500">PROFIL USER</span>
+                    <span className="text-[10px] font-black uppercase text-neutral-500">IDENTITAS PENGGUNA</span>
                     <Badge variant={user.role === 'ADMIN' ? 'yellow' : 'cyan'} size="sm">{user.role}</Badge>
                   </div>
                   <div className="space-y-1.5 text-xs font-mono">
                     <div className="font-black text-sm font-sans text-black">{user.username}</div>
+                    {user.fullname && <div className="font-extrabold text-xs text-neutral-800 font-sans">{user.fullname}</div>}
                     <div className="flex items-center gap-1.5 text-neutral-700">
                       <Mail className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
                       <span className="truncate">{user.email || 'Tanpa Email'}</span>
@@ -88,15 +112,16 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                   </div>
                 </div>
 
-                {/* CARD 2: SALDO & AKSI */}
+                {/* CARD 2: FINANSIAL & AKSI */}
                 <div className="p-4 bg-neutral-900 text-white border-[3px] border-black shadow-[3px_3px_0px_0px_#000] rounded-2xl space-y-3 flex flex-col justify-between">
                   <div>
                     <span className="text-[10px] font-black uppercase text-neutral-400 block mb-1">TOTAL SALDO AKUN</span>
                     <div className="text-xl font-black font-mono text-[var(--nb-yellow)]">
                       Rp {(user.balance || 0).toLocaleString('id-ID')}
                     </div>
-                    <div className="text-[11px] font-bold text-neutral-300 mt-0.5">
-                      Poin Loyalti: <b>{user.points || 0} Poin</b>
+                    <div className="text-[11px] font-bold text-neutral-300 mt-1 flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                      <span>Poin Loyalti: <b>{(user.points || 0).toLocaleString('id-ID')} Pts</b></span>
                     </div>
                   </div>
 
@@ -107,25 +132,33 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                     className="w-full font-black text-xs py-2 h-auto shadow-[2px_2px_0px_0px_#000]"
                   >
                     <DollarSign className="w-3.5 h-3.5 mr-1 stroke-[3]" />
-                    <span>ADJUST SALDO</span>
+                    <span>ADJUST SALDO MANUAL</span>
                   </Button>
                 </div>
 
-                {/* CARD 3: STATUS & METADATA */}
+                {/* CARD 3: STATUS AKUN & METADATA */}
                 <div className="p-4 bg-cyan-50 border-[3px] border-black shadow-[3px_3px_0px_0px_#000] rounded-2xl space-y-2">
                   <div className="flex items-center justify-between border-b-2 border-black/20 pb-2">
-                    <span className="text-[10px] font-black uppercase text-neutral-500">LEVEL HARGA & STATUS</span>
+                    <span className="text-[10px] font-black uppercase text-neutral-500">LEVEL & STATUS</span>
                     <Badge variant={user.isActive ? 'mint' : 'pink'} size="sm">
-                      {user.isActive ? 'AKTIF' : 'NONAKTIF'}
+                      {user.isActive ? 'Status Akun: Aktif' : 'Status Akun: Nonaktif'}
                     </Badge>
                   </div>
                   <div className="space-y-1.5 text-xs">
                     <div className="flex justify-between items-center">
-                      <span className="text-neutral-500 font-extrabold uppercase">Level:</span>
+                      <span className="text-neutral-500 font-extrabold uppercase">Level Harga:</span>
                       <Badge variant={user.level === 'VIP' ? 'pink' : user.level === 'RESELLER' ? 'purple' : 'mint'} size="sm">
                         {user.level}
                       </Badge>
                     </div>
+                    {user.verified && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-500 font-extrabold uppercase">Verifikasi:</span>
+                        <Badge variant="mint" size="sm" className="flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3 stroke-[3]" /> AKUN TERVERIFIKASI
+                        </Badge>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-[11px]">
                       <span className="text-neutral-500 font-extrabold uppercase">Kode Reff:</span>
                       <span className="font-mono font-bold">{user.referralCode || '-'}</span>
@@ -140,8 +173,54 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                 </div>
               </div>
 
-              {/* TABS SELECTOR: MUTASI SALDO VS RIWAYAT TRANSAKSI */}
-              <div className="border-b-2 border-black flex gap-2 pt-2">
+              {/* DEVELOPER API SECTION */}
+              <div className="p-4 bg-neutral-100 border-[3px] border-black shadow-[3px_3px_0px_0px_#000] rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Key className="w-4 h-4 text-black stroke-[3]" />
+                    <span className="text-xs font-black uppercase text-black">INFORMASI DEVELOPER API KEY</span>
+                  </div>
+                  <Badge variant={user.apiStatus === 'APPROVED' ? 'mint' : user.apiStatus === 'PENDING' ? 'yellow' : 'pink'} size="sm">
+                    API STATUS: {user.apiStatus}
+                  </Badge>
+                </div>
+
+                {user.apiStatus === 'APPROVED' && user.apiKey ? (
+                  <div className="flex items-center gap-2 pt-1">
+                    <Input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={user.apiKey}
+                      readOnly
+                      className="bg-white font-mono text-xs font-black border-[2px]"
+                    />
+                    <Button
+                      variant="white"
+                      size="sm"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="font-black text-xs shrink-0"
+                    >
+                      {showApiKey ? 'SEMBUNYIKAN' : 'TAMPILKAN'}
+                    </Button>
+                    <Button
+                      variant="yellow"
+                      size="sm"
+                      onClick={() => handleCopyKey(user.apiKey!)}
+                      className="font-black text-xs shrink-0"
+                    >
+                      {copiedKey ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4 stroke-[2.5]" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs font-bold text-neutral-600">
+                    {user.apiStatus === 'PENDING'
+                      ? 'Pengajuan API Key user ini sedang dalam proses review admin.'
+                      : 'User ini belum memiliki API Key aktif.'}
+                  </p>
+                )}
+              </div>
+
+              {/* TABS SELECTOR: MUTASI SALDO VS TRANSAKSI VS DEPOSIT */}
+              <div className="border-b-2 border-black flex flex-wrap gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab('MUTATIONS')}
@@ -150,7 +229,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                   }`}
                 >
                   <History className="w-3.5 h-3.5 inline mr-1.5 stroke-[2.5]" />
-                  <span>RIWAYAT MUTASI SALDO ({mutations.length})</span>
+                  <span>MUTASI SALDO ({stats?.totalMutations ?? mutations.length})</span>
                 </button>
 
                 <button
@@ -161,7 +240,18 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                   }`}
                 >
                   <ShoppingBag className="w-3.5 h-3.5 inline mr-1.5 stroke-[2.5]" />
-                  <span>TRANSAKSI TERAKHIR ({transactions.length})</span>
+                  <span>TRANSAKSI ({stats?.totalTransactions ?? transactions.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('DEPOSITS')}
+                  className={`px-4 py-2 text-xs font-black uppercase border-t-2 border-x-2 border-black rounded-t-xl transition-all cursor-pointer ${
+                    activeTab === 'DEPOSITS' ? 'bg-[#FFDC00] text-black -mb-[2px] shadow-[2px_0px_0px_0px_#000]' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  <CreditCard className="w-3.5 h-3.5 inline mr-1.5 stroke-[2.5]" />
+                  <span>DEPOSIT ({stats?.totalDeposits ?? deposits.length})</span>
                 </button>
               </div>
 
@@ -217,7 +307,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                 </div>
               )}
 
-              {/* TAB CONTENT 2: TRANSAKSI TERAKHIR */}
+              {/* TAB CONTENT 2: TRANSAKSI */}
               {activeTab === 'TRANSACTIONS' && (
                 <div className="border-2 border-black rounded-xl overflow-hidden">
                   <Table>
@@ -255,6 +345,54 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                             <TableCell>
                               <Badge variant={t.orderStatus === 'SUCCESS' ? 'mint' : t.orderStatus === 'PROCESS' ? 'yellow' : 'pink'} size="sm">
                                 {t.orderStatus}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* TAB CONTENT 3: DEPOSIT */}
+              {activeTab === 'DEPOSITS' && (
+                <div className="border-2 border-black rounded-xl overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>TANGGAL</TableHead>
+                        <TableHead>REFERENSI</TableHead>
+                        <TableHead>METODE</TableHead>
+                        <TableHead>NOMINAL</TableHead>
+                        <TableHead>STATUS</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deposits.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-xs font-bold text-neutral-500">
+                            Belum ada riwayat deposit untuk user ini.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        deposits.map((d: any) => (
+                          <TableRow key={d.id}>
+                            <TableCell className="font-bold text-xs text-neutral-600">
+                              {d.createdAt ? new Date(d.createdAt).toLocaleString('id-ID') : '-'}
+                            </TableCell>
+                            <TableCell className="font-mono font-black text-xs text-black">
+                              {d.reference || `DEP-${d.id}`}
+                            </TableCell>
+                            <TableCell className="font-bold text-xs uppercase text-neutral-800">
+                              {d.paymentMethodName || d.paymentMethodCode || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono font-black text-xs text-black">
+                              Rp {(d.amount || 0).toLocaleString('id-ID')}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={d.status === 'SUCCESS' || d.status === 'PAID' ? 'mint' : d.status === 'PENDING' ? 'yellow' : 'pink'} size="sm">
+                                {d.status}
                               </Badge>
                             </TableCell>
                           </TableRow>
