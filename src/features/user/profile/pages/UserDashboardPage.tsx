@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { Callout } from '../../../../components/ui/Callout';
+import { Dialog } from '../../../../components/ui/Dialog';
 import {
   Wallet,
   History,
@@ -50,6 +51,10 @@ export const UserDashboardPage: React.FC = () => {
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedReff, setCopiedReff] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  // State Modal Konfirmasi Upgrade Level
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // Form states untuk update profil
   const [fullname, setFullname] = useState('');
@@ -159,6 +164,8 @@ export const UserDashboardPage: React.FC = () => {
   const levelUpgradeMutation = useMutation({
     mutationFn: (expectedLevel?: string) => upgradeUserLevel(expectedLevel),
     onSuccess: async (res: any) => {
+      setIsConfirmModalOpen(false);
+      setModalError(null);
       setProfileMsg({ text: res?.message || 'Selamat! Akun Anda berhasil di-upgrade!', type: 'success' });
       await refreshUser();
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
@@ -166,7 +173,8 @@ export const UserDashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.levelUpgradeInfo });
     },
     onError: (err: any) => {
-      setProfileMsg({ text: err.message || 'Gagal melakukan upgrade level', type: 'error' });
+      // Modal TETAP TERBUKA untuk menampilkan pesan error ke user
+      setModalError(err.message || 'Gagal melakukan upgrade level');
     },
   });
 
@@ -429,15 +437,16 @@ export const UserDashboardPage: React.FC = () => {
                             <Button
                               variant="mint"
                               size="md"
-                              onClick={() => levelUpgradeMutation.mutate(levelUpgradeInfo.currentLevel)}
+                              onClick={() => {
+                                setModalError(null);
+                                setIsConfirmModalOpen(true);
+                              }}
                               disabled={levelUpgradeMutation.isPending}
                               className="w-full font-black text-xs py-2.5"
                             >
                               <Award className="w-4 h-4 mr-1 stroke-[3]" />
                               <span>
-                                {levelUpgradeMutation.isPending
-                                  ? 'MEMPROSES UPGRADE...'
-                                  : `NAIK KE ${levelUpgradeInfo.nextLevel} (${formatRupiah(levelUpgradeInfo.upgradePrice)})`}
+                                {`NAIK KE ${levelUpgradeInfo.nextLevel} (${formatRupiah(levelUpgradeInfo.upgradePrice)})`}
                               </span>
                             </Button>
                           ) : (
@@ -892,6 +901,98 @@ export const UserDashboardPage: React.FC = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* MODAL KONFIRMASI UPGRADE LEVEL MEMBERSHIP */}
+      {levelUpgradeInfo && levelUpgradeInfo.nextLevel && (
+        <Dialog
+          isOpen={isConfirmModalOpen}
+          onClose={() => {
+            if (!levelUpgradeMutation.isPending) {
+              setIsConfirmModalOpen(false);
+              setModalError(null);
+            }
+          }}
+          title="KONFIRMASI UPGRADE LEVEL AKUN"
+        >
+          <div className="space-y-4 text-left">
+            {/* Banner Penjelasan */}
+            <Callout tone="mint" title="💡 KEBIJAKAN UPGRADE LEVEL">
+              Saldo akun Anda akan dipotong untuk biaya upgrade level.
+            </Callout>
+
+            {/* Error Callout jika ada */}
+            {modalError && (
+              <Callout tone="danger" title="GAGAL UPGRADE">
+                {modalError}
+              </Callout>
+            )}
+
+            {/* Rincian Ringkasan Data Real */}
+            <div className="p-4 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] space-y-2.5 font-mono text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Level Saat Ini:</span>
+                <Badge variant="white" size="sm">{levelUpgradeInfo.currentLevel}</Badge>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Level Tujuan:</span>
+                <Badge variant="mint" size="sm">{levelUpgradeInfo.nextLevel}</Badge>
+              </div>
+
+              <div className="flex justify-between items-center border-t-[2px] border-[var(--nb-border)] pt-2">
+                <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Biaya Upgrade:</span>
+                <span className="font-black text-[var(--nb-text)] text-sm">{formatRupiah(levelUpgradeInfo.upgradePrice)}</span>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-neutral-300 pt-2">
+                <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Saldo Saat Ini:</span>
+                <span className="font-black text-[var(--nb-text)]">{formatRupiah(user.balance || 0)}</span>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-neutral-300 pt-2">
+                <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Saldo Setelah Upgrade:</span>
+                <span className="font-black text-[var(--nb-text)] font-mono text-sm">
+                  {formatRupiah((user.balance || 0) - levelUpgradeInfo.upgradePrice)}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="white"
+                size="md"
+                onClick={() => {
+                  setIsConfirmModalOpen(false);
+                  setModalError(null);
+                }}
+                disabled={levelUpgradeMutation.isPending}
+                className="font-black text-xs"
+              >
+                BATAL
+              </Button>
+
+              <Button
+                type="button"
+                variant="mint"
+                size="md"
+                onClick={() => {
+                  setModalError(null);
+                  levelUpgradeMutation.mutate(levelUpgradeInfo.currentLevel);
+                }}
+                disabled={levelUpgradeMutation.isPending}
+                className="font-black text-xs"
+              >
+                <Award className="w-4 h-4 mr-1 stroke-[3]" />
+                <span>
+                  {levelUpgradeMutation.isPending ? 'MEMPROSES UPGRADE...' : 'KONFIRMASI UPGRADE'}
+                </span>
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+      )}
 
       <Footer />
     </div>

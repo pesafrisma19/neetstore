@@ -12,8 +12,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../ui/Button';
 import { SearchBar } from '../form/SearchBar';
 
+import { usePublicSettings } from '../../hooks/usePublicSettings';
+
 export const Navbar: React.FC = () => {
   const { user, logoutUser, isLoading } = useAuth();
+  const { settings } = usePublicSettings();
+  const [logoError, setLogoError] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
@@ -84,21 +88,30 @@ export const Navbar: React.FC = () => {
 
             {/* Logo & Nama Web */}
             <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
-              <div
-                className="w-10 h-10 sm:w-11 sm:h-11 border-[3px] border-[var(--nb-border)] flex items-center justify-center font-black text-lg sm:text-xl text-[#000000] transform group-hover:-rotate-6 transition-transform shrink-0"
-                style={{
-                  backgroundColor: `var(--nb-${logoBgTone})`,
-                  boxShadow: `3px 3px 0px 0px var(--nb-shadow-${logoBgTone})`,
-                }}
-              >
-                N/S
-              </div>
+              {settings.logo_url && !logoError ? (
+                <img
+                  src={settings.logo_url}
+                  alt={settings.site_name || 'Logo'}
+                  onError={() => setLogoError(true)}
+                  className="w-10 h-10 sm:w-11 sm:h-11 border-[3px] border-[var(--nb-border)] object-contain bg-[var(--nb-surface)] p-1 shrink-0"
+                />
+              ) : (
+                <div
+                  className="w-10 h-10 sm:w-11 sm:h-11 border-[3px] border-[var(--nb-border)] flex items-center justify-center font-black text-lg sm:text-xl text-[#000000] transform group-hover:-rotate-6 transition-transform shrink-0"
+                  style={{
+                    backgroundColor: `var(--nb-${logoBgTone})`,
+                    boxShadow: `3px 3px 0px 0px var(--nb-shadow-${logoBgTone})`,
+                  }}
+                >
+                  {(settings.site_name || 'N/S').slice(0, 3).toUpperCase()}
+                </div>
+              )}
               <div className="flex flex-col">
                 <span className="font-black text-xl sm:text-2xl tracking-tighter text-[var(--nb-text)] uppercase leading-none">
-                  NETSTORE
+                  {settings.site_name || 'NETSTORE'}
                 </span>
                 <span className="text-[9px] sm:text-[10px] font-black uppercase text-[var(--nb-pink)] tracking-widest leading-none mt-0.5">
-                  GAME TOP-UP
+                  {settings.site_tagline || 'GAME TOP-UP'}
                 </span>
               </div>
             </Link>

@@ -5,6 +5,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './components/ui/ToastContext';
 import { AppRoutes } from './routes/AppRoutes';
+import { SEOHead } from './components/common/SEOHead';
+import { MaintenanceGuard } from './components/layout/MaintenanceGuard';
 
 export function App() {
   return (
@@ -13,7 +15,10 @@ export function App() {
         <ToastProvider>
           <AuthProvider>
             <Router>
-              <AppRoutes />
+              <SEOHead />
+              <MaintenanceGuard>
+                <AppRoutes />
+              </MaintenanceGuard>
             </Router>
           </AuthProvider>
         </ToastProvider>

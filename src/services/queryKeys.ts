@@ -13,6 +13,7 @@ export const queryKeys = {
     paymentMethods: {
       all: ['public', 'payment-methods'] as const,
     },
+    settings: ['public', 'settings'] as const,
   },
 
   user: {

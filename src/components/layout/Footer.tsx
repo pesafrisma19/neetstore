@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusDot } from '../ui/StatusDot';
 import { Shield, Zap, CreditCard, Headphones, Heart } from 'lucide-react';
+import { usePublicSettings } from '../../hooks/usePublicSettings';
 
 export const Footer: React.FC = () => {
+  const { settings } = usePublicSettings();
+  const [logoError, setLogoError] = useState(false);
+
   const paymentMethods = [
     { name: 'QRIS', color: 'bg-[var(--nb-yellow)]' },
     { name: 'DANA', color: 'bg-[var(--nb-cyan)]' },
@@ -46,7 +50,9 @@ export const Footer: React.FC = () => {
             <Headphones className="w-6 h-6 stroke-[3] text-[var(--nb-text)]" />
             <div>
               <h4 className="font-black uppercase text-xs">CS SIAP BANTU</h4>
-              <p className="text-[10px] font-bold text-[var(--nb-text-muted)]">Support WhatsApp 24 jam</p>
+              <p className="text-[10px] font-bold text-[var(--nb-text-muted)]">
+                WhatsApp: {settings.wa_number || '081234567890'}
+              </p>
             </div>
           </div>
         </div>
@@ -59,13 +65,24 @@ export const Footer: React.FC = () => {
           {/* Brand Info */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[var(--nb-yellow)] text-[var(--nb-text)] border-[3px] border-white shadow-[3px_3px_0px_0px_#fff] flex items-center justify-center font-black text-lg">
-                N/S
-              </div>
-              <span className="font-black text-2xl tracking-tight uppercase">NETSTORE</span>
+              {settings.logo_url && !logoError ? (
+                <img
+                  src={settings.logo_url}
+                  alt="Logo Footer"
+                  onError={() => setLogoError(true)}
+                  className="w-10 h-10 object-contain bg-white p-1 border-[2px] border-white"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-[var(--nb-yellow)] text-[var(--nb-text)] border-[3px] border-white shadow-[3px_3px_0px_0px_#fff] flex items-center justify-center font-black text-lg">
+                  {(settings.site_name || 'N/S').slice(0, 3).toUpperCase()}
+                </div>
+              )}
+              <span className="font-black text-2xl tracking-tight uppercase">
+                {settings.site_name || 'NETSTORE'}
+              </span>
             </div>
             <p className="text-xs font-semibold text-gray-300 leading-relaxed">
-              Platform Top-Up Game & Voucher Game paling murah, aman, dan instan di Indonesia. Didukung oleh Digiflazz API.
+              {settings.site_tagline || 'Platform Top-Up Game & Voucher Game paling murah, aman, dan instan di Indonesia.'}
             </p>
             <div className="p-3 bg-gray-900 border-[2px] border-gray-700 inline-block">
               <StatusDot status="success" label="SISTEM OPERASIONAL 100%" />
