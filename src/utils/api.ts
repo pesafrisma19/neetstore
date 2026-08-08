@@ -594,8 +594,42 @@ export const testNotificationEmail = (event: string, targetEmail: string) => api
 export const testNotificationWa = (event: string, targetPhone: string) => apiFetch<any>('/admin/settings/notifications/test-wa', { method: 'POST', body: JSON.stringify({ event, targetPhone }) });
 
 // === Logs ===
-export const getAdminActivityLogs = () => apiFetch<any[]>('/admin/logs/activity');
-export const getAdminWebhookLogs = () => apiFetch<any[]>('/admin/logs/webhook');
+export const getAdminActivityLogs = (params?: { page?: number; limit?: number; search?: string; action?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.search) query.append('search', params.search);
+  if (params?.action && params.action !== 'ALL') query.append('action', params.action);
+  const qStr = query.toString();
+  return apiFetch<{ data: any[]; _meta: { page: number; limit: number; totalCount: number; totalPages: number } }>(
+    `/admin/logs/activity${qStr ? `?${qStr}` : ''}`
+  );
+};
+
+export const getAdminWebhookLogs = (params?: { page?: number; limit?: number; provider?: string; status?: string; search?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.provider && params.provider !== 'ALL') query.append('provider', params.provider);
+  if (params?.status && params.status !== 'ALL') query.append('status', params.status);
+  if (params?.search) query.append('search', params.search);
+  const qStr = query.toString();
+  return apiFetch<{ data: any[]; _meta: { page: number; limit: number; totalCount: number; totalPages: number } }>(
+    `/admin/logs/webhook${qStr ? `?${qStr}` : ''}`
+  );
+};
+
+export const getAdminErrorLogs = (params?: { page?: number; limit?: number; level?: string; search?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.level && params.level !== 'ALL') query.append('level', params.level);
+  if (params?.search) query.append('search', params.search);
+  const qStr = query.toString();
+  return apiFetch<{ data: any[]; _meta: { page: number; limit: number; totalCount: number; totalPages: number } }>(
+    `/admin/logs/error${qStr ? `?${qStr}` : ''}`
+  );
+};
 
 // =====================================================
 // REGION & PRODUCT CATEGORY & PROVIDER MAPPING TYPES
@@ -694,7 +728,6 @@ export const deleteAdminProduct = (id: number) =>
 
 // =====================================================
 
-export const getAdminErrorLogs = () => apiFetch<any[]>('/admin/logs/error');
 export const getAdminDashboardStats = () => apiFetch<any>('/admin/dashboard/stats');
 
 // Deposit Admin Wrappers

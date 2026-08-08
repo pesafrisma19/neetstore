@@ -90,5 +90,10 @@ export const queryKeys = {
     paymentGateways: {
       all: ['admin', 'payment-gateways'] as const,
     },
+    logs: {
+      activity: (params?: any) => ['admin', 'logs', 'activity', params] as const,
+      webhook: (params?: any) => ['admin', 'logs', 'webhook', params] as const,
+      error: (params?: any) => ['admin', 'logs', 'error', params] as const,
+    },
   },
 } as const;
