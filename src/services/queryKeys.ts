@@ -64,6 +64,12 @@ export const queryKeys = {
     },
     users: {
       all: ['admin', 'users'] as const,
+      list: (params?: any) => ['admin', 'users', 'list', params] as const,
+      detail: (id: number) => ['admin', 'users', 'detail', id] as const,
+    },
+    mutations: {
+      all: ['admin', 'mutations'] as const,
+      list: (params?: any) => ['admin', 'mutations', 'list', params] as const,
     },
     transactions: {
       all: ['admin', 'transactions'] as const,

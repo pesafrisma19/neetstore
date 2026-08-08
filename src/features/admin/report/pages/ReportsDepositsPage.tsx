@@ -33,8 +33,8 @@ export const ReportsDepositsPage: React.FC = () => {
   const fetchInflow = async () => {
     setLoading(true);
     try {
-      const data = await getAdminMutations();
-      setMutations(data || []);
+      const res: any = await getAdminMutations();
+      setMutations(Array.isArray(res) ? res : res?.data || []);
     } catch (err: any) {
       addToast({
         title: 'GAGAL MEMUAT LAPORAN DEPOSIT',

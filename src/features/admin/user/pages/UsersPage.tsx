@@ -1,81 +1,251 @@
-import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../../../../utils/api';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '../../../../services/queryKeys';
+import { getAdminUsers } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
+import { Input } from '../../../../components/ui/Input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Edit } from 'lucide-react';
+import { Search, Eye, DollarSign, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
+import { UserDetailModal } from '../components/UserDetailModal';
+import { AdjustBalanceModal } from '../components/AdjustBalanceModal';
 import type { UserData } from '../../types';
 
-interface TabUsersProps {
-  users: UserData[];
-  onEditUser: (user: UserData) => void;
-}
-
-export const TabUsers: React.FC<TabUsersProps> = ({ users, onEditUser }) => {
-  return (
-    <Card variant="white" shadow="xl" borderWidth="4" className="text-left">
-      <CardHeader headerBg="#00F0FF" className="flex items-center justify-between">
-        <CardTitle className="text-base text-[var(--nb-text)]">MANAJEMEN LEVEL PENGGUNA & SALDO (MEMBER, RESELLER, VIP)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>USERNAME</TableHead>
-              <TableHead>NO WHATSAPP</TableHead>
-              <TableHead>ROLE</TableHead>
-              <TableHead>LEVEL HARGA</TableHead>
-              <TableHead>SALDO & POIN</TableHead>
-              <TableHead className="text-right">AKSI</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell className="font-black text-[var(--nb-text)]">{u.username}</TableCell>
-                <TableCell className="font-bold text-[var(--nb-text-muted)]">{u.phone}</TableCell>
-                <TableCell><Badge variant="yellow" size="sm">{u.role}</Badge></TableCell>
-                <TableCell>
-                  <Badge variant={u.level === 'VIP' ? 'pink' : u.level === 'RESELLER' ? 'purple' : 'mint'} size="sm">
-                    {u.level}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-black text-[var(--nb-text)]">Rp {u.balance.toLocaleString('id-ID')} ({u.points} Poin)</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="yellow" size="sm" onClick={() => onEditUser(u)}>
-                    <Edit className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>EDIT LEVEL & SALDO</span>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-};
-
 export const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
+  // Filter & Pagination States
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(15);
+  const [search, setSearch] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [levelFilter, setLevelFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await apiFetch<UserData[]>('/admin/users');
-        setUsers(data || []);
-      } catch (e) {
-        console.error('Failed fetching users:', e);
-      }
-    };
-    fetchUsers();
-  }, []);
+  // Modal States
+  const [selectedUserDetailId, setSelectedUserDetailId] = useState<number | null>(null);
+  const [selectedUserAdjust, setSelectedUserAdjust] = useState<UserData | null>(null);
+
+  // TanStack Query untuk Server State
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: queryKeys.admin.users.list({ page, limit, search, role: roleFilter, level: levelFilter, status: statusFilter }),
+    queryFn: () => getAdminUsers({ page, limit, search, role: roleFilter, level: levelFilter, status: statusFilter }),
+  });
+
+  const users: UserData[] = data?.data || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
   return (
-    <TabUsers
-      users={users}
-      onEditUser={() => {}}
-    />
+    <div className="space-y-6 text-left font-sans">
+      <Card variant="white" shadow="xl" borderWidth="4" className="rounded-3xl overflow-hidden">
+        <CardHeader headerBg="#00F0FF" className="border-b-[4px] border-black flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base text-[var(--nb-text)] font-black uppercase">
+            <UserCheck className="w-5 h-5 stroke-[3]" />
+            <span>MANAJEMEN USER & BALANCE (MEMBER, RESELLER, VIP)</span>
+          </CardTitle>
+          <Badge variant="yellow" size="sm" className="font-black">
+            TOTAL: {total} PENGGUNA
+          </Badge>
+        </CardHeader>
+
+        <CardContent className="p-6 space-y-5">
+          {/* FILTER BAR: SEARCH & DROPDOWN SELECTORS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* SEARCH INPUT */}
+            <div className="relative">
+              <Input
+                placeholder="Cari Username / Phone / Email..."
+                value={search}
+                onChange={handleSearchChange}
+                className="pl-9 bg-white"
+              />
+              <Search className="w-4 h-4 text-black absolute left-3 top-1/2 -translate-y-1/2 stroke-[3]" />
+            </div>
+
+            {/* FILTER ROLE */}
+            <div>
+              <select
+                value={roleFilter}
+                onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+                className="w-full p-2.5 bg-white border-[3px] border-black rounded-xl font-extrabold text-xs text-black focus:outline-none shadow-[2px_2px_0px_0px_#000]"
+              >
+                <option value="ALL">SEMUA ROLE (USER & ADMIN)</option>
+                <option value="USER">ROLE: USER</option>
+                <option value="ADMIN">ROLE: ADMIN</option>
+              </select>
+            </div>
+
+            {/* FILTER LEVEL */}
+            <div>
+              <select
+                value={levelFilter}
+                onChange={(e) => { setLevelFilter(e.target.value); setPage(1); }}
+                className="w-full p-2.5 bg-white border-[3px] border-black rounded-xl font-extrabold text-xs text-black focus:outline-none shadow-[2px_2px_0px_0px_#000]"
+              >
+                <option value="ALL">SEMUA LEVEL HARGA</option>
+                <option value="MEMBER">LEVEL: MEMBER</option>
+                <option value="RESELLER">LEVEL: RESELLER</option>
+                <option value="VIP">LEVEL: VIP</option>
+              </select>
+            </div>
+
+            {/* FILTER STATUS */}
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="w-full p-2.5 bg-white border-[3px] border-black rounded-xl font-extrabold text-xs text-black focus:outline-none shadow-[2px_2px_0px_0px_#000]"
+              >
+                <option value="ALL">SEMUA STATUS AKUN</option>
+                <option value="ACTIVE">STATUS: AKTIF</option>
+                <option value="INACTIVE">STATUS: NONAKTIF</option>
+              </select>
+            </div>
+          </div>
+
+          {/* TABLE COMPONENT */}
+          <div className="border-[3px] border-black rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#000]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>USERNAME</TableHead>
+                  <TableHead>KONTAK</TableHead>
+                  <TableHead>ROLE & LEVEL</TableHead>
+                  <TableHead>SALDO & POIN</TableHead>
+                  <TableHead>STATUS</TableHead>
+                  <TableHead className="text-right">AKSI AUDIT</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 font-black text-xs uppercase">
+                      Memuat data pengguna...
+                    </TableCell>
+                  </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 font-black text-xs text-rose-600 uppercase">
+                      ⚠️ {(error as any)?.message || 'Gagal mengambil data user'}
+                    </TableCell>
+                  </TableRow>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 font-black text-xs text-neutral-500 uppercase">
+                      Tidak ada user ditemukan sesuai filter.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell className="font-black text-xs text-black">
+                        {u.username}
+                        <span className="block text-[10px] font-mono text-neutral-500">ID #{u.id}</span>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs font-bold text-neutral-700">
+                        {u.email && <div className="truncate max-w-[140px]">{u.email}</div>}
+                        {u.phone && <div className="text-[11px] text-neutral-500">{u.phone}</div>}
+                        {!u.email && !u.phone && <span className="text-neutral-400">-</span>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={u.role === 'ADMIN' ? 'yellow' : 'cyan'} size="sm">
+                            {u.role}
+                          </Badge>
+                          <Badge variant={u.level === 'VIP' ? 'pink' : u.level === 'RESELLER' ? 'purple' : 'mint'} size="sm">
+                            {u.level}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono font-black text-xs text-black">
+                        <div>Rp {(u.balance || 0).toLocaleString('id-ID')}</div>
+                        <div className="text-[10px] font-bold text-neutral-500 font-sans">({u.points || 0} Poin)</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={u.isActive ? 'mint' : 'pink'} size="sm">
+                          {u.isActive ? 'AKTIF' : 'NONAKTIF'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="white"
+                          size="sm"
+                          onClick={() => setSelectedUserDetailId(u.id)}
+                          className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                          <span>DETAIL</span>
+                        </Button>
+                        <Button
+                          variant="yellow"
+                          size="sm"
+                          onClick={() => setSelectedUserAdjust(u)}
+                          className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <DollarSign className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                          <span>ADJUST SALDO</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* PAGINATION CONTROLS */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs font-bold text-neutral-600 font-mono">
+                Halaman {page} dari {totalPages} ({total} Total User)
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="white"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="font-black"
+                >
+                  <ChevronLeft className="w-4 h-4 stroke-[3]" />
+                  <span>SEBELUMNYA</span>
+                </Button>
+                <Button
+                  variant="white"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="font-black"
+                >
+                  <span>SELANJUTNYA</span>
+                  <ChevronRight className="w-4 h-4 stroke-[3]" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* MODAL USER DETAIL */}
+      {selectedUserDetailId && (
+        <UserDetailModal
+          userId={selectedUserDetailId}
+          onClose={() => setSelectedUserDetailId(null)}
+        />
+      )}
+
+      {/* MODAL ADJUST SALDO */}
+      {selectedUserAdjust && (
+        <AdjustBalanceModal
+          user={selectedUserAdjust}
+          onClose={() => setSelectedUserAdjust(null)}
+        />
+      )}
+    </div>
   );
 };

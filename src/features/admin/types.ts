@@ -1,6 +1,37 @@
 export interface TransactionData { id: any; [key: string]: any; }
-export interface UserData { id: any; [key: string]: any; }
 export interface VoucherData { id: any; [key: string]: any; }
+export interface UserData {
+  id: number;
+  username: string;
+  email?: string | null;
+  phone?: string | null;
+  role: 'USER' | 'ADMIN';
+  level: 'MEMBER' | 'RESELLER' | 'VIP';
+  points: number;
+  balance: number;
+  isActive: boolean;
+  apiStatus: string;
+  referralCode?: string;
+  createdAt: string;
+  [key: string]: any;
+}
+
+export interface MutationData {
+  id: number;
+  userId: number;
+  type: 'IN' | 'OUT';
+  amount: number;
+  startingBalance: number;
+  endingBalance: number;
+  description: string;
+  createdAt: string;
+  user?: {
+    id?: number;
+    username: string;
+    email?: string | null;
+    phone?: string | null;
+  };
+}
 export interface ProviderData {
   id: number;
   name: string;

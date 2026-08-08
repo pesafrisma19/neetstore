@@ -484,8 +484,39 @@ export const deleteAdminPricingRule = (id: number) => apiFetch<{ message: string
 export const repriceAdminPricingRules = () => apiFetch<{ updatedCount: number; message: string }>('/admin/pricing-rules/reprice', { method: 'POST' });
 
 // === Users ===
-export const getAdminUsers = () => apiFetch<any[]>('/admin/users');
-export const updateAdminUser = (id: number, data: any) => apiFetch<any>(`/admin/users/${id}`, { method: 'PATCH', body: data });
+export interface AdminUsersQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  level?: string;
+  status?: string;
+}
+
+export const getAdminUsers = (params?: AdminUsersQueryParams) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.search) query.append('search', params.search);
+  if (params?.role && params.role !== 'ALL') query.append('role', params.role);
+  if (params?.level && params.level !== 'ALL') query.append('level', params.level);
+  if (params?.status && params.status !== 'ALL') query.append('status', params.status);
+  const qStr = query.toString();
+  return apiFetch<{ data: any[]; total: number; page: number; limit: number }>(`/admin/users${qStr ? `?${qStr}` : ''}`);
+};
+
+export const getAdminUserDetail = (id: number) => {
+  return apiFetch<{ user: any; mutations: any[]; transactions: any[] }>(`/admin/users/${id}`);
+};
+
+export const updateAdminUser = (id: number, data: any) => {
+  return apiFetch<any>(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+};
+
+export const adjustAdminUserBalance = (id: number, payload: { type: 'IN' | 'OUT'; amount: number; reason: string }) => {
+  return apiFetch<any>(`/admin/users/${id}/adjust-balance`, { method: 'POST', body: JSON.stringify(payload) });
+};
+
 export const deleteAdminUser = (id: number) => apiFetch<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' });
 
 // === Mutations ===
@@ -494,6 +525,9 @@ export interface AdminMutationsQueryParams {
   limit?: number;
   search?: string;
   type?: string;
+  userId?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export const getAdminMutations = (params?: AdminMutationsQueryParams) => {
@@ -502,8 +536,11 @@ export const getAdminMutations = (params?: AdminMutationsQueryParams) => {
   if (params?.limit) query.append('limit', String(params.limit));
   if (params?.search) query.append('search', params.search);
   if (params?.type && params.type !== 'ALL') query.append('type', params.type);
-  const queryString = query.toString();
-  return apiFetch<any[]>(`/admin/users/mutations${queryString ? `?${queryString}` : ''}`);
+  if (params?.userId) query.append('userId', String(params.userId));
+  if (params?.dateFrom) query.append('dateFrom', params.dateFrom);
+  if (params?.dateTo) query.append('dateTo', params.dateTo);
+  const qStr = query.toString();
+  return apiFetch<{ data: any[]; total: number; page: number; limit: number }>(`/admin/mutations${qStr ? `?${qStr}` : ''}`);
 };
 
 // === Transactions ===
