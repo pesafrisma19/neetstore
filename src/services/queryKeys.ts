@@ -17,9 +17,14 @@ export const queryKeys = {
 
   user: {
     root: ['user'] as const,
+    profile: ['user', 'profile'] as const,
     transactions: {
       all: ['user', 'transactions'] as const,
       byUser: (userId: number | string) => ['user', userId, 'transactions'] as const,
+    },
+    mutations: {
+      all: ['user', 'mutations'] as const,
+      byUser: (userId: number | string) => ['user', userId, 'mutations'] as const,
     },
     deposits: {
       all: ['user', 'deposits'] as const,

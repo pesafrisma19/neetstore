@@ -728,3 +728,24 @@ export const getUserDepositDetail = (reference: string) => {
   return apiFetch<any>(`/user/deposit/${encodeURIComponent(reference)}`);
 };
 
+export const updateUserProfile = (data: { fullname?: string | null; email?: string | null; phone?: string | null }) => {
+  return apiFetch<{ message: string; user: any }>('/user/me', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getUserMutations = (params?: { page?: number; limit?: number }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  const qStr = query.toString();
+  return apiFetch<{ data: any[]; total: number; page: number; limit: number }>(`/user/mutations${qStr ? `?${qStr}` : ''}`);
+};
+
+export const requestUserApiKey = () => {
+  return apiFetch<{ message: string }>('/user/apikey/request', {
+    method: 'POST',
+  });
+};
+

@@ -7,11 +7,21 @@ import { queryKeys } from '../services/queryKeys';
 export interface UserProfile {
   id: number;
   username: string;
-  phone: string | null;
+  fullname?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  image?: string | null;
   balance: number;
+  points?: number;
   role: string;
   level: string;
+  verified?: boolean;
+  isActive?: boolean;
+  referralCode?: string;
+  apiKey?: string | null;
   apiStatus: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface AuthContextType {
