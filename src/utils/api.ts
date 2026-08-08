@@ -589,6 +589,8 @@ export const testSmtpConnection = () => apiFetch<any>('/admin/settings/smtp/test
 export const sendSmtpTestEmail = (to: string) => apiFetch<any>('/admin/settings/smtp/send-test', { method: 'POST', body: JSON.stringify({ to }) });
 export const testFonnteConnection = () => apiFetch<any>('/admin/settings/fonnte/test-connection', { method: 'POST' });
 export const sendFonnteTestMessage = (target: string, message?: string) => apiFetch<any>('/admin/settings/fonnte/send-test', { method: 'POST', body: JSON.stringify({ target, message }) });
+export const testNotificationEmail = (event: string, targetEmail: string) => apiFetch<any>('/admin/settings/notifications/test-email', { method: 'POST', body: JSON.stringify({ event, targetEmail }) });
+export const testNotificationWa = (event: string, targetPhone: string) => apiFetch<any>('/admin/settings/notifications/test-wa', { method: 'POST', body: JSON.stringify({ event, targetPhone }) });
 
 // === Logs ===
 export const getAdminActivityLogs = () => apiFetch<any[]>('/admin/logs/activity');

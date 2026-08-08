@@ -18,8 +18,8 @@ import {
 import { 
   getAdminSettings, 
   updateAdminSettings,
-  sendSmtpTestEmail,
-  sendFonnteTestMessage
+  testNotificationEmail,
+  testNotificationWa
 } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
 import { queryClient } from '../../../../services/queryClient';
@@ -149,7 +149,7 @@ export const SettingsNotificationsPage: React.FC = () => {
       await updateAdminSettings(payload);
       queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
       addToast({ title: 'Pengaturan Disimpan', message: 'Template notifikasi berhasil diperbarui ke PostgreSQL.', type: 'success' });
-      fetchSettings();
+      await fetchSettings();
     } catch (err: any) {
       addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
     } finally {
@@ -177,13 +177,13 @@ export const SettingsNotificationsPage: React.FC = () => {
     }
   };
 
-  // Get available placeholders per active event
+  // Get available placeholders per active event (matching canonical backend variables)
   const getPlaceholdersForActiveEvent = (): string[] => {
     if (activeEvent === 'order_success') {
-      return ['{name}', '{trx_id}', '{product_name}', '{target}', '{sn}', '{price}', '{status}', '{site_name}'];
+      return ['{name}', '{brand}', '{trx_id}', '{product_name}', '{target}', '{sn}', '{price}', '{status}', '{site_name}'];
     }
     if (activeEvent === 'order_failed') {
-      return ['{name}', '{trx_id}', '{product_name}', '{target}', '{reason}', '{status}', '{site_name}'];
+      return ['{name}', '{brand}', '{trx_id}', '{product_name}', '{target}', '{reason}', '{status}', '{site_name}'];
     }
     return ['{name}', '{deposit_id}', '{amount}', '{payment_method}', '{status}', '{site_name}'];
   };
@@ -196,6 +196,7 @@ export const SettingsNotificationsPage: React.FC = () => {
     if (activeEvent === 'order_success') {
       result = result
         .replace(/{name}/gi, 'Budi')
+        .replace(/{brand}|{brand_name}/gi, 'Mobile Legends')
         .replace(/{trx_id}/gi, 'TRX-882910')
         .replace(/{product_name}|{product}/gi, 'Mobile Legends 86 Diamonds')
         .replace(/{target}/gi, '12345678 (2026)')
@@ -206,6 +207,7 @@ export const SettingsNotificationsPage: React.FC = () => {
     } else if (activeEvent === 'order_failed') {
       result = result
         .replace(/{name}/gi, 'Budi')
+        .replace(/{brand}|{brand_name}/gi, 'Free Fire')
         .replace(/{trx_id}/gi, 'TRX-882910')
         .replace(/{product_name}|{product}/gi, 'Free Fire 140 Diamonds')
         .replace(/{target}/gi, '87654321')
@@ -225,7 +227,7 @@ export const SettingsNotificationsPage: React.FC = () => {
     return result;
   };
 
-  // Actions: Send Test Email
+  // Actions: Send Test Email via Dedicated Backend Handler (Reads latest PostgreSQL settings)
   const handleSendTestEmail = async () => {
     if (!smtpTargetEmail || !smtpTargetEmail.includes('@')) {
       addToast({ title: 'Validasi Gagal', message: 'Alamat email tujuan tes wajib diisi.', type: 'error' });
@@ -234,9 +236,9 @@ export const SettingsNotificationsPage: React.FC = () => {
 
     setSendingSmtpTest(true);
     try {
-      const res = await sendSmtpTestEmail(smtpTargetEmail);
+      const res = await testNotificationEmail(activeEvent, smtpTargetEmail);
       if (res?.success) {
-        addToast({ title: 'Email Tes Terkirim', message: `Email tes berhasil dikirim ke ${smtpTargetEmail}`, type: 'success' });
+        addToast({ title: 'Email Tes Terkirim', message: `Email tes (${activeEvent}) berhasil dikirim ke ${smtpTargetEmail}`, type: 'success' });
         setSmtpModalOpen(false);
         setSmtpTargetEmail('');
       } else {
@@ -249,7 +251,7 @@ export const SettingsNotificationsPage: React.FC = () => {
     }
   };
 
-  // Actions: Send Test WhatsApp
+  // Actions: Send Test WhatsApp via Dedicated Backend Handler (Reads latest PostgreSQL settings)
   const handleSendTestWhatsApp = async () => {
     if (!fonnteTargetPhone) {
       addToast({ title: 'Validasi Gagal', message: 'Nomor WhatsApp tujuan tes wajib diisi.', type: 'error' });
@@ -258,13 +260,9 @@ export const SettingsNotificationsPage: React.FC = () => {
 
     setSendingFonnteTest(true);
     try {
-      const currentWaKey = `whatsapp_${activeEvent}_template`;
-      const templateText = settings[currentWaKey] || '';
-      const resolvedMessage = replaceMockPlaceholders(templateText);
-
-      const res = await sendFonnteTestMessage(fonnteTargetPhone, resolvedMessage);
+      const res = await testNotificationWa(activeEvent, fonnteTargetPhone);
       if (res?.success) {
-        addToast({ title: 'WhatsApp Tes Terkirim', message: `Pesan WA tes berhasil dikirim ke ${res.target || fonnteTargetPhone}`, type: 'success' });
+        addToast({ title: 'WhatsApp Tes Terkirim', message: `Pesan WA tes (${activeEvent}) berhasil dikirim ke ${fonnteTargetPhone}`, type: 'success' });
         setFonnteModalOpen(false);
         setFonnteTargetPhone('');
       } else {
@@ -289,7 +287,7 @@ export const SettingsNotificationsPage: React.FC = () => {
             <span>NOTIFIKASI & TEMPLATE</span>
           </h1>
           <p className="text-sm font-bold text-[var(--nb-text-muted)] mt-1">
-            Atur aturan pengiriman notifikasi otomatis dan kustomisasi template email & WhatsApp.
+            Atur saluran notifikasi otomatis dan kustomisasi template email & WhatsApp.
           </p>
         </div>
 
@@ -343,7 +341,7 @@ export const SettingsNotificationsPage: React.FC = () => {
                   <span className="text-[11px] font-bold text-[var(--nb-text-muted)]">Koneksi SMTP Server:</span>
                   {settings.smtp_password_configured && settings.smtp_host ? (
                     <Badge variant="mint" size="sm" className="font-black uppercase text-[10px] flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Configured
+                      <CheckCircle2 className="w-3 h-3" /> Terkonfigurasi
                     </Badge>
                   ) : (
                     <Badge variant="pink" size="sm" className="font-black uppercase text-[10px] flex items-center gap-1">
@@ -378,7 +376,7 @@ export const SettingsNotificationsPage: React.FC = () => {
                   <span className="text-[11px] font-bold text-[var(--nb-text-muted)]">Gateway Fonnte WA:</span>
                   {settings.fonnte_token_configured ? (
                     <Badge variant="mint" size="sm" className="font-black uppercase text-[10px] flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Configured
+                      <CheckCircle2 className="w-3 h-3" /> Terkonfigurasi
                     </Badge>
                   ) : (
                     <Badge variant="pink" size="sm" className="font-black uppercase text-[10px] flex items-center gap-1">
@@ -654,6 +652,10 @@ export const SettingsNotificationsPage: React.FC = () => {
                             <td className="p-2 font-bold text-right text-black">TRX-882910</td>
                           </tr>
                           <tr className="border-b border-neutral-200">
+                            <td className="p-2 font-bold text-neutral-500">BRAND</td>
+                            <td className="p-2 font-bold text-right text-black">Mobile Legends</td>
+                          </tr>
+                          <tr className="border-b border-neutral-200">
                             <td className="p-2 font-bold text-neutral-500">PRODUK</td>
                             <td className="p-2 font-bold text-right text-black">Mobile Legends 86 Diamonds</td>
                           </tr>
@@ -672,6 +674,10 @@ export const SettingsNotificationsPage: React.FC = () => {
                           <tr className="border-b border-neutral-200">
                             <td className="p-2 font-bold text-neutral-500">INVOICE</td>
                             <td className="p-2 font-bold text-right text-black">TRX-882910</td>
+                          </tr>
+                          <tr className="border-b border-neutral-200">
+                            <td className="p-2 font-bold text-neutral-500">BRAND</td>
+                            <td className="p-2 font-bold text-right text-black">Free Fire</td>
                           </tr>
                           <tr className="border-b border-neutral-200">
                             <td className="p-2 font-bold text-neutral-500">PRODUK</td>
@@ -821,7 +827,7 @@ export const SettingsNotificationsPage: React.FC = () => {
             </div>
 
             <p className="text-xs font-bold text-neutral-600">
-              Masukkan email penerima tes. Pesan akan di-render menggunakan template email {activeEvent} yang aktif.
+              Masukkan email penerima tes. Pesan akan di-render menggunakan template email {activeEvent} terbaru yang tersimpan di PostgreSQL.
             </p>
 
             <div>
@@ -875,7 +881,7 @@ export const SettingsNotificationsPage: React.FC = () => {
             </div>
 
             <p className="text-xs font-bold text-neutral-600">
-              Masukkan nomor WhatsApp penerima tes. Pesan akan di-render menggunakan template WA {activeEvent} yang aktif.
+              Masukkan nomor WhatsApp penerima tes. Pesan akan di-render menggunakan template WA {activeEvent} terbaru yang tersimpan di PostgreSQL.
             </p>
 
             <div>

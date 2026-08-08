@@ -38,8 +38,10 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const isManual = gatewayCode?.toLowerCase() === 'manual' || (!gatewayCode && (bankName || qrString));
-  const isQrisCategory = paymentType?.toUpperCase() === 'QRIS' || Boolean(qrString || qrImageUrl);
+  // Strict Manual Guard (gatewayCode canonical check)
+  const isManual = gatewayCode?.toLowerCase() === 'manual';
+  const hasQrData = Boolean(qrString || qrImageUrl);
+  const isQrisCategory = paymentType?.toUpperCase() === 'QRIS' || hasQrData;
 
   const copyToClipboard = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text);
@@ -47,8 +49,8 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const rawUrl = checkoutUrl || paymentUrl;
-  const isExternalHttp = rawUrl?.startsWith('http');
+  const rawUrl = (checkoutUrl || paymentUrl || '').trim();
+  const isExternalHttp = Boolean(rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')));
 
   return (
     <div className={`space-y-4 font-sans text-left ${className}`}>
@@ -82,8 +84,8 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         </div>
       )}
 
-      {/* 1. MANUAL QRIS — RENDER QR CODE SVG FROM QR STRING */}
-      {isManual && isQrisCategory && (qrString || qrImageUrl) && (
+      {/* 1. QRIS CODE DISPLAY (UNIVERSAL: TOKOPAY QRIS & MANUAL QRIS) */}
+      {hasQrData && (
         <div className="p-5 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-black text-white px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#FFD700]">
             <QrCode className="w-4 h-4 text-[var(--nb-yellow)]" />
@@ -149,12 +151,12 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         </div>
       )}
 
-      {/* 3. TOKOPAY GATEWAY RESPONSE — EXTERNAL LINK / VA DISPLAY */}
-      {!isManual && isExternalHttp && (
+      {/* 3. EXTERNAL GATEWAY PAYMENT LINK (TOKOPAY CHECKOUT URL / PAY URL) */}
+      {isExternalHttp && (
         <div className="p-4 bg-cyan-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
           <span className="text-xs font-black uppercase text-black block">HALAMAN PEMBAYARAN GATEWAY ONLINE</span>
           <a
-            href={rawUrl || undefined}
+            href={rawUrl}
             target="_blank"
             rel="noreferrer"
             className="w-full inline-flex items-center justify-center gap-2 bg-[var(--nb-yellow)] hover:bg-yellow-400 text-black border-[3px] border-black font-black px-6 py-3 text-sm shadow-[4px_4px_0px_0px_#000] transition-transform active:translate-y-0.5"

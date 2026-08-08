@@ -482,7 +482,8 @@ export const InvoicePage: React.FC = () => {
                       accountNumber={transaction.accountNumber}
                       accountHolder={transaction.accountHolder}
                       qrString={transaction.qrString}
-                      checkoutUrl={transaction.paymentUrl?.startsWith('http') ? transaction.paymentUrl : undefined}
+                      qrImageUrl={transaction.qrImageUrl}
+                      checkoutUrl={transaction.checkoutUrl}
                       paymentUrl={transaction.paymentUrl}
                       instructions={transaction.instructions}
                     />

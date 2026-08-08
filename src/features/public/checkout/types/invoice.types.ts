@@ -31,6 +31,8 @@ export interface PublicInvoiceResponse {
   paymentType: string;
   paymentCode?: string;
   paymentUrl?: string;
+  checkoutUrl?: string;
+  qrImageUrl?: string;
   gatewayCode?: string;
   bankName?: string;
   accountNumber?: string;
