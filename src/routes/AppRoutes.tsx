@@ -19,6 +19,7 @@ import { BrandFormPage } from '../features/admin/brand/pages/BrandFormPage';
 import { ProductsPage } from '../features/admin/product/pages/ProductsPage';
 import { PricingRulesPage } from '../features/admin/pricing-rule/pages/PricingRulesPage';
 import { PaymentMethodsPage } from '../features/admin/deposit/pages/PaymentMethodsPage';
+import { PaymentMethodFormPage } from '../features/admin/deposit/pages/PaymentMethodFormPage';
 import { TransactionsPage } from '../features/admin/transaction/pages/TransactionsPage';
 import { VouchersPage } from '../features/admin/voucher/pages/VouchersPage';
 import { UsersPage } from '../features/admin/user/pages/UsersPage';
@@ -95,6 +96,8 @@ export const AppRoutes = () => {
         {/* 5. Payments */}
         <Route path="payment-gateways" element={<PaymentGatewaysPage />} />
         <Route path="payment-methods" element={<PaymentMethodsPage />} />
+        <Route path="payment-methods/new" element={<PaymentMethodFormPage />} />
+        <Route path="payment-methods/:id/edit" element={<PaymentMethodFormPage />} />
         
         {/* 6. Users */}
         <Route path="users" element={<UsersPage />} />

@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { QRCodeSVG } from 'qrcode.react';
 import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
 import {
   Copy, ArrowLeft, Clock, CheckCircle, XCircle,
   AlertTriangle, Sparkles, Check, Calendar, CreditCard,
-  ExternalLink, Receipt, Tag, ShieldAlert, Zap, Star
+  Receipt, Tag, ShieldAlert, Zap, Star
 } from 'lucide-react';
 
 import { Navbar } from '../../../../components/layout/Navbar';
@@ -17,6 +16,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { checkoutApi } from '../services/checkout.api';
 import type { PublicInvoiceResponse } from '../types/invoice.types';
+import { PaymentDetails } from '../../../../components/shared/PaymentDetails';
 
 export const InvoicePage: React.FC = () => {
   const { orderId } = useParams();
@@ -147,13 +147,6 @@ export const InvoicePage: React.FC = () => {
   const isFailed = ordStatus === 'FAILED' || payStatus === 'FAILED' || isRefund;
   const isProcessing = ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING');
   const isSuccess = ordStatus === 'SUCCESS';
-
-  // Presisi Deteksi QRIS & Payment Link
-  const isQris = transaction.paymentType === 'QRIS' ||
-    (transaction.paymentCode && transaction.paymentCode.toLowerCase().includes('qris')) ||
-    (transaction.paymentMethod && transaction.paymentMethod.toUpperCase().includes('QRIS'));
-
-  const isHttpUrl = transaction.paymentUrl && (transaction.paymentUrl.startsWith('http://') || transaction.paymentUrl.startsWith('https://'));
 
   // 5-Step Progress Steps
   const steps = [
@@ -478,58 +471,31 @@ export const InvoicePage: React.FC = () => {
               <div className="md:col-start-8 md:col-span-5 p-5 sm:p-7 flex flex-col items-center justify-center gap-3 bg-[#FAF5E9] relative z-10 text-center">
 
                 {isUnpaid && (
-                  <>
-                    <div className="relative">
-                      <div className="bg-black text-white text-[10px] font-black uppercase tracking-wider px-4 py-1 rounded-full -mb-2 relative z-10 shadow-[2px_2px_0px_0px_#00000055]">
-                        ★ Scan & Bayar ★
-                      </div>
-                    </div>
-
-                    {isQris && transaction.paymentUrl && !isHttpUrl && (
-                      <div className="flex flex-col items-center gap-2 bg-white p-3 border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000]">
-                        <QRCodeSVG value={transaction.paymentUrl} size={150} level="M" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-black">
-                          {transaction.paymentMethod || 'QRIS'}
-                        </span>
-                      </div>
-                    )}
-
-                    {isHttpUrl && (
-                      <a
-                        href={transaction.paymentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-[#FDE047] hover:bg-yellow-300 text-black border-2 border-black rounded-xl px-5 py-3 font-black text-sm uppercase shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5"
-                      >
-                        <ExternalLink className="w-4 h-4 stroke-[3]" />
-                        <span>Buka Pembayaran</span>
-                      </a>
-                    )}
+                  <div className="w-full space-y-4">
+                    <PaymentDetails
+                      methodName={transaction.paymentMethod}
+                      gatewayCode={transaction.gatewayCode}
+                      paymentType={transaction.paymentType}
+                      totalAmount={transaction.amount}
+                      uniqueCode={transaction.uniqueCode}
+                      bankName={transaction.bankName}
+                      accountNumber={transaction.accountNumber}
+                      accountHolder={transaction.accountHolder}
+                      qrString={transaction.qrString}
+                      checkoutUrl={transaction.paymentUrl?.startsWith('http') ? transaction.paymentUrl : undefined}
+                      paymentUrl={transaction.paymentUrl}
+                      instructions={transaction.instructions}
+                    />
 
                     {timeLeft !== null && (
-                      <div>
-                        <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-500 block">Sisa Waktu Pembayaran</span>
+                      <div className="text-center pt-2">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500 block">Sisa Waktu Pembayaran</span>
                         <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight text-red-600 whitespace-nowrap">
                           {formatTime(timeLeft)}
                         </span>
                       </div>
                     )}
-
-                    <Button
-                      variant="yellow"
-                      size="sm"
-                      onClick={() => handleCopy(transaction.amount.toString(), 'topAmount')}
-                      className="font-black border-2 border-black text-xs px-4 py-2.5 shadow-[3px_3px_0px_0px_#000] h-auto w-full sm:w-auto"
-                    >
-                      <Copy className="w-3.5 h-3.5 mr-1.5 stroke-[2.5]" />
-                      {copied === 'topAmount' ? 'Tersalin!' : 'Salin Nominal'}
-                    </Button>
-
-                    <div className="w-full border-t-2 border-dashed border-black/20 pt-2 mt-1">
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-gray-500 block">Nominal Transfer Tepat</span>
-                      <span className="text-lg font-black text-black">{formatRupiah(transaction.amount)}</span>
-                    </div>
-                  </>
+                  </div>
                 )}
 
                 {isProcessing && (

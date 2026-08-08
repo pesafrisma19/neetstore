@@ -12,9 +12,6 @@ import {
   Clock, 
   XCircle, 
   RefreshCw, 
-  QrCode, 
-  AlertCircle,
-  ExternalLink,
   ArrowRight
 } from 'lucide-react';
 import { 
@@ -24,6 +21,7 @@ import {
   getUserDepositHistory,
   getUserDepositDetail
 } from '../../../../utils/api';
+import { PaymentDetails } from '../../../../components/shared/PaymentDetails';
 import { type PaymentMethodData } from '../../../admin/types';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { queryKeys } from '../../../../services/queryKeys';
@@ -39,7 +37,6 @@ export interface UserDepositInvoice {
   paymentUrl: string | null;
   checkoutUrl?: string | null;
   qrString?: string | null;
-  qrImageUrl?: string | null;
   status: 'PENDING' | 'SUCCESS' | 'FAILED';
   failureReason: string | null;
   paidAt: string | null;
@@ -48,6 +45,21 @@ export interface UserDepositInvoice {
   paymentInstructions?: string | null;
   instructions?: string;
   tokopayData?: any;
+  paymentMethodRel?: {
+    id: number;
+    name: string;
+    code: string;
+    type: string;
+    bankName?: string | null;
+    accountNumber?: string | null;
+    accountHolder?: string | null;
+    qrString?: string | null;
+    gateway?: {
+      id: number;
+      name: string;
+      code: string;
+    } | null;
+  } | null;
 }
 
 export const UserDepositSection: React.FC = () => {
@@ -299,59 +311,22 @@ export const UserDepositSection: React.FC = () => {
               )}
             </div>
 
-            {/* QRIS / Checkout URL / Instructions Display */}
             {activeInvoice.status === 'PENDING' && (
-              <div className="space-y-4 pt-2 border-t-[2px] border-dashed border-neutral-300">
-                {/* QR Code Image Display */}
-                {(activeInvoice.qrImageUrl || activeInvoice.qrString || (activeInvoice.paymentUrl && !activeInvoice.paymentUrl.startsWith('http'))) && (
-                  <div className="text-center p-4 bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-2 font-black uppercase text-sm">
-                      <QrCode className="w-5 h-5 stroke-[2.5]" />
-                      <span>SCAN KODE QRIS PEMBAYARAN</span>
-                    </div>
-                    <div className="p-3 bg-white border-2 border-black">
-                      <img 
-                        src={activeInvoice.qrImageUrl || `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(activeInvoice.qrString || activeInvoice.paymentUrl || '')}`} 
-                        alt="QRIS Deposit"
-                        className="w-48 h-48 mx-auto"
-                      />
-                    </div>
-                    <p className="text-[11px] font-bold text-neutral-600 max-w-xs">
-                      Buka aplikasi e-wallet (DANA, OVO, ShopeePay, GoPay) atau m-Banking Anda, lalu scan QR Code di atas.
-                    </p>
-                  </div>
-                )}
-
-                {/* Gateway Web Checkout Button */}
-                {(activeInvoice.checkoutUrl || (activeInvoice.paymentUrl && activeInvoice.paymentUrl.startsWith('http'))) && (
-                  <div className="text-center p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2 font-black uppercase text-xs text-neutral-800">
-                      <ExternalLink className="w-4 h-4 stroke-[2.5]" />
-                      <span>HALAMAN PEMBAYARAN GATEWAY</span>
-                    </div>
-                    <a 
-                      href={activeInvoice.checkoutUrl || activeInvoice.paymentUrl!} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[var(--nb-yellow)] hover:bg-yellow-400 text-black border-[3px] border-black font-black px-6 py-3 text-sm shadow-[4px_4px_0px_0px_#000] transition-transform active:translate-y-0.5"
-                    >
-                      BUKA HALAMAN PEMBAYARAN <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </div>
-                )}
-
-                {/* Manual Instructions Display */}
-                {!activeInvoice.qrImageUrl && !activeInvoice.qrString && !activeInvoice.checkoutUrl && (!activeInvoice.paymentUrl || (!activeInvoice.paymentUrl.startsWith('http') && !activeInvoice.paymentUrl.startsWith('000201'))) && (
-                  <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-2">
-                    <div className="font-black uppercase text-sm text-black flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-700 stroke-[2.5]" />
-                      <span>PETUNJUK TRANSFER MANUAL</span>
-                    </div>
-                    <div className="text-xs font-bold whitespace-pre-line text-neutral-800 bg-white p-3 border-2 border-black font-mono">
-                      {activeInvoice.paymentInstructions || activeInvoice.instructions || 'Silakan transfer sesuai total bayar ke rekening Admin.'}
-                    </div>
-                  </div>
-                )}
+              <div className="pt-2 border-t-[2px] border-dashed border-neutral-300">
+                <PaymentDetails
+                  methodName={activeInvoice.paymentMethod}
+                  gatewayCode={activeInvoice.paymentMethodRel?.gateway?.code}
+                  paymentType={activeInvoice.paymentMethodRel?.type}
+                  totalAmount={activeInvoice.totalAmount}
+                  uniqueCode={activeInvoice.uniqueCode}
+                  bankName={activeInvoice.paymentMethodRel?.bankName}
+                  accountNumber={activeInvoice.paymentMethodRel?.accountNumber}
+                  accountHolder={activeInvoice.paymentMethodRel?.accountHolder}
+                  qrString={activeInvoice.qrString || activeInvoice.paymentMethodRel?.qrString}
+                  checkoutUrl={activeInvoice.checkoutUrl}
+                  paymentUrl={activeInvoice.paymentUrl}
+                  instructions={activeInvoice.paymentInstructions || activeInvoice.instructions}
+                />
               </div>
             )}
 

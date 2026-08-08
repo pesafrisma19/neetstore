@@ -63,6 +63,10 @@ export interface PaymentMethodData {
   maxAmount?: number | null;
   iconUrl?: string | null;
   instructions?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountHolder?: string | null;
+  qrString?: string | null;
   isActive: boolean;
   forTransaction: boolean;
   forDeposit: boolean;

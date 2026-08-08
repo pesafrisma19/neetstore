@@ -435,8 +435,9 @@ export const deleteAdminVoucher = (id: number) => apiFetch<{ message: string }>(
 
 // === Payment Methods ===
 export const getAdminPaymentMethods = () => apiFetch<any[]>('/admin/payment-methods');
-export const createAdminPaymentMethod = (data: any) => apiFetch<any>('/admin/payment-methods', { method: 'POST', body: data });
-export const updateAdminPaymentMethod = (id: number, data: any) => apiFetch<any>(`/admin/payment-methods/${id}`, { method: 'PATCH', body: data });
+export const getAdminPaymentMethodById = (id: number) => apiFetch<any>(`/admin/payment-methods/${id}`);
+export const createAdminPaymentMethod = (data: any) => apiFetch<any>('/admin/payment-methods', { method: 'POST', body: JSON.stringify(data) });
+export const updateAdminPaymentMethod = (id: number, data: any) => apiFetch<any>(`/admin/payment-methods/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const deleteAdminPaymentMethod = (id: number) => apiFetch<{ message: string }>(`/admin/payment-methods/${id}`, { method: 'DELETE' });
 
 // === Payment Gateways ===
