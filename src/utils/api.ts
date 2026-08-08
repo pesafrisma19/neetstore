@@ -519,6 +519,12 @@ export const adjustAdminUserBalance = (id: number, payload: { type: 'IN' | 'OUT'
 
 export const deleteAdminUser = (id: number) => apiFetch<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' });
 
+export const approveAdminApiKey = (id: number) =>
+  apiFetch<{ message: string; apiKey: string }>(`/admin/users/${id}/approve-apikey`, { method: 'POST' });
+
+export const rejectAdminApiKey = (id: number) =>
+  apiFetch<{ message: string }>(`/admin/users/${id}/reject-apikey`, { method: 'POST' });
+
 // === Mutations ===
 export interface AdminMutationsQueryParams {
   page?: number;
@@ -748,4 +754,29 @@ export const requestUserApiKey = () => {
     method: 'POST',
   });
 };
+
+export const getUserLevelUpgradeInfo = () =>
+  apiFetch<{
+    currentLevel: string;
+    nextLevel: string | null;
+    upgradePrice: number;
+    enabled: boolean;
+    balance: number;
+    canUpgrade: boolean;
+    shortfall: number;
+  }>('/user/level/upgrade-info');
+
+export const upgradeUserLevel = (expectedCurrentLevel?: string) =>
+  apiFetch<{
+    message: string;
+    previousLevel: string;
+    newLevel: string;
+    price: number;
+    startingBalance: number;
+    endingBalance: number;
+  }>('/user/level/upgrade', {
+    method: 'POST',
+    body: JSON.stringify({ expectedCurrentLevel }),
+  });
+
 

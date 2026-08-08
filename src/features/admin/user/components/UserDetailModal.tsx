@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../../services/queryKeys';
-import { getAdminUserDetail } from '../../../../utils/api';
+import { getAdminUserDetail, approveAdminApiKey, rejectAdminApiKey } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
@@ -21,6 +21,9 @@ import {
   Copy,
   Check,
   Award,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { AdjustBalanceModal } from './AdjustBalanceModal';
 
@@ -30,14 +33,40 @@ interface UserDetailModalProps {
 }
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClose }) => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'MUTATIONS' | 'TRANSACTIONS' | 'DEPOSITS'>('MUTATIONS');
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [apiMsg, setApiMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: queryKeys.admin.users.detail(userId),
     queryFn: () => getAdminUserDetail(userId),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: () => approveAdminApiKey(userId),
+    onSuccess: (res) => {
+      setApiMsg({ text: res?.message || 'API Key berhasil disetujui & digenerate!', type: 'success' });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.detail(userId) });
+    },
+    onError: (err: any) => {
+      setApiMsg({ text: err?.message || 'Gagal menyetujui API Key', type: 'error' });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => rejectAdminApiKey(userId),
+    onSuccess: (res) => {
+      setApiMsg({ text: res?.message || 'Pengajuan API Key telah ditolak.', type: 'success' });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.detail(userId) });
+    },
+    onError: (err: any) => {
+      setApiMsg({ text: err?.message || 'Gagal menolak API Key', type: 'error' });
+    },
   });
 
   if (isLoading) {
@@ -178,44 +207,95 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Key className="w-4 h-4 text-black stroke-[3]" />
-                    <span className="text-xs font-black uppercase text-black">INFORMASI DEVELOPER API KEY</span>
+                    <span className="text-xs font-black uppercase text-black">AKSES DEVELOPER API KEY</span>
                   </div>
                   <Badge variant={user.apiStatus === 'APPROVED' ? 'mint' : user.apiStatus === 'PENDING' ? 'yellow' : 'pink'} size="sm">
                     API STATUS: {user.apiStatus}
                   </Badge>
                 </div>
 
+                {apiMsg && (
+                  <div
+                    className={`p-2.5 border-[2px] border-black rounded-xl text-xs font-black flex items-center gap-2 ${
+                      apiMsg.type === 'error' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {apiMsg.type === 'error' ? <AlertCircle className="w-4 h-4 shrink-0 stroke-[3]" /> : <CheckCircle className="w-4 h-4 shrink-0 stroke-[3]" />}
+                    <span>{apiMsg.text}</span>
+                  </div>
+                )}
+
                 {user.apiStatus === 'APPROVED' && user.apiKey ? (
-                  <div className="flex items-center gap-2 pt-1">
-                    <Input
-                      type={showApiKey ? 'text' : 'password'}
-                      value={user.apiKey}
-                      readOnly
-                      className="bg-white font-mono text-xs font-black border-[2px]"
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={user.apiKey}
+                        readOnly
+                        className="bg-white font-mono text-xs font-black border-[2px]"
+                      />
+                      <Button
+                        variant="white"
+                        size="sm"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="font-black text-xs shrink-0"
+                      >
+                        {showApiKey ? 'SEMBUNYIKAN' : 'TAMPILKAN'}
+                      </Button>
+                      <Button
+                        variant="yellow"
+                        size="sm"
+                        onClick={() => handleCopyKey(user.apiKey!)}
+                        className="font-black text-xs shrink-0"
+                      >
+                        {copiedKey ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4 stroke-[2.5]" />}
+                      </Button>
+                    </div>
+                  </div>
+                ) : user.apiStatus === 'PENDING' ? (
+                  <div className="p-3 bg-yellow-50 border-[2px] border-black rounded-xl space-y-3">
+                    <p className="text-xs font-bold text-yellow-900 m-0">
+                      ⚠️ User ini mengajukan akses Developer API Key. Silakan tinjau dan pilih tindakan admin di bawah ini:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="mint"
+                        size="sm"
+                        onClick={() => approveMutation.mutate()}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        className="font-black text-xs py-1.5 shadow-[2px_2px_0px_0px_#000]"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                        <span>{approveMutation.isPending ? 'MEMPROSES...' : 'SETUJUI & GENERATE KEY'}</span>
+                      </Button>
+                      <Button
+                        variant="pink"
+                        size="sm"
+                        onClick={() => rejectMutation.mutate()}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        className="font-black text-xs py-1.5 shadow-[2px_2px_0px_0px_#000]"
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                        <span>{rejectMutation.isPending ? 'MEMPROSES...' : 'TOLAK PENGAJUAN'}</span>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-neutral-600 m-0">
+                      User ini saat ini belum memiliki API Key aktif.
+                    </p>
                     <Button
                       variant="white"
                       size="sm"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="font-black text-xs shrink-0"
+                      onClick={() => approveMutation.mutate()}
+                      disabled={approveMutation.isPending}
+                      className="font-black text-xs py-1 shadow-[2px_2px_0px_0px_#000]"
                     >
-                      {showApiKey ? 'SEMBUNYIKAN' : 'TAMPILKAN'}
-                    </Button>
-                    <Button
-                      variant="yellow"
-                      size="sm"
-                      onClick={() => handleCopyKey(user.apiKey!)}
-                      className="font-black text-xs shrink-0"
-                    >
-                      {copiedKey ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4 stroke-[2.5]" />}
+                      <CheckCircle className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                      <span>{approveMutation.isPending ? 'GENERATING...' : 'SETUJUI API KEY'}</span>
                     </Button>
                   </div>
-                ) : (
-                  <p className="text-xs font-bold text-neutral-600">
-                    {user.apiStatus === 'PENDING'
-                      ? 'Pengajuan API Key user ini sedang dalam proses review admin.'
-                      : 'User ini belum memiliki API Key aktif.'}
-                  </p>
                 )}
               </div>
 

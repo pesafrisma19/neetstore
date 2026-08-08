@@ -30,6 +30,7 @@ export const queryKeys = {
       all: ['user', 'deposits'] as const,
       history: (userId: number | string) => ['user', userId, 'deposits'] as const,
     },
+    levelUpgradeInfo: ['user', 'levelUpgradeInfo'] as const,
   },
 
   admin: {

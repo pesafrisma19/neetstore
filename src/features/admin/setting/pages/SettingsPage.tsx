@@ -15,6 +15,9 @@ interface SystemSettingsData {
   minPointRedeem: number;
   TOKOPAY_MERCHANT_ID?: string;
   TOKOPAY_SECRET_KEY?: string;
+  upgrade_reseller_price: number;
+  upgrade_vip_price: number;
+  level_upgrade_enabled: boolean;
 }
 
 const INITIAL_SETTINGS: SystemSettingsData = {
@@ -25,6 +28,9 @@ const INITIAL_SETTINGS: SystemSettingsData = {
   minPointRedeem: 1000,
   TOKOPAY_MERCHANT_ID: '',
   TOKOPAY_SECRET_KEY: '',
+  upgrade_reseller_price: 50000,
+  upgrade_vip_price: 150000,
+  level_upgrade_enabled: true,
 };
 
 interface TabSettingsProps {
@@ -51,6 +57,9 @@ export const TabSettings: React.FC<TabSettingsProps> = ({ onShowToast }) => {
           minPointRedeem: parseInt(data.minPointRedeem) || INITIAL_SETTINGS.minPointRedeem,
           TOKOPAY_MERCHANT_ID: data.TOKOPAY_MERCHANT_ID || '',
           TOKOPAY_SECRET_KEY: data.TOKOPAY_SECRET_KEY || '',
+          upgrade_reseller_price: Number(data.upgrade_reseller_price ?? INITIAL_SETTINGS.upgrade_reseller_price),
+          upgrade_vip_price: Number(data.upgrade_vip_price ?? INITIAL_SETTINGS.upgrade_vip_price),
+          level_upgrade_enabled: data.level_upgrade_enabled !== undefined ? Boolean(data.level_upgrade_enabled) : INITIAL_SETTINGS.level_upgrade_enabled,
         });
       }
     } catch (err) {
@@ -214,6 +223,53 @@ export const TabSettings: React.FC<TabSettingsProps> = ({ onShowToast }) => {
               type="password"
               helperText="Rahasia: Digunakan untuk enkripsi."
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. PENGATURAN BIAYA LEVEL MEMBERSHIP */}
+      <Card variant="white" shadow="xl" borderWidth="4">
+        <CardHeader headerBg="var(--nb-mint)" className="flex items-center justify-between">
+          <CardTitle className="text-base text-[var(--nb-text)] flex items-center gap-2">
+            <Wallet className="w-5 h-5 stroke-[3]" />
+            <span>PENGATURAN BIAYA LEVEL MEMBERSHIP (UPGRADE MANDIRI USER)</span>
+          </CardTitle>
+          <Badge variant="mint" size="sm">LEVEL MEMBERSHIP</Badge>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <Callout tone="mint" title="💡 ATURAN UPGRADE LEVEL SALDO">
+            User dapat memotong saldo akun secara otomatis untuk menaikkan level ke <b>RESELLER</b> atau <b>VIP</b>.
+          </Callout>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Biaya Upgrade MEMBER -> RESELLER (Rp)"
+              type="number"
+              value={settings.upgrade_reseller_price ?? 50000}
+              onChange={(e) => setSettings({ ...settings, upgrade_reseller_price: parseFloat(e.target.value) || 0 })}
+              helperText="Nominal saldo dipotong saat upgrade ke Reseller."
+            />
+
+            <Input
+              label="Biaya Upgrade RESELLER -> VIP (Rp)"
+              type="number"
+              value={settings.upgrade_vip_price ?? 150000}
+              onChange={(e) => setSettings({ ...settings, upgrade_vip_price: parseFloat(e.target.value) || 0 })}
+              helperText="Nominal saldo dipotong saat upgrade ke VIP."
+            />
+
+            <div className="flex flex-col gap-1 text-left">
+              <label className="text-xs font-black uppercase text-[var(--nb-text)]">STATUS UPGRADE MANDIRI</label>
+              <select
+                value={settings.level_upgrade_enabled ? 'true' : 'false'}
+                onChange={(e) => setSettings({ ...settings, level_upgrade_enabled: e.target.value === 'true' })}
+                className="p-2.5 bg-[var(--nb-input-bg)] border-[3px] border-[var(--nb-border)] rounded-xl font-extrabold text-xs text-[var(--nb-text)] focus:outline-none"
+              >
+                <option value="true">AKTIF (User Bisa Upgrade Level)</option>
+                <option value="false">NONAKTIF (Upgrade Mandiri Ditolak)</option>
+              </select>
+              <span className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1">Kontrol akses upgrade dari dashboard user.</span>
+            </div>
           </div>
         </CardContent>
       </Card>

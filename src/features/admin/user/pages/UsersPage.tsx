@@ -7,8 +7,9 @@ import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Input } from '../../../../components/ui/Input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Search, Eye, DollarSign, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
+import { Search, Eye, Edit3, DollarSign, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
 import { UserDetailModal } from '../components/UserDetailModal';
+import { EditUserModal } from '../components/EditUserModal';
 import { AdjustBalanceModal } from '../components/AdjustBalanceModal';
 import type { UserData } from '../../types';
 
@@ -23,6 +24,7 @@ export const UsersPage: React.FC = () => {
 
   // Modal States
   const [selectedUserDetailId, setSelectedUserDetailId] = useState<number | null>(null);
+  const [selectedUserEdit, setSelectedUserEdit] = useState<UserData | null>(null);
   const [selectedUserAdjust, setSelectedUserAdjust] = useState<UserData | null>(null);
 
   // TanStack Query untuk Server State
@@ -182,7 +184,7 @@ export const UsersPage: React.FC = () => {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
+                      <TableCell className="text-right flex items-center justify-end gap-1.5 flex-wrap">
                         <Button
                           variant="white"
                           size="sm"
@@ -191,6 +193,15 @@ export const UsersPage: React.FC = () => {
                         >
                           <Eye className="w-3.5 h-3.5 mr-1 stroke-[3]" />
                           <span>DETAIL</span>
+                        </Button>
+                        <Button
+                          variant="cyan"
+                          size="sm"
+                          onClick={() => setSelectedUserEdit(u)}
+                          className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                          <span>EDIT USER</span>
                         </Button>
                         <Button
                           variant="yellow"
@@ -247,6 +258,14 @@ export const UsersPage: React.FC = () => {
         <UserDetailModal
           userId={selectedUserDetailId}
           onClose={() => setSelectedUserDetailId(null)}
+        />
+      )}
+
+      {/* MODAL EDIT USER */}
+      {selectedUserEdit && (
+        <EditUserModal
+          user={selectedUserEdit}
+          onClose={() => setSelectedUserEdit(null)}
         />
       )}
 

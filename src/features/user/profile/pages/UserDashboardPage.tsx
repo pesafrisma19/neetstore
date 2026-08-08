@@ -10,6 +10,7 @@ import { Input } from '../../../../components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
 import { Avatar } from '../../../../components/ui/Avatar';
+import { Callout } from '../../../../components/ui/Callout';
 import {
   Wallet,
   History,
@@ -34,6 +35,8 @@ import {
   updateUserProfile,
   getUserMutations,
   requestUserApiKey,
+  getUserLevelUpgradeInfo,
+  upgradeUserLevel,
   type UserTransactionItem,
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
@@ -138,6 +141,32 @@ export const UserDashboardPage: React.FC = () => {
     },
     onError: (err: any) => {
       setProfileMsg({ text: err.message || 'Gagal memperbarui profil', type: 'error' });
+    },
+  });
+
+  // Query info Level Upgrade
+  const {
+    data: levelUpgradeInfo,
+    isLoading: isFetchingLevelInfo,
+  } = useQuery({
+    queryKey: queryKeys.user.levelUpgradeInfo,
+    queryFn: () => getUserLevelUpgradeInfo(),
+    enabled: Boolean(userId),
+    staleTime: 10 * 1000,
+  });
+
+  // Mutation Upgrade Level Mandiri via Saldo
+  const levelUpgradeMutation = useMutation({
+    mutationFn: (expectedLevel?: string) => upgradeUserLevel(expectedLevel),
+    onSuccess: async (res: any) => {
+      setProfileMsg({ text: res?.message || 'Selamat! Akun Anda berhasil di-upgrade!', type: 'success' });
+      await refreshUser();
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.mutations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.levelUpgradeInfo });
+    },
+    onError: (err: any) => {
+      setProfileMsg({ text: err.message || 'Gagal melakukan upgrade level', type: 'error' });
     },
   });
 
@@ -352,6 +381,85 @@ export const UserDashboardPage: React.FC = () => {
                         <span className="font-bold text-neutral-500 uppercase">Tanggal Terdaftar:</span>
                         <span className="font-mono text-black">{formatDate(user.createdAt || '')}</span>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* CARD UPGRADE LEVEL MEMBERSHIP */}
+                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl space-y-4">
+                    <CardHeader headerBg="var(--nb-mint)" className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-[var(--nb-text)]">
+                        <Award className="w-4 h-4 stroke-[3]" />
+                        KEANGGOTAAN & UPGRADE LEVEL AKUN
+                      </CardTitle>
+                      <Badge variant={user.level === 'VIP' ? 'pink' : user.level === 'RESELLER' ? 'purple' : 'mint'} size="sm">
+                        LEVEL: {user.level}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      {isFetchingLevelInfo ? (
+                        <div className="text-center py-4 text-xs font-bold text-[var(--nb-text-muted)]">
+                          Memuat data level membership...
+                        </div>
+                      ) : !levelUpgradeInfo ? null : user.level === 'VIP' ? (
+                        <Callout tone="mint" title="LEVEL TERTINGGI (VIP MEMBER)" icon={<ShieldCheck className="w-5 h-5 stroke-[3] shrink-0" />}>
+                          Selamat! Anda sudah berada di tingkat keanggotaan tertinggi. Anda menikmati harga paling murah untuk seluruh produk.
+                        </Callout>
+                      ) : (
+                        <div className="space-y-3 text-xs text-left">
+                          <div className="p-3 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] font-mono space-y-1.5">
+                            <div className="flex justify-between">
+                              <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Level Saat Ini:</span>
+                              <span className="font-black font-sans text-[var(--nb-text)]">{levelUpgradeInfo.currentLevel}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Level Berikutnya:</span>
+                              <span className="font-black font-sans text-[var(--nb-text)]">{levelUpgradeInfo.nextLevel}</span>
+                            </div>
+                            <div className="flex justify-between border-t-[2px] border-[var(--nb-border)] pt-1.5">
+                              <span className="font-bold text-[var(--nb-text-muted)] font-sans uppercase">Biaya Upgrade:</span>
+                              <span className="font-black text-[var(--nb-text)]">{formatRupiah(levelUpgradeInfo.upgradePrice)}</span>
+                            </div>
+                          </div>
+
+                          {!levelUpgradeInfo.enabled ? (
+                            <Callout tone="pink" title="PEMBERITAHUAN">
+                              Fitur upgrade level mandiri saat ini sedang dinonaktifkan oleh Admin.
+                            </Callout>
+                          ) : levelUpgradeInfo.canUpgrade ? (
+                            <Button
+                              variant="mint"
+                              size="md"
+                              onClick={() => levelUpgradeMutation.mutate(levelUpgradeInfo.currentLevel)}
+                              disabled={levelUpgradeMutation.isPending}
+                              className="w-full font-black text-xs py-2.5"
+                            >
+                              <Award className="w-4 h-4 mr-1 stroke-[3]" />
+                              <span>
+                                {levelUpgradeMutation.isPending
+                                  ? 'MEMPROSES UPGRADE...'
+                                  : `NAIK KE ${levelUpgradeInfo.nextLevel} (${formatRupiah(levelUpgradeInfo.upgradePrice)})`}
+                              </span>
+                            </Button>
+                          ) : (
+                            <Callout tone="warning" title="SALDO TIDAK MENCUKUPI">
+                              <div className="space-y-2">
+                                <p className="m-0 font-bold">
+                                  Saldo Anda ({formatRupiah(user.balance || 0)}) tidak mencukupi untuk upgrade ke {levelUpgradeInfo.nextLevel}. Kurang <b>{formatRupiah(levelUpgradeInfo.shortfall)}</b> (Biaya: {formatRupiah(levelUpgradeInfo.upgradePrice)}).
+                                </p>
+                                <Button
+                                  variant="yellow"
+                                  size="sm"
+                                  onClick={handleOpenDepositTab}
+                                  className="w-full font-black text-xs py-2"
+                                >
+                                  <PlusCircle className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                                  <span>ISI SALDO SEKARANG</span>
+                                </Button>
+                              </div>
+                            </Callout>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
