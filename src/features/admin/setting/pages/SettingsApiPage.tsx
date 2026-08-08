@@ -33,16 +33,16 @@ type ConnectionState = 'IDLE' | 'TESTING' | 'CONNECTED' | 'FAILED';
 export const SettingsApiPage: React.FC = () => {
   const { addToast } = useToast();
   
-  // Scoped Settings State from GET /api/admin/settings/integrations
+  // Settings State from GET /api/admin/settings
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(false);
 
-  // Secret Input States (ALWAYS empty on load, populated ONLY when admin types a new secret)
+  // Secret Input States (Hydrated with actual stored values)
   const [neetflixApiKeyInput, setNeetflixApiKeyInput] = useState('');
   const [smtpPasswordInput, setSmtpPasswordInput] = useState('');
   const [fonnteTokenInput, setFonnteTokenInput] = useState('');
 
-  // Show/Hide password toggles for newly typed secrets
+  // Show/Hide password toggles for revealing exact stored credentials
   const [showNeetflixKey, setShowNeetflixKey] = useState(false);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [showFonnteToken, setShowFonnteToken] = useState(false);
@@ -79,6 +79,9 @@ export const SettingsApiPage: React.FC = () => {
       const data = await getAdminSettings();
       if (data) {
         setSettings(data);
+        setNeetflixApiKeyInput(data.neetflix_api_key || '');
+        setSmtpPasswordInput(data.smtp_password || '');
+        setFonnteTokenInput(data.fonnte_token || '');
       }
     } catch (err: any) {
       addToast({ title: 'Gagal Memuat Pengaturan API', message: err.message, type: 'error' });
@@ -102,17 +105,13 @@ export const SettingsApiPage: React.FC = () => {
     setSavingNeetflix(true);
     const payload: Record<string, any> = {
       neetflix_api_url: (settings.neetflix_api_url || 'https://api.neetflix.monster').trim(),
+      neetflix_api_key: neetflixApiKeyInput.trim()
     };
-
-    if (neetflixApiKeyInput.trim()) {
-      payload.neetflix_api_key = neetflixApiKeyInput.trim();
-    }
 
     try {
       await updateAdminSettings(payload);
       queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
       addToast({ title: 'Neetflix Disimpan', message: 'Pengaturan Neetflix Validator berhasil diperbarui.', type: 'success' });
-      setNeetflixApiKeyInput('');
       await fetchSettings();
     } catch (err: any) {
       addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
@@ -133,17 +132,13 @@ export const SettingsApiPage: React.FC = () => {
       smtp_from_name: (settings.smtp_from_name || '').trim(),
       smtp_from_email: (settings.smtp_from_email || '').trim(),
       smtp_secure: Boolean(settings.smtp_secure),
+      smtp_password: smtpPasswordInput.trim()
     };
-
-    if (smtpPasswordInput.trim()) {
-      payload.smtp_password = smtpPasswordInput.trim();
-    }
 
     try {
       await updateAdminSettings(payload);
       queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
       addToast({ title: 'SMTP Disimpan', message: 'Pengaturan SMTP Email Server berhasil diperbarui.', type: 'success' });
-      setSmtpPasswordInput('');
       await fetchSettings();
     } catch (err: any) {
       addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
@@ -159,17 +154,13 @@ export const SettingsApiPage: React.FC = () => {
     setSavingFonnte(true);
     const payload: Record<string, any> = {
       fonnte_api_url: (settings.fonnte_api_url || 'https://api.fonnte.com').trim(),
+      fonnte_token: fonnteTokenInput.trim()
     };
-
-    if (fonnteTokenInput.trim()) {
-      payload.fonnte_token = fonnteTokenInput.trim();
-    }
 
     try {
       await updateAdminSettings(payload);
       queryClient.invalidateQueries({ queryKey: queryKeys.public.settings });
       addToast({ title: 'Fonnte Disimpan', message: 'Pengaturan Fonnte WhatsApp Gateway berhasil diperbarui.', type: 'success' });
-      setFonnteTokenInput('');
       await fetchSettings();
     } catch (err: any) {
       addToast({ title: 'Gagal Menyimpan', message: err.message, type: 'error' });
@@ -374,28 +365,29 @@ export const SettingsApiPage: React.FC = () => {
                     type={showNeetflixKey ? 'text' : 'password'}
                     value={neetflixApiKeyInput}
                     onChange={(e) => setNeetflixApiKeyInput(e.target.value)}
-                    placeholder={settings.neetflix_api_key_configured ? 'Credential sudah tersimpan' : 'Masukkan API key baru'}
+                    placeholder="Masukkan API Key Neetflix"
+                    autoComplete="new-password"
                     className="w-full p-2.5 pr-10 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNeetflixKey(!showNeetflixKey)}
                     className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
-                    title="Lihat key baru yang diketik"
+                    title={showNeetflixKey ? 'Sembunyikan API key' : 'Tampilkan API key'}
                   >
                     {showNeetflixKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {settings.neetflix_api_key_configured && !neetflixApiKeyInput && (
+                {settings.neetflix_api_key_configured && (
                   <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-600" /> Credential sudah tersimpan. Isi hanya jika ingin mengganti.
+                    <Lock className="w-3 h-3 text-emerald-600" /> Credential aktif tersimpan di database.
                   </p>
                 )}
               </div>
             </CardContent>
           </div>
 
-          {/* CARD 1 FOOTER ACTIONS (SINGLE BUTTON PATTERN: Desktop=Icon+Text, Mobile=Icon) */}
+          {/* CARD 1 FOOTER ACTIONS */}
           <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-4 pt-4 flex items-center justify-between gap-2">
             <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[50%]">
               {neetflixConnMsg && (
@@ -513,14 +505,15 @@ export const SettingsApiPage: React.FC = () => {
                       type={showSmtpPassword ? 'text' : 'password'}
                       value={smtpPasswordInput}
                       onChange={(e) => setSmtpPasswordInput(e.target.value)}
-                      placeholder={settings.smtp_password_configured ? 'Credential sudah tersimpan' : 'Masukkan Password baru'}
+                      placeholder="Masukkan Password SMTP"
+                      autoComplete="new-password"
                       className="w-full p-2.5 pr-8 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowSmtpPassword(!showSmtpPassword)}
                       className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
-                      title="Lihat password baru yang diketik"
+                      title={showSmtpPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                     >
                       {showSmtpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -570,7 +563,7 @@ export const SettingsApiPage: React.FC = () => {
             </CardContent>
           </div>
 
-          {/* CARD 2 FOOTER ACTIONS (SINGLE BUTTON PATTERN) */}
+          {/* CARD 2 FOOTER ACTIONS */}
           <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-4 pt-4 flex items-center justify-between gap-2">
             <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[40%]">
               {smtpConnMsg && (
@@ -675,28 +668,29 @@ export const SettingsApiPage: React.FC = () => {
                   type={showFonnteToken ? 'text' : 'password'}
                   value={fonnteTokenInput}
                   onChange={(e) => setFonnteTokenInput(e.target.value)}
-                  placeholder={settings.fonnte_token_configured ? 'Credential sudah tersimpan' : 'Masukkan Token Fonnte baru'}
+                  placeholder="Masukkan Token Fonnte"
+                  autoComplete="new-password"
                   className="w-full p-2.5 pr-10 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowFonnteToken(!showFonnteToken)}
                   className="absolute right-2 text-[var(--nb-text-muted)] hover:text-[var(--nb-text)]"
-                  title="Lihat token baru yang diketik"
+                  title={showFonnteToken ? 'Sembunyikan Token Fonnte' : 'Tampilkan Token Fonnte'}
                 >
                   {showFonnteToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {settings.fonnte_token_configured && !fonnteTokenInput && (
+              {settings.fonnte_token_configured && (
                 <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-emerald-600" /> Credential sudah tersimpan. Isi hanya jika ingin mengganti.
+                  <Lock className="w-3 h-3 text-emerald-600" /> Credential aktif tersimpan di database.
                 </p>
               )}
             </div>
           </div>
         </CardContent>
 
-        {/* CARD 3 FOOTER ACTIONS (SINGLE BUTTON PATTERN) */}
+        {/* CARD 3 FOOTER ACTIONS */}
         <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-2 pt-4 flex items-center justify-between gap-2">
           <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[40%]">
             {fonnteConnMsg && (

@@ -340,12 +340,11 @@ export const AdminSidebar: React.FC = () => {
           title="Settings"
           emoji="⚙️"
           color="cyan"
-          count={5}
+          count={4}
           defaultOpen={isPathActive([
             '/secret-admin-dashboard/settings-general',
             '/secret-admin-dashboard/settings-api',
             '/secret-admin-dashboard/settings-notifications',
-            '/secret-admin-dashboard/settings-security',
             '/secret-admin-dashboard/settings-system',
           ])}
         >
@@ -360,10 +359,6 @@ export const AdminSidebar: React.FC = () => {
           <SidebarItem
             to="/secret-admin-dashboard/settings-notifications"
             label="Notifications"
-          />
-          <SidebarItem
-            to="/secret-admin-dashboard/settings-security"
-            label="Security"
           />
           <SidebarItem
             to="/secret-admin-dashboard/settings-system"

@@ -7,10 +7,11 @@ import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Input } from '../../../../components/ui/Input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Search, Eye, Edit3, DollarSign, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
+import { Search, Eye, Edit3, DollarSign, ChevronLeft, ChevronRight, UserCheck, SlidersHorizontal } from 'lucide-react';
 import { UserDetailModal } from '../components/UserDetailModal';
 import { EditUserModal } from '../components/EditUserModal';
 import { AdjustBalanceModal } from '../components/AdjustBalanceModal';
+import { UserSettingsModal } from '../components/UserSettingsModal';
 import type { UserData } from '../../types';
 
 export const UsersPage: React.FC = () => {
@@ -26,6 +27,7 @@ export const UsersPage: React.FC = () => {
   const [selectedUserDetailId, setSelectedUserDetailId] = useState<number | null>(null);
   const [selectedUserEdit, setSelectedUserEdit] = useState<UserData | null>(null);
   const [selectedUserAdjust, setSelectedUserAdjust] = useState<UserData | null>(null);
+  const [userSettingsModalOpen, setUserSettingsModalOpen] = useState<boolean>(false);
 
   // TanStack Query untuk Server State
   const { data, isLoading, isError, error } = useQuery({
@@ -50,9 +52,22 @@ export const UsersPage: React.FC = () => {
             <UserCheck className="w-5 h-5 stroke-[3]" />
             <span>MANAJEMEN USER & BALANCE (MEMBER, RESELLER, VIP)</span>
           </CardTitle>
-          <Badge variant="yellow" size="sm" className="font-black">
-            TOTAL: {total} PENGGUNA
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="yellow" size="sm" className="font-black">
+              TOTAL: {total} PENGGUNA
+            </Badge>
+            <Button
+              variant="dark"
+              size="sm"
+              onClick={() => setUserSettingsModalOpen(true)}
+              className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+              title="Pengaturan Level User"
+              aria-label="Pengaturan Level User"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="hidden sm:inline">Pengaturan</span>
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-6 space-y-5">
@@ -276,6 +291,12 @@ export const UsersPage: React.FC = () => {
           onClose={() => setSelectedUserAdjust(null)}
         />
       )}
+
+      {/* MODAL PENGATURAN LEVEL USER */}
+      <UserSettingsModal
+        isOpen={userSettingsModalOpen}
+        onClose={() => setUserSettingsModalOpen(false)}
+      />
     </div>
   );
 };

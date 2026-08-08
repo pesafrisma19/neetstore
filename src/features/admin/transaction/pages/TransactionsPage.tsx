@@ -10,13 +10,15 @@ import {
   Search, 
   Eye, 
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  SlidersHorizontal
 } from 'lucide-react';
 import { getAdminTransactions } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { TransactionStatusBadge } from '../components/TransactionStatusBadge';
 import { TransactionPagination } from '../components/TransactionPagination';
 import { TransactionDetailModal } from '../components/TransactionDetailModal';
+import { TransactionSettingsModal } from '../components/TransactionSettingsModal';
 
 export interface TransactionHistoryItem {
   id: number;
@@ -52,6 +54,7 @@ export const TransactionsPage: React.FC = () => {
   // Modal State for Detail & Audit Log
   const [detailModalOpen, setDetailModalOpen] = useState<boolean>(false);
   const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
+  const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
 
   // Debounce Search Input
   useEffect(() => {
@@ -138,6 +141,18 @@ export const TransactionsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="dark"
+            size="md"
+            onClick={() => setSettingsModalOpen(true)}
+            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+            title="Pengaturan Transaksi"
+            aria-label="Pengaturan Transaksi"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Pengaturan</span>
+          </Button>
+
           <Button
             variant="white"
             size="md"
@@ -326,6 +341,12 @@ export const TransactionsPage: React.FC = () => {
           setDetailModalOpen(false);
           setSelectedDetailId(null);
         }}
+      />
+
+      {/* 5. MODAL PENGATURAN TRANSAKSI */}
+      <TransactionSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
       />
     </div>
   );

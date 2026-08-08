@@ -52,11 +52,9 @@ export const LogsErrorPage = RealLogsErrorPage;
 import { SettingsGeneralPage as RealSettingsGeneralPage } from '../../setting/pages/SettingsGeneralPage';
 import { SettingsApiPage as RealSettingsApiPage } from '../../setting/pages/SettingsApiPage';
 import { SettingsNotificationsPage as RealSettingsNotificationsPage } from '../../setting/pages/SettingsNotificationsPage';
-import { SettingsSecurityPage as RealSettingsSecurityPage } from '../../setting/pages/SettingsSecurityPage';
 import { SettingsSystemPage as RealSettingsSystemPage } from '../../setting/pages/SettingsSystemPage';
 
 export const SettingsGeneralPage = RealSettingsGeneralPage;
 export const SettingsApiPage = RealSettingsApiPage;
 export const SettingsNotificationsPage = RealSettingsNotificationsPage;
-export const SettingsSecurityPage = RealSettingsSecurityPage;
 export const SettingsSystemPage = RealSettingsSystemPage;

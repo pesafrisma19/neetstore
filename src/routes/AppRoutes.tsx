@@ -43,7 +43,6 @@ import {
   SettingsGeneralPage,
   SettingsApiPage,
   SettingsNotificationsPage,
-  SettingsSecurityPage,
   SettingsSystemPage,
 } from '../features/admin/common/pages/AdminMenuPages';
 
@@ -124,7 +123,6 @@ export const AppRoutes = () => {
         <Route path="settings-general" element={<SettingsGeneralPage />} />
         <Route path="settings-api" element={<SettingsApiPage />} />
         <Route path="settings-notifications" element={<SettingsNotificationsPage />} />
-        <Route path="settings-security" element={<SettingsSecurityPage />} />
         <Route path="settings-system" element={<SettingsSystemPage />} />
       </Route>
 

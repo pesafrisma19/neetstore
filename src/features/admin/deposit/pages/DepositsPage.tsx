@@ -12,10 +12,12 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  SlidersHorizontal
 } from 'lucide-react';
 import { getAdminDeposits, confirmAdminDeposit, rejectAdminDeposit } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
+import { DepositSettingsModal } from '../components/DepositSettingsModal';
 
 export interface DepositItem {
   id: number;
@@ -44,6 +46,7 @@ export const DepositsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -142,6 +145,18 @@ export const DepositsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="dark"
+            size="md"
+            onClick={() => setSettingsModalOpen(true)}
+            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+            title="Pengaturan Deposit"
+            aria-label="Pengaturan Deposit"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Pengaturan</span>
+          </Button>
+
           <Button
             variant="white"
             size="md"
@@ -336,6 +351,12 @@ export const DepositsPage: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* MODAL PENGATURAN DEPOSIT */}
+      <DepositSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+      />
     </div>
   );
 };
