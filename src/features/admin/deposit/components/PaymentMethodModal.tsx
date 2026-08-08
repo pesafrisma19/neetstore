@@ -31,7 +31,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     code: '',
-    type: 'EWALLET',
+    type: 'BANK_TRANSFER',
     feeFlat: 0,
     feePercent: 0,
     minAmount: '' as string | number,
@@ -50,7 +50,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
       setFormData({
         name: paymentMethod.name || '',
         code: paymentMethod.code || '',
-        type: paymentMethod.type || 'EWALLET',
+        type: paymentMethod.type || 'BANK_TRANSFER',
         feeFlat: paymentMethod.feeFlat || 0,
         feePercent: paymentMethod.feePercent || 0,
         minAmount: paymentMethod.minAmount !== undefined && paymentMethod.minAmount !== null ? paymentMethod.minAmount : '',
@@ -66,7 +66,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
       setFormData({
         name: '',
         code: '',
-        type: 'EWALLET',
+        type: 'BANK_TRANSFER',
         feeFlat: 0,
         feePercent: 0,
         minAmount: '',
@@ -160,11 +160,12 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
                   value={formData.type}
                   onChange={e => setFormData({ ...formData, type: e.target.value })}
                   options={[
-                    { value: 'EWALLET', label: 'E-Wallet' },
-                    { value: 'VIRTUAL_ACCOUNT', label: 'Virtual Account' },
-                    { value: 'RETAIL', label: 'Retail (Alfamart/Indomaret)' },
+                    { value: 'SALDO_AKUN', label: 'Saldo Akun (Internal)' },
                     { value: 'QRIS', label: 'QRIS' },
-                    { value: 'MANUAL', label: 'Transfer Manual' }
+                    { value: 'E-WALLET', label: 'E-Wallet' },
+                    { value: 'VIRTUAL_ACCOUNT', label: 'Virtual Account' },
+                    { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+                    { value: 'RETAIL', label: 'Retail (Alfamart/Indomaret)' },
                   ]}
                 />
               </div>
@@ -174,7 +175,7 @@ export const PaymentMethodModal: React.FC<PaymentMethodModalProps> = ({
                   value={formData.paymentGatewayId}
                   onChange={e => setFormData({ ...formData, paymentGatewayId: e.target.value })}
                   options={[
-                    { value: '', label: '-- Manual / Tanpa Gateway --' },
+                    { value: '', label: '-- Tanpa Gateway (Internal/Saldo) --' },
                     ...gateways.map(g => ({ value: String(g.id), label: g.name }))
                   ]}
                 />

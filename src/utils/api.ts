@@ -137,6 +137,7 @@ export const PAYMENT_METHOD_TYPES = [
   'QRIS',
   'E-WALLET',
   'VIRTUAL_ACCOUNT',
+  'BANK_TRANSFER',
   'RETAIL',
 ] as const;
 

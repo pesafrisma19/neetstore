@@ -464,9 +464,9 @@ export const UserDepositSection: React.FC = () => {
                         <div className="space-y-0.5">
                           <div className="font-black text-xs uppercase text-black flex items-center gap-1.5">
                             <span>{m.name}</span>
-                            {m.type === 'MANUAL' && (
+                            {m.gateway?.code === 'manual' && (
                               <Badge variant="purple" size="sm" className="text-[9px] px-1 py-0 font-bold">
-                                MANUAL
+                                TRANSFER
                               </Badge>
                             )}
                           </div>
