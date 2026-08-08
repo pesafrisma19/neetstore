@@ -4,28 +4,6 @@ import { getBanners, type Banner } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-// 3 Banner Promo Game 16:9 Berkualitas Tinggi (LootBar / Coverflow style demo)
-const FALLBACK_BANNERS: Banner[] = [
-  {
-    id: 1,
-    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
-    linkUrl: '/',
-    isActive: true,
-  },
-  {
-    id: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=1200&q=80',
-    linkUrl: '/',
-    isActive: true,
-  },
-  {
-    id: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80',
-    linkUrl: '/',
-    isActive: true,
-  },
-];
-
 const BannerSkeleton: React.FC = () => (
   <div className="w-full aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] bg-gray-200 animate-pulse rounded-2xl border-[4px] border-black" />
 );
@@ -47,7 +25,7 @@ export const BannerSlider: React.FC = () => {
     retry: 1,
   });
 
-  const banners = bannerData && bannerData.length > 0 ? bannerData : FALLBACK_BANNERS;
+  const banners = bannerData || [];
   const loading = isLoading;
 
   useEffect(() => {
@@ -130,7 +108,7 @@ export const BannerSlider: React.FC = () => {
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover pointer-events-none"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = FALLBACK_BANNERS[0].imageUrl;
+                (e.target as HTMLElement).style.display = 'none';
               }}
             />
           </div>
@@ -152,7 +130,7 @@ export const BannerSlider: React.FC = () => {
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover pointer-events-none"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = FALLBACK_BANNERS[1].imageUrl;
+                (e.target as HTMLElement).style.display = 'none';
               }}
             />
           </div>
@@ -176,7 +154,7 @@ export const BannerSlider: React.FC = () => {
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = FALLBACK_BANNERS[2].imageUrl;
+                (e.target as HTMLElement).style.display = 'none';
               }}
             />
           </a>

@@ -321,10 +321,13 @@ export interface Product {
 }
 
 export interface Banner {
-  id: number;
+  id: number | string;
   imageUrl: string;
   linkUrl: string | null;
   isActive: boolean;
+  title?: string;
+  source?: 'MANUAL' | 'AUTO';
+  brandId?: number;
 }
 
 // =====================================================
