@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getBanners, type Banner } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge } from '../../../../components/ui/Badge';
 
 const BannerSkeleton: React.FC = () => (
   <div className="w-full aspect-[16/8] sm:aspect-[16/7] md:aspect-[16/6] bg-gray-200 animate-pulse rounded-2xl border-[4px] border-black" />
@@ -66,10 +67,22 @@ export const BannerSlider: React.FC = () => {
           boxShadow: `8px 8px 0px 0px var(--nb-shadow-${centerTone})`,
         }}
       >
+        {active.title && (
+          <div className="absolute top-3.5 left-3.5 z-40 pointer-events-none">
+            <Badge
+              variant="yellow"
+              size="sm"
+              className="border-[2.5px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 bg-[var(--nb-yellow)] text-black"
+            >
+              <span>🏷️</span>
+              <span>{active.title}</span>
+            </Badge>
+          </div>
+        )}
         <a href={active.linkUrl || '#'} className="block w-full h-full overflow-hidden rounded-lg sm:rounded-xl">
           <img
             src={active.imageUrl}
-            alt="Promo Banner"
+            alt={active.title || 'Promo Banner'}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover"
           />
@@ -143,6 +156,18 @@ export const BannerSlider: React.FC = () => {
             boxShadow: `8px 8px 0px 0px var(--nb-shadow-${centerTone})`,
           }}
         >
+          {activeBanner.title && (
+            <div className="absolute top-3.5 left-3.5 z-40 pointer-events-none">
+              <Badge
+                variant="yellow"
+                size="sm"
+                className="border-[2.5px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 bg-[var(--nb-yellow)] text-black"
+              >
+                <span>🏷️</span>
+                <span>{activeBanner.title}</span>
+              </Badge>
+            </div>
+          )}
           <a
             href={activeBanner.linkUrl || '#'}
             className="block w-full h-full overflow-hidden rounded-lg sm:rounded-xl"
@@ -150,7 +175,7 @@ export const BannerSlider: React.FC = () => {
           >
             <img
               src={activeBanner.imageUrl}
-              alt={`Promo Banner ${currentIndex + 1}`}
+              alt={activeBanner.title || `Promo Banner ${currentIndex + 1}`}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
               onError={(e) => {
