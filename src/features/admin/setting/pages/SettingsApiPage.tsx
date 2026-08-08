@@ -13,12 +13,10 @@ import {
   EyeOff, 
   Lock,
   RefreshCw,
-  Wifi,
-  WifiOff,
   AlertCircle
 } from 'lucide-react';
 import { 
-  getAdminSettings, 
+  getAdminIntegrationSettings, 
   updateAdminSettings, 
   testNeetflixConnection,
   testSmtpConnection,
@@ -35,16 +33,16 @@ type ConnectionState = 'IDLE' | 'TESTING' | 'CONNECTED' | 'FAILED';
 export const SettingsApiPage: React.FC = () => {
   const { addToast } = useToast();
   
-  // Settings State from Backend
+  // Scoped Settings State from GET /api/admin/settings/integrations
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(false);
 
-  // Form input states for secret keys (populated ONLY when admin types a new secret)
+  // Secret Input States (ALWAYS empty on load, populated ONLY when admin types a new secret)
   const [neetflixApiKeyInput, setNeetflixApiKeyInput] = useState('');
   const [smtpPasswordInput, setSmtpPasswordInput] = useState('');
   const [fonnteTokenInput, setFonnteTokenInput] = useState('');
 
-  // Show/Hide password toggles
+  // Show/Hide password toggles for newly typed secrets
   const [showNeetflixKey, setShowNeetflixKey] = useState(false);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [showFonnteToken, setShowFonnteToken] = useState(false);
@@ -78,12 +76,12 @@ export const SettingsApiPage: React.FC = () => {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const data = await getAdminSettings();
+      const data = await getAdminIntegrationSettings();
       if (data) {
         setSettings(data);
       }
     } catch (err: any) {
-      addToast({ title: 'Gagal Memuat Pengaturan', message: err.message, type: 'error' });
+      addToast({ title: 'Gagal Memuat Pengaturan API', message: err.message, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -190,7 +188,7 @@ export const SettingsApiPage: React.FC = () => {
       const res = await testNeetflixConnection();
       if (res?.success) {
         setNeetflixConnState('CONNECTED');
-        setNeetflixConnMsg(`Server OK (${res.data?.supportedGamesCount || 0} game)`);
+        setNeetflixConnMsg(`Terhubung (${res.data?.supportedGamesCount || 0} game OK)`);
         addToast({ 
           title: 'Koneksi Neetflix Aktif', 
           message: `Status server OK. Game terdukung: ${res.data?.supportedGamesCount || 0}`, 
@@ -204,7 +202,7 @@ export const SettingsApiPage: React.FC = () => {
     } catch (err: any) {
       const errMsg = err.message || 'API Key salah atau server offline';
       setNeetflixConnState('FAILED');
-      setNeetflixConnMsg(errMsg);
+      setNeetflixConnMsg(`Gagal terhubung: ${errMsg}`);
       addToast({ title: 'Koneksi Neetflix Gagal', message: errMsg, type: 'error' });
     }
   };
@@ -219,7 +217,7 @@ export const SettingsApiPage: React.FC = () => {
       const res = await testSmtpConnection();
       if (res?.success) {
         setSmtpConnState('CONNECTED');
-        setSmtpConnMsg(res.message || 'Koneksi SMTP Server terverifikasi');
+        setSmtpConnMsg(res.message || 'Terhubung');
         addToast({ title: 'Koneksi SMTP Berhasil', message: res.message || 'Koneksi ke server SMTP terverifikasi.', type: 'success' });
       } else {
         setSmtpConnState('FAILED');
@@ -231,7 +229,7 @@ export const SettingsApiPage: React.FC = () => {
         ? 'Autentikasi SMTP gagal' 
         : (err.message || 'Koneksi SMTP gagal');
       setSmtpConnState('FAILED');
-      setSmtpConnMsg(msg);
+      setSmtpConnMsg(`Gagal terhubung: ${msg}`);
       addToast({ title: 'Koneksi SMTP Gagal', message: msg, type: 'error' });
     }
   };
@@ -270,7 +268,7 @@ export const SettingsApiPage: React.FC = () => {
       const res = await testFonnteConnection();
       if (res?.success) {
         setFonnteConnState('CONNECTED');
-        setFonnteConnMsg(res.message || 'Device terhubung');
+        setFonnteConnMsg(res.message || 'Device Terhubung');
         addToast({ title: 'Koneksi Fonnte Berhasil', message: res.message || 'Token Fonnte valid dan device aktif.', type: 'success' });
       } else {
         setFonnteConnState('FAILED');
@@ -280,7 +278,7 @@ export const SettingsApiPage: React.FC = () => {
     } catch (err: any) {
       const msg = err.message || 'Gagal terhubung ke Fonnte';
       setFonnteConnState('FAILED');
-      setFonnteConnMsg(msg);
+      setFonnteConnMsg(`Gagal terhubung: ${msg}`);
       addToast({ title: 'Koneksi Fonnte Gagal', message: msg, type: 'error' });
     }
   };
@@ -310,37 +308,6 @@ export const SettingsApiPage: React.FC = () => {
     }
   };
 
-  // Helper render for connection status badge
-  const renderConnectionBadge = (state: ConnectionState, msg?: string) => {
-    if (state === 'TESTING') {
-      return (
-        <Badge variant="yellow" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
-          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-          <span className="hidden sm:inline">Menguji...</span>
-        </Badge>
-      );
-    }
-    if (state === 'CONNECTED') {
-      return (
-        <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0" title={msg}>
-          <Wifi className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Terhubung</span>
-          <span className="sm:hidden">Wifi</span>
-        </Badge>
-      );
-    }
-    if (state === 'FAILED') {
-      return (
-        <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0" title={msg}>
-          <WifiOff className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Gagal Terhubung</span>
-          <span className="sm:hidden">Gagal</span>
-        </Badge>
-      );
-    }
-    return null;
-  };
-
   return (
     <div className="space-y-6 max-w-6xl text-left font-sans pb-16">
       {/* HEADER BANNER (NO GLOBAL SAVE BUTTON) */}
@@ -363,30 +330,27 @@ export const SettingsApiPage: React.FC = () => {
         <Card variant="white" className="flex flex-col justify-between">
           <div>
             <CardHeader headerBg="var(--nb-purple)">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base font-black uppercase">
                   <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
                   Neetflix Validator
                 </CardTitle>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {renderConnectionBadge(neetflixConnState, neetflixConnMsg)}
-                  {settings.neetflix_api_key_configured ? (
-                    <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Terkonfigurasi</span>
-                      <span className="sm:hidden">✓</span>
-                    </Badge>
-                  ) : (
-                    <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Belum Dikonfigurasi</span>
-                      <span className="sm:hidden">!</span>
-                    </Badge>
-                  )}
-                </div>
+                {/* SINGLE CONFIGURATION BADGE ONLY IN HEADER */}
+                {settings.neetflix_api_key_configured ? (
+                  <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Terkonfigurasi</span>
+                  </Badge>
+                ) : (
+                  <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Belum Dikonfigurasi</span>
+                  </Badge>
+                )}
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4 p-5">
               <div>
                 <label className="block text-xs font-black uppercase mb-1 text-[var(--nb-text)]">
@@ -424,70 +388,50 @@ export const SettingsApiPage: React.FC = () => {
                 </div>
                 {settings.neetflix_api_key_configured && !neetflixApiKeyInput && (
                   <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-600" /> Tersimpan. Isi hanya jika ingin mengganti.
+                    <Lock className="w-3 h-3 text-emerald-600" /> Credential sudah tersimpan. Isi hanya jika ingin mengganti.
                   </p>
                 )}
               </div>
             </CardContent>
           </div>
 
-          {/* CARD 1 FOOTER ACTIONS */}
+          {/* CARD 1 FOOTER ACTIONS (SINGLE BUTTON PATTERN: Desktop=Icon+Text, Mobile=Icon) */}
           <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-4 pt-4 flex items-center justify-between gap-2">
-            <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate">
-              {neetflixConnMsg && <span className="font-mono text-[10px]">{neetflixConnMsg}</span>}
+            <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[50%]">
+              {neetflixConnMsg && (
+                <span className={`font-mono text-[10px] ${neetflixConnState === 'CONNECTED' ? 'text-emerald-700 font-black' : neetflixConnState === 'FAILED' ? 'text-rose-700 font-black' : ''}`}>
+                  {neetflixConnMsg}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* DESKTOP TEST BUTTON */}
+              {/* SINGLE TEST BUTTON */}
               <Button
                 variant="dark"
                 size="sm"
                 onClick={handleTestNeetflix}
                 disabled={neetflixConnState === 'TESTING'}
-                className="hidden sm:inline-flex font-black uppercase text-xs"
-                title="Tes Koneksi Neetflix API"
+                className="font-black uppercase text-xs"
+                title="Test Koneksi Neetflix"
+                aria-label="Test Koneksi Neetflix"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${neetflixConnState === 'TESTING' ? 'animate-spin' : ''}`} />
-                <span>{neetflixConnState === 'TESTING' ? 'Menguji...' : 'Test Koneksi'}</span>
+                <span className="hidden sm:inline">Test Koneksi</span>
               </Button>
 
-              {/* MOBILE TEST BUTTON (ICON ONLY) */}
-              <Button
-                variant="dark"
-                size="sm"
-                onClick={handleTestNeetflix}
-                disabled={neetflixConnState === 'TESTING'}
-                className="sm:hidden font-black uppercase text-xs p-2.5"
-                title="Test Koneksi"
-                aria-label="Test Koneksi"
-              >
-                <RefreshCw className={`w-4 h-4 ${neetflixConnState === 'TESTING' ? 'animate-spin' : ''}`} />
-              </Button>
-
-              {/* DESKTOP SAVE BUTTON */}
+              {/* SINGLE SAVE BUTTON */}
               <Button
                 variant="mint"
                 size="sm"
                 onClick={handleSaveNeetflix}
                 disabled={savingNeetflix || loading}
-                className="hidden sm:inline-flex font-black uppercase text-xs"
-                title="Simpan Pengaturan Neetflix"
-              >
-                <Save className="w-3.5 h-3.5 stroke-[3]" />
-                <span>{savingNeetflix ? 'Menyimpan...' : 'Simpan Neetflix'}</span>
-              </Button>
-
-              {/* MOBILE SAVE BUTTON (ICON ONLY) */}
-              <Button
-                variant="mint"
-                size="sm"
-                onClick={handleSaveNeetflix}
-                disabled={savingNeetflix || loading}
-                className="sm:hidden font-black uppercase text-xs p-2.5"
+                className="font-black uppercase text-xs"
                 title="Simpan Neetflix"
                 aria-label="Simpan Neetflix"
               >
-                <Save className="w-4 h-4 stroke-[3]" />
+                <Save className="w-3.5 h-3.5 stroke-[3]" />
+                <span className="hidden sm:inline">{savingNeetflix ? 'Menyimpan...' : 'Simpan Neetflix'}</span>
               </Button>
             </div>
           </div>
@@ -497,30 +441,27 @@ export const SettingsApiPage: React.FC = () => {
         <Card variant="white" className="flex flex-col justify-between">
           <div>
             <CardHeader headerBg="var(--nb-cyan)">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base font-black uppercase">
                   <Mail className="w-5 h-5 stroke-[2.5]" />
                   SMTP Email Server
                 </CardTitle>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {renderConnectionBadge(smtpConnState, smtpConnMsg)}
-                  {settings.smtp_password_configured && settings.smtp_host ? (
-                    <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Terkonfigurasi</span>
-                      <span className="sm:hidden">✓</span>
-                    </Badge>
-                  ) : (
-                    <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Belum Dikonfigurasi</span>
-                      <span className="sm:hidden">!</span>
-                    </Badge>
-                  )}
-                </div>
+                {/* SINGLE CONFIGURATION BADGE ONLY IN HEADER */}
+                {settings.smtp_password_configured && settings.smtp_host ? (
+                  <Badge variant="mint" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Terkonfigurasi</span>
+                  </Badge>
+                ) : (
+                  <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Belum Dikonfigurasi</span>
+                  </Badge>
+                )}
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4 p-5">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
@@ -596,7 +537,7 @@ export const SettingsApiPage: React.FC = () => {
                     type="text"
                     value={settings.smtp_from_name || ''}
                     onChange={(e) => handleChange('smtp_from_name', e.target.value)}
-                    placeholder={settings.site_name || 'NETSTORE CS'}
+                    placeholder="NETSTORE CS"
                     className="w-full p-2.5 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-sans text-xs focus:bg-[var(--nb-yellow)] outline-none font-bold"
                   />
                 </div>
@@ -609,7 +550,7 @@ export const SettingsApiPage: React.FC = () => {
                     type="email"
                     value={settings.smtp_from_email || ''}
                     onChange={(e) => handleChange('smtp_from_email', e.target.value)}
-                    placeholder={settings.support_email || 'cs@netstore.id'}
+                    placeholder="cs@netstore.id"
                     className="w-full p-2.5 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] font-mono text-xs focus:bg-[var(--nb-yellow)] outline-none"
                   />
                 </div>
@@ -629,83 +570,56 @@ export const SettingsApiPage: React.FC = () => {
             </CardContent>
           </div>
 
-          {/* CARD 2 FOOTER ACTIONS */}
+          {/* CARD 2 FOOTER ACTIONS (SINGLE BUTTON PATTERN) */}
           <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-4 pt-4 flex items-center justify-between gap-2">
-            <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate">
-              {smtpConnMsg && <span className="font-mono text-[10px]">{smtpConnMsg}</span>}
+            <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[40%]">
+              {smtpConnMsg && (
+                <span className={`font-mono text-[10px] ${smtpConnState === 'CONNECTED' ? 'text-emerald-700 font-black' : smtpConnState === 'FAILED' ? 'text-rose-700 font-black' : ''}`}>
+                  {smtpConnMsg}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* DESKTOP ACTIONS */}
+              {/* SINGLE TEST BUTTON */}
               <Button
                 variant="dark"
                 size="sm"
                 onClick={handleTestSmtpConnection}
                 disabled={smtpConnState === 'TESTING'}
-                className="hidden sm:inline-flex font-black uppercase text-xs"
-                title="Tes Koneksi SMTP"
+                className="font-black uppercase text-xs"
+                title="Test Koneksi SMTP"
+                aria-label="Test Koneksi SMTP"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${smtpConnState === 'TESTING' ? 'animate-spin' : ''}`} />
-                <span>{smtpConnState === 'TESTING' ? 'Memeriksa...' : 'Test Koneksi'}</span>
+                <span className="hidden sm:inline">Test Koneksi</span>
               </Button>
 
+              {/* SINGLE SEND TEST EMAIL BUTTON */}
               <Button
                 variant="cyan"
                 size="sm"
                 onClick={() => setSmtpModalOpen(true)}
-                className="hidden sm:inline-flex font-black uppercase text-xs"
-                title="Kirim Email Tes"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Kirim Email Tes</span>
-              </Button>
-
-              <Button
-                variant="mint"
-                size="sm"
-                onClick={handleSaveSmtp}
-                disabled={savingSmtp || loading}
-                className="hidden sm:inline-flex font-black uppercase text-xs"
-                title="Simpan Pengaturan SMTP"
-              >
-                <Save className="w-3.5 h-3.5 stroke-[3]" />
-                <span>{savingSmtp ? 'Menyimpan...' : 'Simpan SMTP'}</span>
-              </Button>
-
-              {/* MOBILE ACTIONS (ICON ONLY) */}
-              <Button
-                variant="dark"
-                size="sm"
-                onClick={handleTestSmtpConnection}
-                disabled={smtpConnState === 'TESTING'}
-                className="sm:hidden font-black uppercase text-xs p-2.5"
-                title="Test Koneksi"
-                aria-label="Test Koneksi"
-              >
-                <RefreshCw className={`w-4 h-4 ${smtpConnState === 'TESTING' ? 'animate-spin' : ''}`} />
-              </Button>
-
-              <Button
-                variant="cyan"
-                size="sm"
-                onClick={() => setSmtpModalOpen(true)}
-                className="sm:hidden font-black uppercase text-xs p-2.5"
+                className="font-black uppercase text-xs"
                 title="Kirim Email Tes"
                 aria-label="Kirim Email Tes"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Kirim Email Tes</span>
               </Button>
 
+              {/* SINGLE SAVE BUTTON */}
               <Button
                 variant="mint"
                 size="sm"
                 onClick={handleSaveSmtp}
                 disabled={savingSmtp || loading}
-                className="sm:hidden font-black uppercase text-xs p-2.5"
+                className="font-black uppercase text-xs"
                 title="Simpan SMTP"
                 aria-label="Simpan SMTP"
               >
-                <Save className="w-4 h-4 stroke-[3]" />
+                <Save className="w-3.5 h-3.5 stroke-[3]" />
+                <span className="hidden sm:inline">{savingSmtp ? 'Menyimpan...' : 'Simpan SMTP'}</span>
               </Button>
             </div>
           </div>
@@ -713,31 +627,27 @@ export const SettingsApiPage: React.FC = () => {
 
       </div>
 
-      {/* CARD 3: FONNTE WHATSAPP GATEWAY (COMPACT FULL WIDTH DESKTOP) */}
+      {/* CARD 3: FONNTE WHATSAPP GATEWAY */}
       <Card variant="white">
         <CardHeader headerBg="var(--nb-mint)">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base font-black uppercase text-[var(--nb-text)]">
               <MessageSquare className="w-5 h-5 stroke-[2.5]" />
               Fonnte WhatsApp Gateway
             </CardTitle>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              {renderConnectionBadge(fonnteConnState, fonnteConnMsg)}
-              {settings.fonnte_token_configured ? (
-                <Badge variant="yellow" size="sm" className="font-black uppercase flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Terkonfigurasi</span>
-                  <span className="sm:hidden">✓</span>
-                </Badge>
-              ) : (
-                <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Belum Dikonfigurasi</span>
-                  <span className="sm:hidden">!</span>
-                </Badge>
-              )}
-            </div>
+            {/* SINGLE CONFIGURATION BADGE ONLY IN HEADER */}
+            {settings.fonnte_token_configured ? (
+              <Badge variant="yellow" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Terkonfigurasi</span>
+              </Badge>
+            ) : (
+              <Badge variant="pink" size="sm" className="font-black uppercase flex items-center gap-1 shrink-0">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Belum Dikonfigurasi</span>
+              </Badge>
+            )}
           </div>
         </CardHeader>
 
@@ -779,90 +689,63 @@ export const SettingsApiPage: React.FC = () => {
               </div>
               {settings.fonnte_token_configured && !fonnteTokenInput && (
                 <p className="text-[10px] font-bold text-[var(--nb-text-muted)] mt-1 flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-emerald-600" /> Tersimpan. Isi hanya jika ingin mengganti.
+                  <Lock className="w-3 h-3 text-emerald-600" /> Credential sudah tersimpan. Isi hanya jika ingin mengganti.
                 </p>
               )}
             </div>
           </div>
         </CardContent>
 
-        {/* CARD 3 FOOTER ACTIONS */}
+        {/* CARD 3 FOOTER ACTIONS (SINGLE BUTTON PATTERN) */}
         <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-2 pt-4 flex items-center justify-between gap-2">
-          <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate">
-            {fonnteConnMsg && <span className="font-mono text-[10px]">{fonnteConnMsg}</span>}
+          <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[40%]">
+            {fonnteConnMsg && (
+              <span className={`font-mono text-[10px] ${fonnteConnState === 'CONNECTED' ? 'text-emerald-700 font-black' : fonnteConnState === 'FAILED' ? 'text-rose-700 font-black' : ''}`}>
+                {fonnteConnMsg}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* DESKTOP ACTIONS */}
+            {/* SINGLE TEST BUTTON */}
             <Button
               variant="dark"
               size="sm"
               onClick={handleTestFonnteConnection}
               disabled={fonnteConnState === 'TESTING'}
-              className="hidden sm:inline-flex font-black uppercase text-xs"
-              title="Tes Koneksi Device Fonnte"
+              className="font-black uppercase text-xs"
+              title="Test Koneksi Fonnte"
+              aria-label="Test Koneksi Fonnte"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${fonnteConnState === 'TESTING' ? 'animate-spin' : ''}`} />
-              <span>{fonnteConnState === 'TESTING' ? 'Memeriksa...' : 'Test Koneksi'}</span>
+              <span className="hidden sm:inline">Test Koneksi</span>
             </Button>
 
+            {/* SINGLE SEND TEST WA BUTTON */}
             <Button
               variant="cyan"
               size="sm"
               onClick={() => setFonnteModalOpen(true)}
-              className="hidden sm:inline-flex font-black uppercase text-xs"
-              title="Kirim WhatsApp Tes"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Kirim WA Tes</span>
-            </Button>
-
-            <Button
-              variant="mint"
-              size="sm"
-              onClick={handleSaveFonnte}
-              disabled={savingFonnte || loading}
-              className="hidden sm:inline-flex font-black uppercase text-xs"
-              title="Simpan Pengaturan Fonnte"
-            >
-              <Save className="w-3.5 h-3.5 stroke-[3]" />
-              <span>{savingFonnte ? 'Menyimpan...' : 'Simpan Fonnte'}</span>
-            </Button>
-
-            {/* MOBILE ACTIONS (ICON ONLY) */}
-            <Button
-              variant="dark"
-              size="sm"
-              onClick={handleTestFonnteConnection}
-              disabled={fonnteConnState === 'TESTING'}
-              className="sm:hidden font-black uppercase text-xs p-2.5"
-              title="Test Koneksi"
-              aria-label="Test Koneksi"
-            >
-              <RefreshCw className={`w-4 h-4 ${fonnteConnState === 'TESTING' ? 'animate-spin' : ''}`} />
-            </Button>
-
-            <Button
-              variant="cyan"
-              size="sm"
-              onClick={() => setFonnteModalOpen(true)}
-              className="sm:hidden font-black uppercase text-xs p-2.5"
+              className="font-black uppercase text-xs"
               title="Kirim WA Tes"
               aria-label="Kirim WA Tes"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Kirim WA Tes</span>
             </Button>
 
+            {/* SINGLE SAVE BUTTON */}
             <Button
               variant="mint"
               size="sm"
               onClick={handleSaveFonnte}
               disabled={savingFonnte || loading}
-              className="sm:hidden font-black uppercase text-xs p-2.5"
+              className="font-black uppercase text-xs"
               title="Simpan Fonnte"
               aria-label="Simpan Fonnte"
             >
-              <Save className="w-4 h-4 stroke-[3]" />
+              <Save className="w-3.5 h-3.5 stroke-[3]" />
+              <span className="hidden sm:inline">{savingFonnte ? 'Menyimpan...' : 'Simpan Fonnte'}</span>
             </Button>
           </div>
         </div>
