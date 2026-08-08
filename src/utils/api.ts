@@ -585,6 +585,10 @@ export const checkoutPayment = (data: any) => apiFetch<any>('/checkout', { metho
 export const getAdminSettings = () => apiFetch<any>('/admin/settings');
 export const updateAdminSettings = (data: any) => apiFetch<any>('/admin/settings', { method: 'POST', body: data });
 export const testNeetflixConnection = () => apiFetch<any>('/neetflix/test-connection', { method: 'GET' });
+export const testSmtpConnection = () => apiFetch<any>('/admin/settings/smtp/test-connection', { method: 'POST' });
+export const sendSmtpTestEmail = (to: string) => apiFetch<any>('/admin/settings/smtp/send-test', { method: 'POST', body: JSON.stringify({ to }) });
+export const testFonnteConnection = () => apiFetch<any>('/admin/settings/fonnte/test-connection', { method: 'POST' });
+export const sendFonnteTestMessage = (target: string, message?: string) => apiFetch<any>('/admin/settings/fonnte/send-test', { method: 'POST', body: JSON.stringify({ target, message }) });
 
 // === Logs ===
 export const getAdminActivityLogs = () => apiFetch<any[]>('/admin/logs/activity');
