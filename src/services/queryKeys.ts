@@ -32,6 +32,7 @@ export const queryKeys = {
       history: (userId: number | string) => ['user', userId, 'deposits'] as const,
     },
     levelUpgradeInfo: ['user', 'levelUpgradeInfo'] as const,
+    whitelists: ['user', 'whitelists'] as const,
   },
 
   admin: {
@@ -73,6 +74,7 @@ export const queryKeys = {
       all: ['admin', 'users'] as const,
       list: (params?: any) => ['admin', 'users', 'list', params] as const,
       detail: (id: number) => ['admin', 'users', 'detail', id] as const,
+      whitelists: (id: number) => ['admin', 'users', id, 'whitelists'] as const,
     },
     mutations: {
       all: ['admin', 'mutations'] as const,

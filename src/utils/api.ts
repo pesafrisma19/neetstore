@@ -544,6 +544,20 @@ export const approveAdminApiKey = (id: number) =>
 export const rejectAdminApiKey = (id: number) =>
   apiFetch<{ message: string }>(`/admin/users/${id}/reject-apikey`, { method: 'POST' });
 
+// === User & Admin IP Whitelist ===
+export const getUserWhitelists = () => apiFetch<any[]>('/user/api-whitelists');
+export const addUserWhitelist = (ipAddress: string) =>
+  apiFetch<any>('/user/api-whitelists', { method: 'POST', body: JSON.stringify({ ipAddress }) });
+export const deleteUserWhitelist = (id: number) =>
+  apiFetch<{ message: string }>(`/user/api-whitelists/${id}`, { method: 'DELETE' });
+
+export const getAdminUserWhitelists = (userId: number) =>
+  apiFetch<any[]>(`/admin/users/${userId}/api-whitelists`);
+export const addAdminUserWhitelist = (userId: number, ipAddress: string) =>
+  apiFetch<any>(`/admin/users/${userId}/api-whitelists`, { method: 'POST', body: JSON.stringify({ ipAddress }) });
+export const deleteAdminUserWhitelist = (userId: number, whitelistId: number) =>
+  apiFetch<{ message: string }>(`/admin/users/${userId}/api-whitelists/${whitelistId}`, { method: 'DELETE' });
+
 // === Mutations ===
 export interface AdminMutationsQueryParams {
   page?: number;

@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../../services/queryKeys';
-import { getAdminUserDetail, approveAdminApiKey, rejectAdminApiKey } from '../../../../utils/api';
+import {
+  getAdminUserDetail,
+  approveAdminApiKey,
+  rejectAdminApiKey,
+  getAdminUserWhitelists,
+  addAdminUserWhitelist,
+  deleteAdminUserWhitelist,
+} from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
@@ -24,6 +31,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { AdjustBalanceModal } from './AdjustBalanceModal';
 
@@ -66,6 +74,43 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
     },
     onError: (err: any) => {
       setApiMsg({ text: err?.message || 'Gagal menolak API Key', type: 'error' });
+    },
+  });
+
+  // Admin IP Whitelist States & Query
+  const [adminNewIp, setAdminNewIp] = useState('');
+  const [adminIpMsg, setAdminIpMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const { data: adminWhitelistsData = [] } = useQuery<any[]>({
+    queryKey: queryKeys.admin.users.whitelists(userId),
+    queryFn: async (): Promise<any[]> => {
+      const res = await getAdminUserWhitelists(userId);
+      return Array.isArray(res) ? res : [];
+    },
+    enabled: Boolean(userId),
+    staleTime: 10 * 1000,
+  });
+
+  const addAdminIpMutation = useMutation({
+    mutationFn: (ip: string) => addAdminUserWhitelist(userId, ip),
+    onSuccess: () => {
+      setAdminIpMsg({ text: 'IP Whitelist berhasil ditambahkan oleh Admin!', type: 'success' });
+      setAdminNewIp('');
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.whitelists(userId) });
+    },
+    onError: (err: any) => {
+      setAdminIpMsg({ text: err.message || 'Gagal menambahkan IP Whitelist', type: 'error' });
+    },
+  });
+
+  const deleteAdminIpMutation = useMutation({
+    mutationFn: (whitelistId: number) => deleteAdminUserWhitelist(userId, whitelistId),
+    onSuccess: () => {
+      setAdminIpMsg({ text: 'IP Whitelist berhasil dihapus oleh Admin!', type: 'success' });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.whitelists(userId) });
+    },
+    onError: (err: any) => {
+      setAdminIpMsg({ text: err.message || 'Gagal menghapus IP Whitelist', type: 'error' });
     },
   });
 
@@ -297,6 +342,95 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ userId, onClos
                     </Button>
                   </div>
                 )}
+
+                {/* ADMIN IP WHITELIST MANAGEMENT BOX */}
+                <div className="mt-4 p-4 bg-white border-[2.5px] border-black rounded-2xl shadow-[3px_3px_0px_0px_#000] space-y-3">
+                  <div className="flex items-center justify-between border-b-[2px] border-black pb-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-black stroke-[3]" />
+                      <h4 className="text-xs font-black uppercase text-black">IP WHITELIST USER (ADMIN OVERRIDE)</h4>
+                    </div>
+                    <Badge variant={adminWhitelistsData.length >= 3 ? 'pink' : 'mint'} size="sm" className="font-black">
+                      {adminWhitelistsData.length} / 3 TERPAKAI
+                    </Badge>
+                  </div>
+
+                  {adminIpMsg && (
+                    <div
+                      className={`p-2.5 border-[2px] border-black rounded-xl text-xs font-black flex items-center gap-2 ${
+                        adminIpMsg.type === 'success' ? 'bg-emerald-100 text-emerald-950' : 'bg-rose-100 text-rose-950'
+                      }`}
+                    >
+                      <span>{adminIpMsg.text}</span>
+                    </div>
+                  )}
+
+                  {/* Form Tambah IP Admin */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (adminNewIp.trim()) {
+                        setAdminIpMsg(null);
+                        addAdminIpMutation.mutate(adminNewIp.trim());
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Input
+                      type="text"
+                      placeholder="Input IP IPv4 (Contoh: 15.235.214.156)"
+                      value={adminNewIp}
+                      onChange={(e) => setAdminNewIp(e.target.value)}
+                      disabled={adminWhitelistsData.length >= 3 || addAdminIpMutation.isPending}
+                      className="bg-neutral-50 font-mono text-xs font-black text-black border-[2px]"
+                    />
+                    <Button
+                      type="submit"
+                      variant="yellow"
+                      size="sm"
+                      disabled={adminWhitelistsData.length >= 3 || addAdminIpMutation.isPending || !adminNewIp.trim()}
+                      className="font-black text-xs shrink-0 py-1.5 shadow-[2px_2px_0px_0px_#000]"
+                    >
+                      {addAdminIpMutation.isPending ? 'ADDING...' : '+ TAMBAH IP'}
+                    </Button>
+                  </form>
+
+                  {/* List / Empty State */}
+                  {adminWhitelistsData.length === 0 ? (
+                    <div className="p-3 bg-neutral-100 border-[1.5px] border-dashed border-black rounded-xl text-center">
+                      <p className="text-xs font-bold text-neutral-600 m-0">
+                        Belum ada IP Whitelist terdaftar untuk user ini.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {adminWhitelistsData.map((item: any) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between p-2.5 bg-neutral-50 border-[1.5px] border-black rounded-xl text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                            <span className="font-mono font-black text-black">{item.ipAddress}</span>
+                          </div>
+                          <Button
+                            variant="pink"
+                            size="sm"
+                            onClick={() => {
+                              setAdminIpMsg(null);
+                              deleteAdminIpMutation.mutate(item.id);
+                            }}
+                            disabled={deleteAdminIpMutation.isPending}
+                            className="text-[10px] font-black py-0.5 px-2 shadow-[1.5px_1.5px_0px_0px_#000]"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1 stroke-[2.5]" />
+                            HAPUS
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* TABS SELECTOR: MUTASI SALDO VS TRANSAKSI VS DEPOSIT */}

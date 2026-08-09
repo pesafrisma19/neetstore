@@ -28,6 +28,7 @@ import {
   AlertCircle,
   Share2,
   Edit3,
+  Trash2,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -38,6 +39,9 @@ import {
   requestUserApiKey,
   getUserLevelUpgradeInfo,
   upgradeUserLevel,
+  getUserWhitelists,
+  addUserWhitelist,
+  deleteUserWhitelist,
   type UserTransactionItem,
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
@@ -188,6 +192,43 @@ export const UserDashboardPage: React.FC = () => {
     },
     onError: (err: any) => {
       setProfileMsg({ text: err.message || 'Gagal mengajukan API Key', type: 'error' });
+    },
+  });
+
+  // IP Whitelist States & Query
+  const [newIpInput, setNewIpInput] = useState('');
+  const [ipMsg, setIpMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const { data: userWhitelistsData = [] } = useQuery<any[]>({
+    queryKey: queryKeys.user.whitelists,
+    queryFn: async (): Promise<any[]> => {
+      const res = await getUserWhitelists();
+      return Array.isArray(res) ? res : [];
+    },
+    enabled: Boolean(userId && user.apiStatus === 'APPROVED'),
+    staleTime: 10 * 1000,
+  });
+
+  const addIpMutation = useMutation({
+    mutationFn: (ip: string) => addUserWhitelist(ip),
+    onSuccess: () => {
+      setIpMsg({ text: 'IP Whitelist berhasil ditambahkan!', type: 'success' });
+      setNewIpInput('');
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.whitelists });
+    },
+    onError: (err: any) => {
+      setIpMsg({ text: err.message || 'Gagal menambahkan IP Whitelist', type: 'error' });
+    },
+  });
+
+  const deleteIpMutation = useMutation({
+    mutationFn: (id: number) => deleteUserWhitelist(id),
+    onSuccess: () => {
+      setIpMsg({ text: 'IP Whitelist berhasil dihapus!', type: 'success' });
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.whitelists });
+    },
+    onError: (err: any) => {
+      setIpMsg({ text: err.message || 'Gagal menghapus IP Whitelist', type: 'error' });
     },
   });
 
@@ -776,6 +817,94 @@ export const UserDashboardPage: React.FC = () => {
                       <p className="text-[11px] font-bold text-emerald-900">
                         🔒 Jangan bagikan API Key Anda kepada siapapun. Gunakan header <code className="font-mono bg-emerald-200 px-1 py-0.5 rounded">X-API-KEY</code> pada setiap request API.
                       </p>
+                    </div>
+                  )}
+
+                  {/* API Whitelist Management Box jika APPROVED */}
+                  {user.apiStatus === 'APPROVED' && (
+                    <div className="p-5 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] space-y-4">
+                      <div className="flex items-center justify-between border-b-[2.5px] border-black pb-3">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-5 h-5 text-black stroke-[3]" />
+                          <h3 className="text-xs font-black uppercase text-black">IP WHITELIST AKSES API</h3>
+                        </div>
+                        <Badge variant={userWhitelistsData.length >= 3 ? 'pink' : 'mint'} size="sm" className="font-black">
+                          {userWhitelistsData.length} / 3 TERPAKAI
+                        </Badge>
+                      </div>
+
+                      {ipMsg && (
+                        <Callout tone={ipMsg.type === 'success' ? 'mint' : 'pink'} className="text-xs">
+                          {ipMsg.text}
+                        </Callout>
+                      )}
+
+                      {/* Form Tambah IP */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (newIpInput.trim()) {
+                            setIpMsg(null);
+                            addIpMutation.mutate(newIpInput.trim());
+                          }
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Input
+                          type="text"
+                          placeholder="Contoh: 15.235.214.156"
+                          value={newIpInput}
+                          onChange={(e) => setNewIpInput(e.target.value)}
+                          disabled={userWhitelistsData.length >= 3 || addIpMutation.isPending}
+                          className="bg-neutral-50 font-mono text-xs font-black text-black border-[2.5px]"
+                        />
+                        <Button
+                          type="submit"
+                          variant="yellow"
+                          size="md"
+                          disabled={userWhitelistsData.length >= 3 || addIpMutation.isPending || !newIpInput.trim()}
+                          className="font-black text-xs shrink-0 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          {addIpMutation.isPending ? 'MENAMBAH...' : '+ TAMBAH IP'}
+                        </Button>
+                      </form>
+
+                      {/* Empty State */}
+                      {userWhitelistsData.length === 0 ? (
+                        <div className="p-4 bg-amber-50 border-[2px] border-dashed border-black rounded-xl text-center">
+                          <p className="text-xs font-bold text-amber-900 m-0">
+                            ⚠️ Belum ada IP whitelist. Tambahkan IP agar API Key dapat digunakan.
+                          </p>
+                        </div>
+                      ) : (
+                        /* Daftar IP Whitelist */
+                        <div className="space-y-2">
+                          {userWhitelistsData.map((item: any) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between p-3 bg-neutral-100 border-[2px] border-black rounded-xl"
+                            >
+                              <div className="flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                                <span className="font-mono text-xs font-black text-black">{item.ipAddress}</span>
+                              </div>
+                              <Button
+                                variant="pink"
+                                size="sm"
+                                onClick={() => {
+                                  setIpMsg(null);
+                                  deleteIpMutation.mutate(item.id);
+                                }}
+                                disabled={deleteIpMutation.isPending}
+                                className="text-[10px] font-black py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                                HAPUS
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
