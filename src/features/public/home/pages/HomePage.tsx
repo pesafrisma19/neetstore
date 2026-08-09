@@ -9,12 +9,9 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '..
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Display } from '../../../../components/ui/Display';
-import { Callout } from '../../../../components/ui/Callout';
 import { Pagination } from '../../../../components/ui/Pagination';
 import { Avatar, AvatarGroup } from '../../../../components/ui/Avatar';
 import { Button } from '../../../../components/ui/Button';
-import { Kbd } from '../../../../components/ui/Kbd';
-import { Code } from '../../../../components/ui/Code';
 import { Gamepad2, HelpCircle, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Input } from '../../../../components/ui/Input';
 import { apiFetch, type PublicBrand } from '../../../../utils/api';
@@ -106,16 +103,6 @@ export const Home: React.FC = () => {
 
         {/* Promo Banner Slider dalam frame Brutalist */}
         <PromoBanner />
-
-        {/* Callout Promo Kupon */}
-        <Callout tone="yellow" title="⚡ PERIODE PROMO SPESIAL DIGIFLAZZ" className="my-6">
-          Gunakan kode kupon{' '}
-          <Code tone="yellow" className="inline-block px-1.5 py-0.5 border-[1.5px] border-black my-0 text-[11px]">
-            NEON30
-          </Code>{' '}
-          untuk mendapatkan diskon langsung Rp 5.000 pada setiap transaksi pertama kamu! Tekan{' '}
-          <Kbd size="sm">Ctrl K</Kbd> untuk mencari game secara kilat.
-        </Callout>
 
         {/* Catalog Section Header */}
         <div className="my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4">
