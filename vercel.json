@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://101.32.108.245:5000/api/:path*"
+      "destination": "https://api.neetstore.id/api/:path*"
     },
     {
       "source": "/(.*)",
