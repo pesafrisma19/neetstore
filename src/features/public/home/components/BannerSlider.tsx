@@ -68,7 +68,7 @@ export const BannerSlider: React.FC = () => {
         }}
       >
         {active.title && (
-          <div className="absolute top-3.5 left-3.5 z-40 pointer-events-none">
+          <div className="absolute bottom-3.5 left-3.5 z-40 pointer-events-none">
             <Badge
               variant={centerTone as any}
               size="sm"
@@ -156,7 +156,7 @@ export const BannerSlider: React.FC = () => {
           }}
         >
           {activeBanner.title && (
-            <div className="absolute top-3.5 left-3.5 z-40 pointer-events-none">
+            <div className="absolute bottom-3.5 left-3.5 z-40 pointer-events-none">
               <Badge
                 variant={centerTone as any}
                 size="sm"
@@ -190,7 +190,7 @@ export const BannerSlider: React.FC = () => {
         type="button"
         onClick={prev}
         aria-label="Banner sebelumnya"
-        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
+        className="absolute left-2 sm:left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-white border-[2.5px] sm:border-[3px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] sm:shadow-[3px_3px_0px_0px_var(--nb-shadow)] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
         style={{
           ['--hover-bg' as any]: `var(--nb-${btnTone})`,
         }}
@@ -201,14 +201,14 @@ export const BannerSlider: React.FC = () => {
           (e.currentTarget as HTMLElement).style.backgroundColor = '';
         }}
       >
-        <ChevronLeft className="w-6 h-6 stroke-[3]" />
+        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-[3]" />
       </button>
 
       <button
         type="button"
         onClick={next}
         aria-label="Banner berikutnya"
-        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 bg-white border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
+        className="absolute right-2 sm:right-6 md:right-8 top-1/2 -translate-y-1/2 z-40 w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-white border-[2.5px] sm:border-[3px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] sm:shadow-[3px_3px_0px_0px_var(--nb-shadow)] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
         style={{
           ['--hover-bg' as any]: `var(--nb-${btnTone})`,
         }}
@@ -219,7 +219,7 @@ export const BannerSlider: React.FC = () => {
           (e.currentTarget as HTMLElement).style.backgroundColor = '';
         }}
       >
-        <ChevronRight className="w-6 h-6 stroke-[3]" />
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-[3]" />
       </button>
 
       {/* Titik Indikator (Pagination Dots) di bawah */}
