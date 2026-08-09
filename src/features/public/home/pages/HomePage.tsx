@@ -105,15 +105,15 @@ export const Home: React.FC = () => {
         <PromoBanner />
 
         {/* Catalog Section Header */}
-        <div className="my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Gamepad2 className="w-6 h-6 stroke-[3] text-black" />
-              <Display size="sm" highlight="yellow">
+        <div className="my-6 sm:my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4 overflow-hidden">
+          <div className="min-w-0 max-w-full">
+            <div className="flex items-center gap-2 mb-1 overflow-hidden">
+              <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-black shrink-0" />
+              <Display size="sm" highlight="yellow" className="text-base sm:text-2xl md:text-3xl whitespace-nowrap">
                 KATALOG GAME &amp; VOUCHER
               </Display>
             </div>
-            <p className="text-sm font-bold text-gray-700">
+            <p className="text-xs sm:text-sm font-bold text-gray-700 truncate">
               Pilih game favoritmu dan nikmati harga terjangkau dengan proses otomatis 24 jam
             </p>
           </div>
