@@ -1,5 +1,19 @@
 export interface TransactionData { id: any; [key: string]: any; }
-export interface VoucherData { id: any; [key: string]: any; }
+export interface VoucherData {
+  id: number;
+  code: string;
+  discountType: 'FLAT' | 'PERCENT';
+  discountValue: number;
+  minPurchase: number;
+  maxDiscount: number;
+  maxUsage: number;
+  usedCount: number;
+  expiredAt?: string | null;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
 export interface UserData {
   id: number;
   username: string;

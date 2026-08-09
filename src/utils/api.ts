@@ -431,9 +431,17 @@ export const updateAdminBrand = (id: number, data: Partial<any>) => apiFetch<any
 export const deleteAdminBrand = (id: number) => apiFetch<{ message: string }>(`/admin/brands/${id}`, { method: 'DELETE' });
 
 // === Vouchers ===
-export const getAdminVouchers = () => apiFetch<any[]>('/admin/vouchers');
-export const createAdminVoucher = (data: any) => apiFetch<any>('/admin/vouchers', { method: 'POST', body: data });
-export const updateAdminVoucher = (id: number, data: any) => apiFetch<any>(`/admin/vouchers/${id}`, { method: 'PATCH', body: data });
+export const getAdminVouchers = (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+  const q = new URLSearchParams();
+  if (params?.page) q.append('page', String(params.page));
+  if (params?.limit) q.append('limit', String(params.limit));
+  if (params?.search) q.append('search', params.search);
+  if (params?.status && params.status !== 'all') q.append('status', params.status);
+  const str = q.toString();
+  return apiFetch<any[]>(`/admin/vouchers${str ? `?${str}` : ''}`);
+};
+export const createAdminVoucher = (data: any) => apiFetch<any>('/admin/vouchers', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const updateAdminVoucher = (id: number, data: any) => apiFetch<any>(`/admin/vouchers/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const deleteAdminVoucher = (id: number) => apiFetch<{ message: string }>(`/admin/vouchers/${id}`, { method: 'DELETE' });
 
 // === Payment Methods ===

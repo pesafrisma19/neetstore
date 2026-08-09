@@ -766,13 +766,13 @@ export const CheckoutPage: React.FC = () => {
   ];
 
   // 3. Mutation Cek Voucher
-  const checkVoucherMutation = useMutation<PublicVoucherCheckResponse, Error, string>({
-    mutationFn: async (rawCode: string): Promise<PublicVoucherCheckResponse> => {
-      const code = rawCode.trim().toUpperCase();
-      if (!code) {
+  const checkVoucherMutation = useMutation<PublicVoucherCheckResponse, Error, { code: string; amount?: number }>({
+    mutationFn: async ({ code, amount }): Promise<PublicVoucherCheckResponse> => {
+      const rawCode = code.trim().toUpperCase();
+      if (!rawCode) {
         throw new Error('Kode promo tidak boleh kosong.');
       }
-      const data = await checkoutApi.checkVoucher(code);
+      const data = await checkoutApi.checkVoucher(rawCode, amount);
       if (
         !data || typeof data !== 'object' ||
         typeof data.id !== 'number' || !Number.isFinite(data.id) ||
@@ -831,7 +831,8 @@ export const CheckoutPage: React.FC = () => {
   const handleApplyPromo = () => {
     const code = promoCode.trim().toUpperCase();
     if (!code || checkVoucherMutation.isPending) return;
-    checkVoucherMutation.mutate(code);
+    const currentPrice = selectedItem?.price;
+    checkVoucherMutation.mutate({ code, amount: currentPrice });
   };
 
   const handleRemovePromo = () => {

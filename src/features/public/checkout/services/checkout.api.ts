@@ -13,8 +13,8 @@ export const checkoutApi = {
     return res.data;
   },
 
-  checkVoucher: async (code: string): Promise<PublicVoucherCheckResponse> => {
-    const res = await api.post<PublicVoucherCheckResponse>('/voucher/check', { code });
+  checkVoucher: async (code: string, amount?: number): Promise<PublicVoucherCheckResponse> => {
+    const res = await api.post<PublicVoucherCheckResponse>('/voucher/check', { code, amount });
     return res.data;
   },
 

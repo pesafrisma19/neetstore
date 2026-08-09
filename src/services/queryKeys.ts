@@ -100,5 +100,10 @@ export const queryKeys = {
       transactions: (params?: any) => ['admin', 'reports', 'transactions', params] as const,
       deposits: (params?: any) => ['admin', 'reports', 'deposits', params] as const,
     },
+    vouchers: {
+      all: ['admin', 'vouchers'] as const,
+      list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+        ['admin', 'vouchers', 'list', params] as const,
+    },
   },
 } as const;
