@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing, processQueue } from '../services/api';
 import { queryClient } from '../services/queryClient';
 import { queryKeys } from '../services/queryKeys';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { apiFetch } from '../utils/api';
 
 export interface UserProfile {
   id: number;
@@ -25,7 +27,7 @@ export interface UserProfile {
 }
 
 interface AuthContextType {
-  user: UserProfile | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   loginUser: (token: string, adminToken?: boolean) => Promise<UserProfile | null>;
   logoutUser: () => void;
@@ -65,33 +67,16 @@ export function removePersistedAttemptsForOwner(targetOwnerScope: string): void 
 }
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(getAccessToken()));
   const [isLoading, setIsLoading] = useState(true);
-  const bootstrapAttempted = useRef(false); // apakah bootstrap sudah pernah dijalankan
-  const hadSession = useRef(false);         // apakah user pernah login di sesi ini
-
-  const fetchProfile = async (): Promise<UserProfile | null> => {
-    try {
-      const res = await api.get('/user/me');
-      setUser(res.data);
-      return res.data;
-    } catch (e) {
-      console.error('Gagal mengambil profil', e);
-      setUser(null);
-      setAccessToken(null);
-      localStorage.removeItem('netstore_has_session');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const bootstrapAttempted = useRef(false);
+  const hadSession = useRef(false);
 
   // Silent Refresh Bootstrap
   const bootstrapAuth = async () => {
-    // KONDISI 1 FIX: Jika user belum pernah login (tidak ada marker netstore_has_session)
-    // dan tidak ada access token di memory, jangan kirim request POST /api/auth/refresh (cegah 401 sia-sia untuk Guest)
     const hasSessionMarker = localStorage.getItem('netstore_has_session') === '1';
     if (!hasSessionMarker && !getAccessToken()) {
+      setIsAuthenticated(false);
       setIsLoading(false);
       return;
     }
@@ -100,10 +85,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (getIsRefreshing()) {
         await new Promise(resolve => setTimeout(resolve, 600));
         if (getAccessToken()) {
-          await fetchProfile();
-        } else {
-          setIsLoading(false);
+          setIsAuthenticated(true);
         }
+        setIsLoading(false);
         return;
       }
 
@@ -116,14 +100,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsRefreshing(false);
       bootstrapAttempted.current = true;
       hadSession.current = true;
-      await fetchProfile();
+      setIsAuthenticated(true);
     } catch (error) {
       processQueue(error, null);
       setIsRefreshing(false);
       bootstrapAttempted.current = true;
       localStorage.removeItem('netstore_has_session');
       setAccessToken(null);
-      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -135,14 +120,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     bc.onmessage = (event) => {
       if (event.data.type === 'LOGOUT') {
         setAccessToken(null);
-        setUser(null);
+        setIsAuthenticated(false);
         localStorage.removeItem('netstore_has_session');
+        queryClient.removeQueries({ queryKey: queryKeys.user.root });
       }
     };
 
     const handleForceLogout = () => {
       setAccessToken(null);
-      setUser(null);
+      setIsAuthenticated(false);
       localStorage.removeItem('netstore_has_session');
       queryClient.removeQueries({ queryKey: queryKeys.user.root });
     };
@@ -168,12 +154,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAccessToken(token, isAdmin);
     hadSession.current = true;
     localStorage.setItem('netstore_has_session', '1');
-    setIsLoading(true);
-    return await fetchProfile();
+    setIsAuthenticated(true);
+
+    const profile = await queryClient.fetchQuery<UserProfile | null>({
+      queryKey: queryKeys.user.profile,
+      queryFn: async (): Promise<UserProfile | null> => {
+        const res = await apiFetch<UserProfile>('/user/me');
+        return res || null;
+      },
+    });
+
+    return profile;
   };
 
   const logoutUser = async () => {
-    const previousUserId = user?.id;
+    const currentProfile = queryClient.getQueryData<UserProfile | null>(queryKeys.user.profile);
+    const previousUserId = currentProfile?.id;
     try {
       await api.post('/auth/logout');
     } catch (e) {
@@ -181,7 +177,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       localStorage.removeItem('netstore_has_session');
       setAccessToken(null);
-      setUser(null);
+      setIsAuthenticated(false);
       hadSession.current = false;
       queryClient.removeQueries({ queryKey: queryKeys.user.root });
       if (previousUserId) {
@@ -196,14 +192,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshUser = async () => {
     if (getAccessToken()) {
-      await fetchProfile();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
     } else {
       await bootstrapAuth();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, loginUser, logoutUser, refreshUser }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, loginUser, logoutUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -214,5 +210,16 @@ export const useAuth = () => {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context;
+  const { user, isLoading: isProfileLoading, isFetching, error, refetch } = useUserProfile(
+    context.isAuthenticated,
+    context.isLoading
+  );
+  return {
+    ...context,
+    user,
+    isLoading: context.isLoading || (context.isAuthenticated && isProfileLoading),
+    isProfileFetching: isFetching,
+    profileError: error,
+    refetchProfile: refetch,
+  };
 };

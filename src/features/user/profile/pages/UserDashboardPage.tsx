@@ -49,7 +49,7 @@ import { queryClient } from '../../../../services/queryClient';
 import { UserDepositSection } from '../components/UserDepositSection';
 
 export const UserDashboardPage: React.FC = () => {
-  const { user: authUser, isLoading: authLoading, refreshUser } = useAuth();
+  const { user: authUser, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [copiedKey, setCopiedKey] = useState(false);
@@ -84,18 +84,7 @@ export const UserDashboardPage: React.FC = () => {
 
   const userId = authUser?.id;
 
-  // 1. Fetch Real-time Profile via TanStack Query
-  const { data: profileData } = useQuery<UserProfile | null>({
-    queryKey: queryKeys.user.profile,
-    queryFn: async () => {
-      const res = await apiFetch<UserProfile>('/user/me');
-      return res || null;
-    },
-    enabled: Boolean(userId),
-    staleTime: 30 * 1000,
-  });
-
-  const user: UserProfile = profileData || authUser || {
+  const user: UserProfile = authUser || {
     id: 0,
     username: '',
     balance: 0,
@@ -145,7 +134,6 @@ export const UserDashboardPage: React.FC = () => {
     mutationFn: () => updateUserProfile({ fullname, email, phone }),
     onSuccess: async (res: any) => {
       setProfileMsg({ text: res?.message || 'Profil berhasil diperbarui!', type: 'success' });
-      await refreshUser();
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
     },
     onError: (err: any) => {
@@ -171,7 +159,6 @@ export const UserDashboardPage: React.FC = () => {
       setIsConfirmModalOpen(false);
       setModalError(null);
       setProfileMsg({ text: res?.message || 'Selamat! Akun Anda berhasil di-upgrade!', type: 'success' });
-      await refreshUser();
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
       queryClient.invalidateQueries({ queryKey: queryKeys.user.mutations.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.user.levelUpgradeInfo });
@@ -187,7 +174,6 @@ export const UserDashboardPage: React.FC = () => {
     mutationFn: () => requestUserApiKey(),
     onSuccess: async (res: any) => {
       setProfileMsg({ text: res?.message || 'Pengajuan API Key berhasil dikirim!', type: 'success' });
-      await refreshUser();
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
     },
     onError: (err: any) => {

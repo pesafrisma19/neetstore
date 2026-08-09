@@ -25,6 +25,7 @@ import { PaymentDetails } from '../../../../components/shared/PaymentDetails';
 import { type PaymentMethodData } from '../../../admin/types';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { queryKeys } from '../../../../services/queryKeys';
+import { queryClient } from '../../../../services/queryClient';
 
 export interface UserDepositInvoice {
   id: number;
@@ -63,7 +64,7 @@ export interface UserDepositInvoice {
 }
 
 export const UserDepositSection: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
 
   // Input States
   const [amountInput, setAmountInput] = useState<string>('50000');
@@ -137,7 +138,7 @@ export const UserDepositSection: React.FC = () => {
       if (updated) {
         setActiveInvoice((prev) => prev ? { ...prev, ...updated } : updated);
         if (updated.status === 'SUCCESS') {
-          refreshUser(); // Auto refresh saldo user!
+          queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
           refetchHistory();
         }
       }
