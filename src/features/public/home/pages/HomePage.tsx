@@ -44,6 +44,12 @@ export const Home: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Undi warna highlight neon acak untuk banner judul katalog dari theme index.css existing
+  const catalogHighlight = useMemo(() => {
+    const tones = ['yellow', 'pink', 'mint', 'purple'] as const;
+    return tones[Math.floor(Math.random() * tones.length)];
+  }, []);
+
   // 1. Fetch brands dari TanStack Query (cache bersama dengan SearchBar/SearchPage)
   const { data: dbBrands, isLoading: loading, isError, refetch } = useQuery<PublicBrand[]>({
     queryKey: queryKeys.public.brands.all,
@@ -105,11 +111,11 @@ export const Home: React.FC = () => {
         <PromoBanner />
 
         {/* Catalog Section Header */}
-        <div className="my-6 sm:my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4 overflow-hidden">
+        <div className="my-6 sm:my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="min-w-0 max-w-full">
-            <div className="flex items-center gap-2 mb-1 overflow-hidden">
+            <div className="flex items-center gap-2 mb-1 py-1.5 px-1 overflow-visible">
               <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-black shrink-0" />
-              <Display size="sm" highlight="yellow" className="text-base sm:text-2xl md:text-3xl whitespace-nowrap">
+              <Display size="sm" highlight={catalogHighlight} className="text-xs sm:text-2xl md:text-3xl whitespace-nowrap">
                 KATALOG GAME &amp; VOUCHER
               </Display>
             </div>
