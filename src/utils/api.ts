@@ -101,8 +101,6 @@ export interface PublicBrandProduct {
   originalPrice: number;
   isActive: boolean;
   isPopular: boolean;
-  isFlashsale: boolean;
-  flashsalePrice: number | null;
   brandId: number | null;
   regionId: number | null;
   productCategoryId: number | null;
@@ -314,8 +312,6 @@ export interface Product {
   originalPrice: number;
   isActive: boolean;
   isPopular: boolean;
-  isFlashsale: boolean;
-  flashsalePrice: number | null;
   soldCount: number;
   category: { name: string; slug: string; icon: string | null; googlePlayId: string | null } | null;
 }
@@ -342,9 +338,6 @@ export const getProducts = () => apiFetch<Product[]>('/products');
 
 /** Produk populer untuk section Popular */
 export const getPopularProducts = () => apiFetch<Product[]>('/products/popular');
-
-/** Produk flash sale */
-export const getFlashsaleProducts = () => apiFetch<Product[]>('/products/flashsale');
 
 /** Produk berdasarkan kategori slug — untuk halaman Checkout */
 export const getCategoryBySlug = (slug: string) => apiFetch<Category & { products: Product[] }>(`/categories/${slug}`);
@@ -443,6 +436,21 @@ export const getAdminVouchers = (params?: { page?: number; limit?: number; searc
 export const createAdminVoucher = (data: any) => apiFetch<any>('/admin/vouchers', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const updateAdminVoucher = (id: number, data: any) => apiFetch<any>(`/admin/vouchers/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const deleteAdminVoucher = (id: number) => apiFetch<{ message: string }>(`/admin/vouchers/${id}`, { method: 'DELETE' });
+
+// === Flashsales ===
+export const getAdminFlashsales = (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+  const q = new URLSearchParams();
+  if (params?.page) q.append('page', params.page.toString());
+  if (params?.limit) q.append('limit', params.limit.toString());
+  if (params?.search) q.append('search', params.search);
+  if (params?.status && params.status !== 'all') q.append('status', params.status);
+  const str = q.toString();
+  return apiFetch<any[]>(`/admin/flashsales${str ? `?${str}` : ''}`);
+};
+export const createAdminFlashsale = (data: any) => apiFetch<any>('/admin/flashsales', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const updateAdminFlashsale = (id: number, data: any) => apiFetch<any>(`/admin/flashsales/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+export const deleteAdminFlashsale = (id: number) => apiFetch<{ message: string }>(`/admin/flashsales/${id}`, { method: 'DELETE' });
+export const getPublicFlashsales = () => apiFetch<any[]>('/flashsales');
 
 // === Payment Methods ===
 export const getAdminPaymentMethods = () => apiFetch<any[]>('/admin/payment-methods');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
@@ -685,6 +685,19 @@ export const CheckoutPage: React.FC = () => {
       return matchRegion && matchCat;
     });
   }, [products, selectedRegionId, selectedCategoryId]);
+
+  const [searchParams] = useSearchParams();
+  const paramProductId = searchParams.get('productId');
+
+  // Pre-select product jika diakses dari URL query param (contoh: Flashsale click)
+  useEffect(() => {
+    if (paramProductId && products.length > 0) {
+      const matched = products.find((p: any) => String(p.id) === paramProductId);
+      if (matched) {
+        setSelectedItem(matched);
+      }
+    }
+  }, [paramProductId, products]);
 
   // Phase 5: Safe Selected Product Handling (Reset safely if current selection is filtered out)
   useEffect(() => {

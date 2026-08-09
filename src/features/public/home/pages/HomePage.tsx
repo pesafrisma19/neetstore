@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { PromoBanner } from '../components/PromoBanner';
+import { FlashsaleSection } from '../components/FlashsaleSection';
 import { GameCard, type GameItem } from '../components/GameCard';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/Tabs';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../../../../components/ui/Accordion';
@@ -109,6 +110,9 @@ export const Home: React.FC = () => {
 
         {/* Promo Banner Slider dalam frame Brutalist */}
         <PromoBanner />
+
+        {/* Flashsale Section Promosi Tampilan */}
+        <FlashsaleSection />
 
         {/* Catalog Section Header */}
         <div className="my-6 sm:my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4">

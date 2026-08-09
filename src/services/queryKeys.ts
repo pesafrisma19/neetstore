@@ -105,5 +105,10 @@ export const queryKeys = {
       list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
         ['admin', 'vouchers', 'list', params] as const,
     },
+    flashsales: {
+      all: ['admin', 'flashsales'] as const,
+      list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+        ['admin', 'flashsales', 'list', params] as const,
+    },
   },
 } as const;
