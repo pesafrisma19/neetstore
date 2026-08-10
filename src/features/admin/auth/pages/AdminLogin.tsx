@@ -23,7 +23,7 @@ export const AdminLogin: React.FC = () => {
   // Auto redirect jika user sudah login sebagai Admin
   useEffect(() => {
     if (!authLoading && user && user.role === 'ADMIN') {
-      navigate('/secret-admin-dashboard');
+      navigate('/admin');
     }
   }, [user, authLoading, navigate]);
 
@@ -48,7 +48,7 @@ export const AdminLogin: React.FC = () => {
           
           const profile = await loginUser(res.token, true);
           if (profile && profile.role === 'ADMIN') {
-            navigate('/secret-admin-dashboard');
+            navigate('/admin');
           } else {
             setErrorMsg('Akses Ditolak: Profil bukan Admin.');
           }

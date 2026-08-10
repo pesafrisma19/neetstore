@@ -208,11 +208,11 @@ export const BrandsPage: React.FC = () => {
   });
 
   const handleAdd = () => {
-    navigate('/secret-admin-dashboard/brands/new');
+    navigate('/admin/brands/new');
   };
 
   const handleEdit = (id: number) => {
-    navigate(`/secret-admin-dashboard/brands/${id}/edit`);
+    navigate(`/admin/brands/${id}/edit`);
   };
 
   const handleDelete = (id: number) => {

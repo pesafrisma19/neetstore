@@ -173,7 +173,7 @@ export const BrandFormPage: React.FC = () => {
         message: isEditing ? 'Brand berhasil diperbarui!' : 'Brand baru berhasil dibuat!',
         type: 'success',
       });
-      navigate('/secret-admin-dashboard/brands');
+      navigate('/admin/brands');
     },
     onError: (err: any) => {
       setErrorMsg(err.message || 'Gagal menyimpan data Brand');
@@ -218,7 +218,7 @@ export const BrandFormPage: React.FC = () => {
         <p className="font-black text-sm text-red-600 uppercase tracking-wider">
           {(brandFetchError as any)?.message || 'Gagal memuat detail Brand.'}
         </p>
-        <Link to="/secret-admin-dashboard/brands">
+        <Link to="/admin/brands">
           <Button variant="yellow" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2 stroke-[3]" />
             KEMBALI KE DAFTAR BRAND
@@ -233,7 +233,7 @@ export const BrandFormPage: React.FC = () => {
       {/* Top Header Bar */}
       <div className="flex items-center justify-between flex-wrap gap-3 p-4 bg-[var(--nb-surface)] border-[4px] border-[var(--nb-border)] shadow-[6px_6px_0px_0px_var(--nb-shadow-yellow)]">
         <div className="flex items-center gap-3">
-          <Link to="/secret-admin-dashboard/brands">
+          <Link to="/admin/brands">
             <Button type="button" variant="white" size="sm">
               <ArrowLeft className="w-4 h-4 stroke-[3]" />
               <span>KEMBALI</span>
@@ -310,7 +310,7 @@ export const BrandFormPage: React.FC = () => {
 
       {/* Bottom Sticky Action Bar */}
       <div className="flex items-center justify-between p-4 bg-[var(--nb-surface)] border-[4px] border-[var(--nb-border)] shadow-[6px_6px_0px_0px_var(--nb-shadow)] sticky bottom-4 z-20">
-        <Link to="/secret-admin-dashboard/brands">
+        <Link to="/admin/brands">
           <Button type="button" variant="white" size="md">
             BATAL
           </Button>

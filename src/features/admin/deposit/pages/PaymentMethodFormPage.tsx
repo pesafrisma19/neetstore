@@ -147,7 +147,7 @@ export const PaymentMethodFormPage: React.FC = () => {
         addToast({ title: 'METODE DITAMBAHKAN 🟢', message: `Metode ${payload.name} berhasil dibuat.`, type: 'success' });
       }
 
-      navigate('/secret-admin-dashboard/payment-methods');
+      navigate('/admin/payment-methods');
     } catch (err: any) {
       addToast({ title: 'GAGAL MENYIMPAN ❌', message: err?.message || 'Gagal menyimpan metode pembayaran.', type: 'error' });
     } finally {
@@ -174,7 +174,7 @@ export const PaymentMethodFormPage: React.FC = () => {
             <Button 
               variant="white" 
               size="sm" 
-              onClick={() => navigate('/secret-admin-dashboard/payment-methods')}
+              onClick={() => navigate('/admin/payment-methods')}
               className="font-black uppercase text-xs border-2"
             >
               <ArrowLeft className="w-4 h-4 mr-1 stroke-[3]" /> KEMBALI
@@ -478,7 +478,7 @@ export const PaymentMethodFormPage: React.FC = () => {
             type="button" 
             variant="white" 
             size="md" 
-            onClick={() => navigate('/secret-admin-dashboard/payment-methods')}
+            onClick={() => navigate('/admin/payment-methods')}
             disabled={isSubmitting}
             className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
           >

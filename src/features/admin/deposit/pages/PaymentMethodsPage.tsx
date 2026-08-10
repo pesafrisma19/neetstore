@@ -130,7 +130,7 @@ export const PaymentMethodsPage: React.FC = () => {
           <Button
             variant="pink"
             size="md"
-            onClick={() => navigate('/secret-admin-dashboard/payment-methods/new')}
+            onClick={() => navigate('/admin/payment-methods/new')}
             className="font-black uppercase shadow-[4px_4px_0px_0px_#000] border-[3px] border-black"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
@@ -164,7 +164,7 @@ export const PaymentMethodsPage: React.FC = () => {
           <Button
             variant="pink"
             size="md"
-            onClick={() => navigate('/secret-admin-dashboard/payment-methods/new')}
+            onClick={() => navigate('/admin/payment-methods/new')}
             className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
           >
             <Plus className="w-4 h-4 mr-2 stroke-[3]" /> TAMBAH METODE BAYAR
@@ -246,7 +246,7 @@ export const PaymentMethodsPage: React.FC = () => {
                 <Button
                   variant="yellow"
                   size="sm"
-                  onClick={() => navigate(`/secret-admin-dashboard/payment-methods/${pm.id}/edit`)}
+                  onClick={() => navigate(`/admin/payment-methods/${pm.id}/edit`)}
                   className="font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
                 >
                   <Edit className="w-3.5 h-3.5 mr-1 stroke-[3]" /> EDIT

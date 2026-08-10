@@ -32,4 +32,16 @@ export const authApi = {
     });
     return response.data;
   },
+
+  forgotPassword: async (phone: string) => {
+    const response = await api.post<{ success: boolean; message: string; cooldownSeconds: number; phone?: string }>('/auth/forgot-password', {
+      phone,
+    });
+    return response.data;
+  },
+
+  resetPassword: async (data: { phone: string; otp: string; newPassword: string; confirmPassword: string }) => {
+    const response = await api.post<{ message: string }>('/auth/reset-password', data);
+    return response.data;
+  },
 };

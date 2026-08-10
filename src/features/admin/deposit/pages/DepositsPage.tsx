@@ -245,7 +245,7 @@ export const DepositsPage: React.FC = () => {
                     <td className="p-3 font-mono font-black text-xs">{d.paymentRef}</td>
                     <td className="p-3">
                       <div className="font-black text-black">
-                        {d.user?.username || `User #${d.userId}`}
+                        {d.user?.username || (d.userId ? `User #${d.userId}` : 'User Dihapus')}
                       </div>
                       <div className="text-xs font-mono text-neutral-500">
                         {d.user?.email || '-'}

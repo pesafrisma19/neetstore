@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../../services/queryKeys';
-import { getAdminUsers } from '../../../../utils/api';
+import { getAdminUsers, deleteAdminUser } from '../../../../utils/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Input } from '../../../../components/ui/Input';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
-import { Search, Eye, Edit3, DollarSign, ChevronLeft, ChevronRight, UserCheck, SlidersHorizontal } from 'lucide-react';
+import { Dialog } from '../../../../components/ui/Dialog';
+import { useToast } from '../../../../components/ui/ToastContext';
+import { Search, Eye, Edit3, DollarSign, ChevronLeft, ChevronRight, UserCheck, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { UserDetailModal } from '../components/UserDetailModal';
 import { EditUserModal } from '../components/EditUserModal';
 import { AdjustBalanceModal } from '../components/AdjustBalanceModal';
@@ -15,6 +17,9 @@ import { UserSettingsModal } from '../components/UserSettingsModal';
 import type { UserData } from '../../types';
 
 export const UsersPage: React.FC = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
   // Filter & Pagination States
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(15);
@@ -28,6 +33,28 @@ export const UsersPage: React.FC = () => {
   const [selectedUserEdit, setSelectedUserEdit] = useState<UserData | null>(null);
   const [selectedUserAdjust, setSelectedUserAdjust] = useState<UserData | null>(null);
   const [userSettingsModalOpen, setUserSettingsModalOpen] = useState<boolean>(false);
+  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+
+  // TanStack Mutation for Delete User
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteAdminUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all });
+      addToast({
+        type: 'success',
+        title: 'USER DIHAPUS',
+        message: 'Data pengguna berhasil dihapus.',
+      });
+      setUserToDelete(null);
+    },
+    onError: (err: any) => {
+      addToast({
+        type: 'error',
+        title: 'GAGAL MENGHAPUS USER',
+        message: err.message || 'Gagal menghapus pengguna.',
+      });
+    },
+  });
 
   // TanStack Query untuk Server State
   const { data, isLoading, isError, error } = useQuery({
@@ -227,6 +254,16 @@ export const UsersPage: React.FC = () => {
                           <DollarSign className="w-3.5 h-3.5 mr-1 stroke-[3]" />
                           <span>ADJUST SALDO</span>
                         </Button>
+                        <Button
+                          variant="pink"
+                          size="sm"
+                          onClick={() => setUserToDelete(u)}
+                          className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                          title="Hapus User"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                          <span>HAPUS</span>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -297,6 +334,39 @@ export const UsersPage: React.FC = () => {
         isOpen={userSettingsModalOpen}
         onClose={() => setUserSettingsModalOpen(false)}
       />
+
+      {/* MODAL KONFIRMASI HAPUS USER */}
+      <Dialog
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        title="KONFIRMASI HAPUS USER"
+      >
+        <div className="space-y-4 text-left">
+          <p className="text-xs font-bold text-neutral-800">
+            Apakah Anda yakin ingin menghapus user{' '}
+            <span className="font-mono font-black uppercase underline bg-yellow-200 px-1">{userToDelete?.username}</span> (ID: #{userToDelete?.id})?
+          </p>
+          <div className="p-3 bg-red-50 border-[2.5px] border-red-600 text-[11px] font-bold text-red-900">
+            ⚠️ Perhatian: Tindakan ini akan menghapus akun user secara permanen dari database.
+          </div>
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t-[3px] border-black">
+            <Button variant="white" size="md" onClick={() => setUserToDelete(null)} disabled={deleteMutation.isPending}>
+              BATAL
+            </Button>
+            <Button
+              variant="pink"
+              size="md"
+              onClick={() => userToDelete?.id && deleteMutation.mutate(userToDelete.id)}
+              isLoading={deleteMutation.isPending}
+              disabled={deleteMutation.isPending}
+              className="font-black text-xs uppercase"
+            >
+              <Trash2 className="w-4 h-4 mr-1 stroke-[3]" />
+              {deleteMutation.isPending ? 'MENGHAPUS...' : 'YA, HAPUS USER'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 };

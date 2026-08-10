@@ -157,7 +157,7 @@ export const MutationsPage: React.FC = () => {
                         {m.createdAt ? new Date(m.createdAt).toLocaleString('id-ID') : '-'}
                       </TableCell>
                       <TableCell className="font-black text-xs text-black uppercase">
-                        {m.user?.username || `User #${m.userId}`}
+                        {m.user?.username || (m.userId ? `User #${m.userId}` : 'User Dihapus')}
                         {m.user?.email && <span className="block text-[10px] text-neutral-500 lowercase font-mono">{m.user.email}</span>}
                       </TableCell>
                       <TableCell>

@@ -10,8 +10,7 @@ export const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ chil
   const { settings, isLoading } = usePublicSettings();
   const location = useLocation();
 
-  // Allow admin routes even when maintenance mode is active
-  const isAdminRoute = location.pathname.startsWith('/secret-admin-dashboard') || location.pathname.startsWith('/secret-admin-portal');
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   if (!isLoading && settings.maintenance_mode && !isAdminRoute) {
     return (

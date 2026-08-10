@@ -47,6 +47,8 @@ import {
 
 import { VerifyOtpPage } from '../features/public/auth/pages/VerifyOtpPage';
 import { CompletePhonePage } from '../features/public/auth/pages/CompletePhonePage';
+import { ForgotPasswordPage } from '../features/public/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '../features/public/auth/pages/ResetPasswordPage';
 
 export const AppRoutes = () => {
   return (
@@ -55,6 +57,8 @@ export const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
       <Route path="/complete-phone" element={<CompletePhonePage />} />
       <Route path="/search" element={<SearchPage />} />

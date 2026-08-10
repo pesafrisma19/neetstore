@@ -104,7 +104,7 @@ export const TransactionsPage: React.FC = () => {
   // Navigate to OrdersPage for active items
   const handleOpenInLiveQueue = (tx: TransactionHistoryItem) => {
     const searchVal = tx.invoiceId || tx.providerRef || `TRX-${tx.id}`;
-    navigate(`/secret-admin-dashboard/orders?search=${encodeURIComponent(searchVal)}`);
+    navigate(`/admin/orders?search=${encodeURIComponent(searchVal)}`);
   };
 
   // Open Detail Modal
@@ -268,7 +268,7 @@ export const TransactionsPage: React.FC = () => {
                       </td>
                       <td className="p-3">
                         <div className="font-black text-black">
-                          {tx.user?.username || 'GUEST'}
+                          {tx.user?.username || (tx.userId ? `User #${tx.userId}` : 'GUEST / (User Dihapus)')}
                         </div>
                       </td>
                       <td className="p-3">
