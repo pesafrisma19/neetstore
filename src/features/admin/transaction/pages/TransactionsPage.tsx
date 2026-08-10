@@ -22,6 +22,7 @@ import { TransactionSettingsModal } from '../components/TransactionSettingsModal
 
 export interface TransactionHistoryItem {
   id: number;
+  userId?: number | null;
   invoiceId?: string;
   providerRef?: string;
   targetAccount: string;
