@@ -9,7 +9,6 @@ import { SearchPage } from '../features/public/search/pages/SearchPage';
 import { NewsPage } from '../features/public/news/pages/NewsPage';
 import { TransactionHistoryPage } from '../features/user/transaction/pages/TransactionHistoryPage';
 import { PricingPage } from '../features/public/pricing/pages/PricingPage';
-import { AdminLogin } from '../features/admin/auth/pages/AdminLogin';
 import { AdminLayout } from '../features/admin/layout/components/AdminLayout';
 import { ProvidersPage } from '../features/admin/provider/pages/ProvidersPage';
 import { AdminOverviewPage } from '../features/admin/overview/pages/AdminOverviewPage';
@@ -73,8 +72,7 @@ export const AppRoutes = () => {
       <Route path="/invoice-check" element={<TransactionHistoryPage />} />
 
       {/* ADMIN ROUTES */}
-      <Route path="/secret-admin-portal" element={<AdminLogin />} />
-      <Route path="/secret-admin-dashboard" element={<AdminLayout />}>
+      <Route path="/admin" element={<AdminLayout />}>
         {/* 1. Dashboard */}
         <Route index element={<AdminOverviewPage />} />
         <Route path="overview" element={<AdminOverviewPage />} />

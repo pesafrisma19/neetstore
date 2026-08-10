@@ -90,7 +90,7 @@ export const VerifyOtpPage: React.FC = () => {
         setSuccessMsg('Verifikasi berhasil! Mengalihkan ke aplikasi...');
         await loginUser(data.token, data.role === 'ADMIN');
         setTimeout(() => {
-          navigate(data.role === 'ADMIN' ? '/secret-admin-dashboard' : '/');
+          navigate(data.role === 'ADMIN' ? '/admin' : '/');
         }, 1000);
       }
     } catch (err: any) {

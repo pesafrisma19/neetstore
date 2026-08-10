@@ -29,7 +29,7 @@ export const LoginPage: React.FC = () => {
       if (data.token) {
         const profile = await loginUser(data.token, data.role === 'ADMIN');
         if (profile?.role === 'ADMIN') {
-          navigate('/secret-admin-dashboard');
+          navigate('/admin');
         } else {
           navigate('/');
         }

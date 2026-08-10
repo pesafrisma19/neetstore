@@ -124,11 +124,11 @@ export const AdminSidebar: React.FC = () => {
           color="yellow"
           count={1}
           defaultOpen={
-            isPathActive(['/secret-admin-dashboard/overview']) || true
+            isPathActive(['/admin/overview']) || true
           }
         >
           <SidebarItem
-            to="/secret-admin-dashboard/overview"
+            to="/admin/overview"
             label="Overview"
           />
         </SidebarGroup>
@@ -140,36 +140,36 @@ export const AdminSidebar: React.FC = () => {
           color="mint"
           count={6}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/categories',
-            '/secret-admin-dashboard/brands',
-            '/secret-admin-dashboard/regions',
-            '/secret-admin-dashboard/product-categories',
-            '/secret-admin-dashboard/products',
-            '/secret-admin-dashboard/providers',
+            '/admin/categories',
+            '/admin/brands',
+            '/admin/regions',
+            '/admin/product-categories',
+            '/admin/products',
+            '/admin/providers',
           ])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/categories"
+            to="/admin/categories"
             label="Category"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/brands"
+            to="/admin/brands"
             label="Brand"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/regions"
+            to="/admin/regions"
             label="Region"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/product-categories"
+            to="/admin/product-categories"
             label="Product Category"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/products"
+            to="/admin/products"
             label="Product"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/providers"
+            to="/admin/providers"
             label="Provider"
           />
         </SidebarGroup>
@@ -180,10 +180,10 @@ export const AdminSidebar: React.FC = () => {
           emoji="💰"
           color="pink"
           count={1}
-          defaultOpen={isPathActive(['/secret-admin-dashboard/pricing-rules'])}
+          defaultOpen={isPathActive(['/admin/pricing-rules'])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/pricing-rules"
+            to="/admin/pricing-rules"
             label="Pricing Rules"
           />
         </SidebarGroup>
@@ -195,18 +195,18 @@ export const AdminSidebar: React.FC = () => {
           color="purple"
           count={3}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/orders',
-            '/secret-admin-dashboard/transactions',
-            '/secret-admin-dashboard/deposits',
+            '/admin/orders',
+            '/admin/transactions',
+            '/admin/deposits',
           ])}
         >
-          <SidebarItem to="/secret-admin-dashboard/orders" label="Antrean Pesanan" />
+          <SidebarItem to="/admin/orders" label="Antrean Pesanan" />
           <SidebarItem
-            to="/secret-admin-dashboard/transactions"
+            to="/admin/transactions"
             label="Riwayat Transaksi"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/deposits"
+            to="/admin/deposits"
             label="Deposits"
           />
         </SidebarGroup>
@@ -218,16 +218,16 @@ export const AdminSidebar: React.FC = () => {
           color="cyan"
           count={2}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/payment-gateways',
-            '/secret-admin-dashboard/payment-methods',
+            '/admin/payment-gateways',
+            '/admin/payment-methods',
           ])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/payment-gateways"
+            to="/admin/payment-gateways"
             label="Payment Gateway"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/payment-methods"
+            to="/admin/payment-methods"
             label="Payment Method"
           />
         </SidebarGroup>
@@ -239,18 +239,18 @@ export const AdminSidebar: React.FC = () => {
           color="yellow"
           count={3}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/users',
-            '/secret-admin-dashboard/mutations',
-            '/secret-admin-dashboard/reviews',
+            '/admin/users',
+            '/admin/mutations',
+            '/admin/reviews',
           ])}
         >
-          <SidebarItem to="/secret-admin-dashboard/users" label="Users" />
+          <SidebarItem to="/admin/users" label="Users" />
           <SidebarItem
-            to="/secret-admin-dashboard/mutations"
+            to="/admin/mutations"
             label="Balance Mutation"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/reviews"
+            to="/admin/reviews"
             label="Reviews"
           />
         </SidebarGroup>
@@ -262,23 +262,23 @@ export const AdminSidebar: React.FC = () => {
           color="pink"
           count={4}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/banners',
-            '/secret-admin-dashboard/flashsales',
-            '/secret-admin-dashboard/news',
-            '/secret-admin-dashboard/vouchers',
+            '/admin/banners',
+            '/admin/flashsales',
+            '/admin/news',
+            '/admin/vouchers',
           ])}
         >
-          <SidebarItem to="/secret-admin-dashboard/banners" label="Banner" />
+          <SidebarItem to="/admin/banners" label="Banner" />
           <SidebarItem
-            to="/secret-admin-dashboard/flashsales"
+            to="/admin/flashsales"
             label="Flashsale"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/news"
+            to="/admin/news"
             label="News / Blog"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/vouchers"
+            to="/admin/vouchers"
             label="Voucher"
           />
         </SidebarGroup>
@@ -290,21 +290,21 @@ export const AdminSidebar: React.FC = () => {
           color="mint"
           count={3}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/reports-sales',
-            '/secret-admin-dashboard/reports-transactions',
-            '/secret-admin-dashboard/reports-deposits',
+            '/admin/reports-sales',
+            '/admin/reports-transactions',
+            '/admin/reports-deposits',
           ])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/reports-sales"
+            to="/admin/reports-sales"
             label="Sales"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/reports-transactions"
+            to="/admin/reports-transactions"
             label="Laporan Transaksi"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/reports-deposits"
+            to="/admin/reports-deposits"
             label="Deposits"
           />
         </SidebarGroup>
@@ -316,21 +316,21 @@ export const AdminSidebar: React.FC = () => {
           color="purple"
           count={3}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/logs-activity',
-            '/secret-admin-dashboard/logs-webhook',
-            '/secret-admin-dashboard/logs-error',
+            '/admin/logs-activity',
+            '/admin/logs-webhook',
+            '/admin/logs-error',
           ])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/logs-activity"
+            to="/admin/logs-activity"
             label="Activity Log"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/logs-webhook"
+            to="/admin/logs-webhook"
             label="Webhook Log"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/logs-error"
+            to="/admin/logs-error"
             label="Error Log"
           />
         </SidebarGroup>
@@ -342,26 +342,26 @@ export const AdminSidebar: React.FC = () => {
           color="cyan"
           count={4}
           defaultOpen={isPathActive([
-            '/secret-admin-dashboard/settings-general',
-            '/secret-admin-dashboard/settings-api',
-            '/secret-admin-dashboard/settings-notifications',
-            '/secret-admin-dashboard/settings-system',
+            '/admin/settings-general',
+            '/admin/settings-api',
+            '/admin/settings-notifications',
+            '/admin/settings-system',
           ])}
         >
           <SidebarItem
-            to="/secret-admin-dashboard/settings-general"
+            to="/admin/settings-general"
             label="General"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/settings-api"
+            to="/admin/settings-api"
             label="API Integration"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/settings-notifications"
+            to="/admin/settings-notifications"
             label="Notifications"
           />
           <SidebarItem
-            to="/secret-admin-dashboard/settings-system"
+            to="/admin/settings-system"
             label="System"
           />
         </SidebarGroup>
