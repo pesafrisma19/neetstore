@@ -25,7 +25,7 @@ import { useToast } from '../../../../components/ui/ToastContext';
 import { queryClient } from '../../../../services/queryClient';
 import { queryKeys } from '../../../../services/queryKeys';
 
-type EventType = 'order_success' | 'order_failed' | 'deposit_success';
+type EventType = 'order_success' | 'order_failed' | 'deposit_success' | 'otp_verification';
 type ChannelType = 'email' | 'whatsapp';
 
 export const SettingsNotificationsPage: React.FC = () => {
@@ -67,6 +67,7 @@ export const SettingsNotificationsPage: React.FC = () => {
     whatsapp_order_success_template: 'Halo {name},\n\nPesanan *{product_name}* (ID: *{trx_id}*) BERHASIL diproses!\nTarget: {target}\nSN/Kode: *{sn}*\nTotal: {price}\n\nTerima kasih telah bertransaksi di {site_name}.',
     whatsapp_order_failed_template: 'Mohon maaf {name},\n\nPesanan *{product_name}* (ID: *{trx_id}*) GAGAL diproses.\nAlasan: {reason}\nSaldo Anda telah dikembalikan (Refund).',
     whatsapp_deposit_success_template: 'Halo {name},\n\nDeposit saldo Rp *{amount}* via {payment_method} (ID: *{deposit_id}*) BERHASIL masuk ke akun Anda.',
+    whatsapp_otp_verification_template: '[{site_name}] Kode OTP Verifikasi WhatsApp Anda: *{otp_code}*. Berlaku selama 10 menit. JANGAN bagikan kode ini kepada siapapun.',
   });
 
   const [loading, setLoading] = useState(false);
@@ -185,6 +186,9 @@ export const SettingsNotificationsPage: React.FC = () => {
     if (activeEvent === 'order_failed') {
       return ['{name}', '{brand}', '{trx_id}', '{product_name}', '{target}', '{reason}', '{status}', '{site_name}'];
     }
+    if (activeEvent === 'otp_verification') {
+      return ['{otp_code}', '{site_name}'];
+    }
     return ['{name}', '{deposit_id}', '{amount}', '{payment_method}', '{status}', '{site_name}'];
   };
 
@@ -213,6 +217,10 @@ export const SettingsNotificationsPage: React.FC = () => {
         .replace(/{target}/gi, '87654321')
         .replace(/{reason}/gi, 'ID Player tidak ditemukan')
         .replace(/{status}/gi, 'FAILED')
+        .replace(/{site_name}/gi, siteName);
+    } else if (activeEvent === 'otp_verification') {
+      result = result
+        .replace(/{otp_code}/gi, '882910')
         .replace(/{site_name}/gi, siteName);
     } else {
       result = result
@@ -470,6 +478,18 @@ export const SettingsNotificationsPage: React.FC = () => {
             }`}
           >
             Deposit Berhasil
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveEvent('otp_verification')}
+            className={`px-4 py-2 text-xs font-black uppercase border-[2px] border-[var(--nb-border)] transition-all ${
+              activeEvent === 'otp_verification'
+                ? 'bg-[var(--nb-yellow)] text-[var(--nb-text)] shadow-[var(--nb-shadow-sm)]'
+                : 'bg-[var(--nb-surface)] text-[var(--nb-text-muted)] hover:bg-[var(--nb-surface-alt)]'
+            }`}
+          >
+            OTP Verifikasi WA
           </button>
         </div>
 

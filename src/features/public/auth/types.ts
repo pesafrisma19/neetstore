@@ -1,17 +1,24 @@
 export interface LoginDto {
-  username?: string;
+  countryCode?: string;
+  phone: string;
   password?: string;
 }
 
 export interface RegisterDto {
-  username?: string;
+  countryCode?: string;
+  phone: string;
   password?: string;
-  phone?: string;
+  confirmPassword?: string;
 }
 
 export interface AuthResponse {
-  token: string;
-  user: {
+  token?: string;
+  message?: string;
+  requiresVerification?: boolean;
+  phone?: string;
+  role?: string;
+  level?: string;
+  user?: {
     id: string;
     username: string;
     role: string;

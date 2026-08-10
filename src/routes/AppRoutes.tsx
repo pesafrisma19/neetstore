@@ -46,6 +46,9 @@ import {
   SettingsSystemPage,
 } from '../features/admin/common/pages/AdminMenuPages';
 
+import { VerifyOtpPage } from '../features/public/auth/pages/VerifyOtpPage';
+import { CompletePhonePage } from '../features/public/auth/pages/CompletePhonePage';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -53,6 +56,8 @@ export const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-otp" element={<VerifyOtpPage />} />
+      <Route path="/complete-phone" element={<CompletePhonePage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/news" element={<NewsPage />} />
       <Route path="/daftar-harga" element={<PricingPage />} />

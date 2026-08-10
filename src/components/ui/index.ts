@@ -44,3 +44,4 @@ export * from './Textarea';
 export * from './Title';
 export * from './Toast';
 export * from './Tooltip';
+export * from './CountryPhoneInput';
