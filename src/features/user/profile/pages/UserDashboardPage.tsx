@@ -230,6 +230,7 @@ export const UserDashboardPage: React.FC = () => {
   const [webhookMsg, setWebhookMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
+  const [newUnmaskedSecret, setNewUnmaskedSecret] = useState<string | null>(null);
 
   const { data: webhookConfigData, refetch: refetchWebhookConfig } = useQuery({
     queryKey: ['user', 'webhookConfig', userId],
@@ -250,6 +251,9 @@ export const UserDashboardPage: React.FC = () => {
     onSuccess: (res) => {
       if (res?.success) {
         setWebhookMsg({ text: res.message || 'Konfigurasi Webhook berhasil disimpan!', type: 'success' });
+        if (res.data?.secret && !res.data.secret.includes('*')) {
+          setNewUnmaskedSecret(res.data.secret);
+        }
         refetchWebhookConfig();
       } else {
         setWebhookMsg({ text: res?.error || 'Gagal menyimpan Webhook', type: 'error' });
@@ -991,6 +995,49 @@ export const UserDashboardPage: React.FC = () => {
                         <code className="font-mono text-emerald-700">order.success</code>,{' '}
                         <code className="font-mono text-rose-700">order.failed</code>).
                       </p>
+
+                      {/* Box Secret Key Asli Tanpa Bintang (Tampil saat baru saja disimpan/diubah) */}
+                      {newUnmaskedSecret && (
+                        <div className="p-4 bg-[var(--nb-yellow)] border-[3px] border-black rounded-xl space-y-2.5 shadow-[4px_4px_0px_0px_#000]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase text-black flex items-center gap-1.5">
+                              <ShieldCheck className="w-4 h-4 text-emerald-800 stroke-[3]" />
+                              <span>SECRET KEY HMAC ASLI ANDA (SIMPAN SEKARANG):</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setNewUnmaskedSecret(null)}
+                              className="text-[10px] font-black text-rose-700 bg-white px-2 py-0.5 border border-black rounded hover:bg-rose-50"
+                            >
+                              TUTUP [X]
+                            </button>
+                          </div>
+                          <p className="text-[11px] font-bold text-black opacity-90 leading-tight">
+                            🔑 Ini adalah Secret Key asli Anda tanpa sensor. Gunakan kunci ini pada script bot/server Anda untuk memverifikasi signature <code className="font-mono bg-white px-1 py-0.5 border border-black rounded text-[10px]">X-NEETSTORE-SIGNATURE</code>.
+                          </p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <Input
+                              type="text"
+                              value={newUnmaskedSecret}
+                              readOnly
+                              className="bg-white font-mono text-xs font-black text-black border-[2.5px]"
+                            />
+                            <Button
+                              variant="mint"
+                              size="md"
+                              onClick={() => {
+                                navigator.clipboard.writeText(newUnmaskedSecret);
+                                setCopiedSecret(true);
+                                setTimeout(() => setCopiedSecret(false), 2000);
+                              }}
+                              className="font-black text-xs shrink-0 shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              {copiedSecret ? <Check className="w-4 h-4 text-emerald-700 stroke-[3]" /> : <Copy className="w-4 h-4 stroke-[2.5]" />}
+                              {copiedSecret ? 'DISALIN!' : 'SALIN SECRET ASLI'}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Form Simpan Webhook URL */}
                       <form
