@@ -6,6 +6,8 @@ import { updateAdminProvider } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
 import { ShieldAlert, CheckCircle2, Copy, Check } from 'lucide-react';
 
+import { getPublicBackendUrl } from '../../../../services/api';
+
 export interface ProviderData {
   id: number;
   name: string;
@@ -39,7 +41,7 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({ isOpen, onClose, p
   const [copied, setCopied] = useState(false);
 
   const handleCopyWebhook = () => {
-    const fullUrl = `${window.location.origin}${DIGIFLAZZ_WEBHOOK_PATH}`;
+    const fullUrl = `${getPublicBackendUrl()}${DIGIFLAZZ_WEBHOOK_PATH}`;
     navigator.clipboard.writeText(fullUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -107,7 +109,7 @@ export const ProviderModal: React.FC<ProviderModalProps> = ({ isOpen, onClose, p
             Sesuai dokumentasi resmi Digiflazz, Anda <b>WAJIB</b> mendaftarkan IP statis server Anda pada menu <i>Koneksi API</i> di Dasbor Digiflazz agar tidak terkena error akses ditolak.
           </p>
           <div className="mt-2.5 p-2 bg-black text-[var(--nb-mint)] font-mono text-[11px] border-2 border-black flex items-center justify-between gap-2">
-            <span className="truncate">{window.location.origin}{DIGIFLAZZ_WEBHOOK_PATH}</span>
+            <span className="truncate">{getPublicBackendUrl()}{DIGIFLAZZ_WEBHOOK_PATH}</span>
             <button
               type="button"
               onClick={handleCopyWebhook}

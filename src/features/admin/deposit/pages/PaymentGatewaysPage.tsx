@@ -22,6 +22,7 @@ import {
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { useToast } from '../../../../components/ui/ToastContext';
+import { getPublicBackendUrl } from '../../../../services/api';
 
 export const PaymentGatewaysPage: React.FC = () => {
   const { addToast } = useToast();
@@ -96,16 +97,13 @@ export const PaymentGatewaysPage: React.FC = () => {
     toggleMutation.mutate({
       id: tokopayGateway.id,
       data: { isActive: !tokopayGateway.isActive },
-    });
-  };
-
   const handleTestConnection = () => {
     if (!tokopayGateway) return;
     testConnectionMutation.mutate(tokopayGateway.id);
   };
 
   const copyWebhookUrl = () => {
-    const url = tokopayGateway?.webhookUrl || `${window.location.origin}/api/tokopay/callback`;
+    const url = `${getPublicBackendUrl()}/api/tokopay/callback`;
     navigator.clipboard.writeText(url);
     addToast({
       title: 'WEBHOOK DISALIN 📋',
@@ -219,7 +217,7 @@ export const PaymentGatewaysPage: React.FC = () => {
                   URL WEBHOOK / CALLBACK TOKOPAY (WAJIB DITEMPEL DI DASBOR TOKOPAY):
                 </span>
                 <code className="text-sm font-black text-[var(--nb-purple)] mt-1 block font-mono">
-                  {tokopayGateway.webhookUrl || `${window.location.origin}/api/tokopay/callback`}
+                  {`${getPublicBackendUrl()}/api/tokopay/callback`}
                 </code>
               </div>
               <Button

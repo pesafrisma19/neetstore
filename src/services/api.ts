@@ -2,6 +2,10 @@ import axios, { type InternalAxiosRequestConfig, type AxiosError, type AxiosResp
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+export const getPublicBackendUrl = (): string => {
+  return API_URL.replace(/\/api\/?$/, '');
+};
+
 // =====================================================
 // 1. MEMORY STORE (Stateless AT Storage)
 // =====================================================
