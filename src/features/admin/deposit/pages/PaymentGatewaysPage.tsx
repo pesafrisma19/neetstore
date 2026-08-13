@@ -97,6 +97,9 @@ export const PaymentGatewaysPage: React.FC = () => {
     toggleMutation.mutate({
       id: tokopayGateway.id,
       data: { isActive: !tokopayGateway.isActive },
+    });
+  };
+
   const handleTestConnection = () => {
     if (!tokopayGateway) return;
     testConnectionMutation.mutate(tokopayGateway.id);
