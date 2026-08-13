@@ -933,4 +933,49 @@ export const upgradeUserLevel = (expectedCurrentLevel?: string) =>
     body: JSON.stringify({ expectedCurrentLevel }),
   });
 
+// User Outbound Webhook API Functions (JWT Session Auth)
+export const getUserWebhookConfig = () =>
+  apiFetch<{
+    success: boolean;
+    data: {
+      url: string;
+      secret: string;
+      isActive: boolean;
+      consecutiveFailures: number;
+      lastTriggeredAt?: string | null;
+      createdAt?: string;
+      updatedAt?: string;
+    } | null;
+  }>('/user/webhook');
+
+export const updateUserWebhookConfig = (url: string) =>
+  apiFetch<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    data?: any;
+  }>('/user/webhook', {
+    method: 'POST',
+    body: JSON.stringify({ url }),
+  });
+
+export const deleteUserWebhookConfig = () =>
+  apiFetch<{
+    success: boolean;
+    message?: string;
+    error?: string;
+  }>('/user/webhook', {
+    method: 'DELETE',
+  });
+
+export const testUserWebhookConfig = () =>
+  apiFetch<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    eventId?: string;
+  }>('/user/webhook/test', {
+    method: 'POST',
+  });
+
 

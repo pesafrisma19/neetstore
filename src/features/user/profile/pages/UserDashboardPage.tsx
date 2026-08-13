@@ -29,6 +29,7 @@ import {
   Share2,
   Edit3,
   Trash2,
+  Radio,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -42,6 +43,10 @@ import {
   getUserWhitelists,
   addUserWhitelist,
   deleteUserWhitelist,
+  getUserWebhookConfig,
+  updateUserWebhookConfig,
+  deleteUserWebhookConfig,
+  testUserWebhookConfig,
   type UserTransactionItem,
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
@@ -215,6 +220,73 @@ export const UserDashboardPage: React.FC = () => {
     },
     onError: (err: any) => {
       setIpMsg({ text: err.message || 'Gagal menghapus IP Whitelist', type: 'error' });
+    },
+  });
+
+  // ==========================================
+  // OUTBOUND WEBHOOK STATE & MUTATIONS
+  // ==========================================
+  const [webhookUrlInput, setWebhookUrlInput] = useState('');
+  const [webhookMsg, setWebhookMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [copiedSecret, setCopiedSecret] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+
+  const { data: webhookConfigData, refetch: refetchWebhookConfig } = useQuery({
+    queryKey: ['user', 'webhookConfig', userId],
+    queryFn: async () => {
+      const res = await getUserWebhookConfig();
+      if (res?.success && res.data) {
+        setWebhookUrlInput(res.data.url || '');
+        return res.data;
+      }
+      return null;
+    },
+    enabled: Boolean(userId && user.apiStatus === 'APPROVED'),
+    staleTime: 10 * 1000,
+  });
+
+  const saveWebhookMutation = useMutation({
+    mutationFn: (url: string) => updateUserWebhookConfig(url),
+    onSuccess: (res) => {
+      if (res?.success) {
+        setWebhookMsg({ text: res.message || 'Konfigurasi Webhook berhasil disimpan!', type: 'success' });
+        refetchWebhookConfig();
+      } else {
+        setWebhookMsg({ text: res?.error || 'Gagal menyimpan Webhook', type: 'error' });
+      }
+    },
+    onError: (err: any) => {
+      setWebhookMsg({ text: err.message || 'Gagal menyimpan Webhook', type: 'error' });
+    },
+  });
+
+  const deleteWebhookMutation = useMutation({
+    mutationFn: () => deleteUserWebhookConfig(),
+    onSuccess: (res) => {
+      if (res?.success) {
+        setWebhookMsg({ text: 'Webhook berhasil dihapus.', type: 'success' });
+        setWebhookUrlInput('');
+        refetchWebhookConfig();
+      } else {
+        setWebhookMsg({ text: res?.error || 'Gagal menghapus Webhook', type: 'error' });
+      }
+    },
+    onError: (err: any) => {
+      setWebhookMsg({ text: err.message || 'Gagal menghapus Webhook', type: 'error' });
+    },
+  });
+
+  const testWebhookMutation = useMutation({
+    mutationFn: () => testUserWebhookConfig(),
+    onSuccess: (res) => {
+      if (res?.success) {
+        setWebhookMsg({ text: res.message || 'Test Ping berhasil dikirim ke Webhook URL Anda!', type: 'success' });
+      } else {
+        setWebhookMsg({ text: res?.error || 'Test Webhook Gagal', type: 'error' });
+      }
+    },
+    onError: (err: any) => {
+      setWebhookMsg({ text: err.message || 'Test Webhook Gagal', type: 'error' });
     },
   });
 
@@ -889,6 +961,136 @@ export const UserDashboardPage: React.FC = () => {
                               </Button>
                             </div>
                           ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* OUTBOUND WEBHOOK MANAGEMENT BOX jika APPROVED */}
+                  {user.apiStatus === 'APPROVED' && (
+                    <div className="p-5 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] space-y-4">
+                      <div className="flex items-center justify-between border-b-[2.5px] border-black pb-3">
+                        <div className="flex items-center gap-2">
+                          <Radio className="w-5 h-5 text-black stroke-[3]" />
+                          <h3 className="text-xs font-black uppercase text-black">OUTBOUND WEBHOOK NOTIFICATION</h3>
+                        </div>
+                        <Badge variant={webhookConfigData?.isActive ? 'mint' : 'pink'} size="sm" className="font-black">
+                          {webhookConfigData?.isActive ? 'AKTIF' : 'BELUM AKTIF'}
+                        </Badge>
+                      </div>
+
+                      {webhookMsg && (
+                        <Callout tone={webhookMsg.type === 'success' ? 'mint' : 'pink'} className="text-xs">
+                          {webhookMsg.text}
+                        </Callout>
+                      )}
+
+                      <p className="text-[11px] font-bold text-neutral-700 leading-relaxed">
+                        Dapatkan notifikasi real-time HTTP POST saat status transaksi berubah (
+                        <code className="font-mono text-purple-700">order.processing</code>,{' '}
+                        <code className="font-mono text-emerald-700">order.success</code>,{' '}
+                        <code className="font-mono text-rose-700">order.failed</code>).
+                      </p>
+
+                      {/* Form Simpan Webhook URL */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (webhookUrlInput.trim()) {
+                            setWebhookMsg(null);
+                            saveWebhookMutation.mutate(webhookUrlInput.trim());
+                          }
+                        }}
+                        className="space-y-3"
+                      >
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-black uppercase text-black">WEBHOOK ENDPOINT URL</label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="url"
+                              placeholder="https://domain-kamu.com/api/webhook atau http://localhost:8001/webhook"
+                              value={webhookUrlInput}
+                              onChange={(e) => setWebhookUrlInput(e.target.value)}
+                              disabled={saveWebhookMutation.isPending}
+                              className="bg-neutral-50 font-mono text-xs font-black text-black border-[2.5px]"
+                            />
+                            <Button
+                              type="submit"
+                              variant="yellow"
+                              size="md"
+                              disabled={saveWebhookMutation.isPending || !webhookUrlInput.trim()}
+                              className="font-black text-xs shrink-0 shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              {saveWebhookMutation.isPending ? 'MENYIMPAN...' : 'SIMPAN URL'}
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+
+                      {/* Secret HMAC Box jika Webhook sudah disetting */}
+                      {webhookConfigData && webhookConfigData.secret && (
+                        <div className="p-3 bg-purple-50 border-[2px] border-black rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-purple-950">WEBHOOK HMAC SECRET KEY (X-NEETSTORE-SIGNATURE)</span>
+                            <span className="text-[10px] font-mono font-black text-purple-700">
+                              {webhookConfigData.lastTriggeredAt ? `Terakhir aktif: ${new Date(webhookConfigData.lastTriggeredAt).toLocaleTimeString()}` : 'Belum pernah dipanggil'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type={showSecret ? 'text' : 'password'}
+                              value={webhookConfigData.secret}
+                              readOnly
+                              className="bg-white font-mono text-xs font-black text-black border-[2px]"
+                            />
+                            <Button
+                              variant="white"
+                              size="sm"
+                              onClick={() => setShowSecret(!showSecret)}
+                              className="font-black text-[10px] shrink-0"
+                            >
+                              {showSecret ? 'SEMBUNYIKAN' : 'TAMPILKAN'}
+                            </Button>
+                            <Button
+                              variant="yellow"
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(webhookConfigData.secret);
+                                setCopiedSecret(true);
+                                setTimeout(() => setCopiedSecret(false), 2000);
+                              }}
+                              className="font-black text-[10px] shrink-0"
+                            >
+                              {copiedSecret ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5 stroke-[2.5]" />}
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <Button
+                              variant="cyan"
+                              size="sm"
+                              onClick={() => {
+                                setWebhookMsg(null);
+                                testWebhookMutation.mutate();
+                              }}
+                              disabled={testWebhookMutation.isPending}
+                              className="font-black text-[10px] shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              {testWebhookMutation.isPending ? 'MENGIRIM PING...' : '⚡ TES PING WEBHOOK'}
+                            </Button>
+                            <Button
+                              variant="pink"
+                              size="sm"
+                              onClick={() => {
+                                setWebhookMsg(null);
+                                deleteWebhookMutation.mutate();
+                              }}
+                              disabled={deleteWebhookMutation.isPending}
+                              className="font-black text-[10px] shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                              HAPUS WEBHOOK
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
