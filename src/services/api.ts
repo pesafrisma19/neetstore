@@ -42,6 +42,66 @@ export const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Listen to cross-tab auth channel to update access token and unblock local queue
+if (typeof window !== 'undefined') {
+  try {
+    const channel = new BroadcastChannel('auth_channel');
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'REFRESH_SUCCESS' && event.data?.token) {
+        setAccessToken(event.data.token, isAdminToken);
+        processQueue(null, event.data.token);
+      }
+    };
+  } catch {}
+}
+
+/**
+ * Cross-Tab Coordinated Refresh using Web Locks API + BroadcastChannel + Generation Versioning
+ * Strict Security: Refresh token is strictly HttpOnly cookie and NEVER exposed in JS or BroadcastChannel.
+ * Only the short-lived JWT Access Token and generation timestamp are synchronized across tabs.
+ */
+export async function performCrossTabRefresh(): Promise<string> {
+  const initialGen = Number(localStorage.getItem('netstore_token_gen') || 0);
+
+  const executeRefresh = async (): Promise<string> => {
+    // 1. Double check if another tab completed refresh while we were waiting for the lock
+    const currentGen = Number(localStorage.getItem('netstore_token_gen') || 0);
+    const existingToken = getAccessToken();
+    if (currentGen > initialGen && existingToken) {
+      return existingToken;
+    }
+
+    // 2. Perform actual HTTP refresh request (browser attaches HttpOnly cookie)
+    const response = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+    const newToken = response.data.token;
+    const newGen = Date.now();
+
+    localStorage.setItem('netstore_token_gen', String(newGen));
+    localStorage.setItem('netstore_has_session', '1');
+    setAccessToken(newToken, isAdminToken);
+
+    // 3. Broadcast new Access Token & Generation to other tabs (NEVER refresh token!)
+    try {
+      const bc = new BroadcastChannel('auth_channel');
+      bc.postMessage({ type: 'REFRESH_SUCCESS', token: newToken, gen: newGen });
+      bc.close();
+    } catch {}
+
+    return newToken;
+  };
+
+  const hasWebLocks = typeof navigator !== 'undefined' && 'locks' in navigator && typeof navigator.locks?.request === 'function';
+
+  if (hasWebLocks) {
+    return await navigator.locks.request('auth_refresh_lock', async () => {
+      return await executeRefresh();
+    });
+  } else {
+    // Fallback if navigator.locks is unavailable (e.g. legacy webview)
+    return await executeRefresh();
+  }
+}
+
 // =====================================================
 // 3. AXIOS INSTANCE
 // =====================================================
@@ -69,7 +129,7 @@ api.interceptors.request.use(
 );
 
 // =====================================================
-// 5. RESPONSE INTERCEPTOR (Refresh Queue Logic)
+// 5. RESPONSE INTERCEPTOR (Cross-Tab Safe Refresh)
 // =====================================================
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
@@ -84,7 +144,7 @@ api.interceptors.response.use(
       !originalRequest.url?.includes('/auth/refresh')
     ) {
       if (isRefreshing) {
-        // Jika sedang me-refresh, masukkan request ke antrian
+        // Jika sedang me-refresh dalam tab ini, masukkan request ke antrian
         try {
           const token = await new Promise<string>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
@@ -100,11 +160,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Tembak endpoint refresh, browser otomatis kirim HttpOnly cookie
-        const response = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
-        const newToken = response.data.token;
-
-        setAccessToken(newToken, isAdminToken);
+        const newToken = await performCrossTabRefresh();
         processQueue(null, newToken);
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -113,13 +169,16 @@ api.interceptors.response.use(
         // Refresh gagal (misal expired / dicuri)
         processQueue(err, null);
         setAccessToken(null);
+        localStorage.removeItem('netstore_has_session');
 
         // Beri tahu tab lain untuk logout
-        const bc = new BroadcastChannel('auth_channel');
-        bc.postMessage({ type: 'LOGOUT' });
-        bc.close();
+        try {
+          const bc = new BroadcastChannel('auth_channel');
+          bc.postMessage({ type: 'LOGOUT' });
+          bc.close();
+        } catch {}
 
-        // Redirect ke login (akan ditangani AuthContext atau router, tapi kita bisa berikan fallback event)
+        // Redirect ke login via event
         window.dispatchEvent(new Event('auth:logout'));
         return Promise.reject(err);
       } finally {

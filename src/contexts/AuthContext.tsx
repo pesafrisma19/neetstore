@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { api, setAccessToken, getAccessToken, getIsRefreshing, setIsRefreshing, processQueue } from '../services/api';
+import { api, setAccessToken, getAccessToken, performCrossTabRefresh } from '../services/api';
 import { queryClient } from '../services/queryClient';
 import { queryKeys } from '../services/queryKeys';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const bootstrapAttempted = useRef(false);
   const hadSession = useRef(false);
 
-  // Silent Refresh Bootstrap
+  // Silent Refresh Bootstrap with Cross-Tab Coordination
   const bootstrapAuth = async () => {
     const hasSessionMarker = localStorage.getItem('netstore_has_session') === '1';
     if (!hasSessionMarker && !getAccessToken()) {
@@ -82,28 +82,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      if (getIsRefreshing()) {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        if (getAccessToken()) {
-          setIsAuthenticated(true);
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      setIsRefreshing(true);
-      const res = await api.post('/auth/refresh');
-      const newToken = res.data.token;
-      setAccessToken(newToken);
-      localStorage.setItem('netstore_has_session', '1');
-      processQueue(null, newToken);
-      setIsRefreshing(false);
-      bootstrapAttempted.current = true;
-      hadSession.current = true;
+      await performCrossTabRefresh();
       setIsAuthenticated(true);
+      hadSession.current = true;
+      bootstrapAttempted.current = true;
     } catch (error) {
-      processQueue(error, null);
-      setIsRefreshing(false);
       bootstrapAttempted.current = true;
       localStorage.removeItem('netstore_has_session');
       setAccessToken(null);
@@ -118,11 +101,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const bc = new BroadcastChannel('auth_channel');
     bc.onmessage = (event) => {
-      if (event.data.type === 'LOGOUT') {
+      if (event.data?.type === 'LOGOUT') {
         setAccessToken(null);
         setIsAuthenticated(false);
         localStorage.removeItem('netstore_has_session');
         queryClient.removeQueries({ queryKey: queryKeys.user.root });
+      } else if (event.data?.type === 'REFRESH_SUCCESS' && event.data?.token) {
+        setAccessToken(event.data.token);
+        setIsAuthenticated(true);
+        hadSession.current = true;
       }
     };
 
@@ -154,6 +141,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAccessToken(token, isAdmin);
     hadSession.current = true;
     localStorage.setItem('netstore_has_session', '1');
+    localStorage.setItem('netstore_token_gen', String(Date.now()));
     setIsAuthenticated(true);
 
     const profile = await queryClient.fetchQuery<UserProfile | null>({
