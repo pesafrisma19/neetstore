@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, ExternalLink, AlertCircle, CreditCard, Building2, HelpCircle, BookOpen } from 'lucide-react';
+import { Copy, Check, ExternalLink, AlertCircle, CreditCard, Building2, HelpCircle, Clock } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 
@@ -18,6 +18,7 @@ export interface PaymentDetailsProps {
   checkoutUrl?: string | null;
   paymentUrl?: string | null;
   instructions?: string | null;
+  timeLeft?: number | null;
   className?: string;
 }
 
@@ -35,6 +36,7 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
   checkoutUrl,
   paymentUrl,
   instructions,
+  timeLeft,
   className = '',
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -49,6 +51,13 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const rawUrl = (checkoutUrl || paymentUrl || '').trim();
@@ -67,7 +76,7 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
 
   return (
     <div className={`space-y-3 font-sans text-left ${className}`}>
-      {/* HEADER METODE PEMBAYARAN (Ringkas tanpa duplikasi Total Bayar) */}
+      {/* HEADER METODE PEMBAYARAN (1 Tombol Panduan Resmi) */}
       <div className="bg-neutral-900 text-white p-3.5 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex items-center justify-between">
         <div>
           <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400 block mb-0.5">METODE PEMBAYARAN</span>
@@ -103,7 +112,7 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         </div>
       )}
 
-      {/* 1. AREA BAYAR QRIS (MUTUALLY EXCLUSIVE: HANYA TAMPILKAN QR) */}
+      {/* 1. AREA BAYAR QRIS DENGAN COUNTDOWN LANGSUNG DI BAWAH QR */}
       {hasQrData && (
         <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
           <div className="bg-white p-3 border-[3px] border-black inline-block shadow-[4px_4px_0px_0px_#000]">
@@ -114,22 +123,22 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
             )}
           </div>
 
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsGuideOpen(true)}
-              className="w-full bg-white hover:bg-neutral-100 border-2 border-black text-[11px] font-black uppercase py-2 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              <span>Cara Bayar QRIS</span>
-            </Button>
-          </div>
+          {/* COUNTDOWN SISA WAKTU TEPAT DI BAWAH QRIS */}
+          {timeLeft !== undefined && timeLeft !== null && (
+            <div className="w-full bg-red-50 border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_0px_#000] flex items-center justify-between text-left">
+              <div className="flex items-center gap-1.5 text-black">
+                <Clock className="w-4 h-4 text-red-600 stroke-[2.5] animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Sisa Waktu Pembayaran</span>
+              </div>
+              <span className="text-base sm:text-lg font-black tabular-nums tracking-tight text-red-600 font-mono">
+                {formatTime(timeLeft)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* 2. AREA BAYAR REKENING MANUAL / VA (MUTUALLY EXCLUSIVE) */}
+      {/* 2. AREA BAYAR REKENING MANUAL / VA DENGAN COUNTDOWN */}
       {isManual && !isQrisCategory && (bankName || accountNumber || accountHolder) && (
         <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-3">
           <div className="font-black uppercase text-xs text-black flex items-center gap-2 border-b-2 border-black pb-2">
@@ -172,22 +181,22 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
             )}
           </div>
 
-          {displayInstructions && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsGuideOpen(true)}
-              className="w-full bg-white hover:bg-neutral-100 border-2 border-black text-[11px] font-black uppercase py-2 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              <span>Petunjuk Transfer</span>
-            </Button>
+          {/* COUNTDOWN SISA WAKTU TEPAT DI BAWAH REKENING */}
+          {timeLeft !== undefined && timeLeft !== null && (
+            <div className="w-full bg-red-50 border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_0px_#000] flex items-center justify-between text-left">
+              <div className="flex items-center gap-1.5 text-black">
+                <Clock className="w-4 h-4 text-red-600 stroke-[2.5] animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Sisa Waktu Pembayaran</span>
+              </div>
+              <span className="text-base sm:text-lg font-black tabular-nums tracking-tight text-red-600 font-mono">
+                {formatTime(timeLeft)}
+              </span>
+            </div>
           )}
         </div>
       )}
 
-      {/* 3. AREA BAYAR REDIRECT GATEWAY (HANYA TAMPIL JIKA BUKAN QRIS & BUKAN MANUAL) */}
+      {/* 3. AREA BAYAR REDIRECT GATEWAY DENGAN COUNTDOWN */}
       {!hasQrData && (!isManual || isQrisCategory) && isExternalHttp && (
         <div className="p-4 bg-cyan-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
           <span className="text-xs font-black uppercase text-black block">HALAMAN PEMBAYARAN GATEWAY ONLINE</span>
@@ -199,6 +208,19 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
           >
             BUKA HALAMAN PEMBAYARAN <ExternalLink className="w-4 h-4 stroke-[3]" />
           </a>
+
+          {/* COUNTDOWN SISA WAKTU */}
+          {timeLeft !== undefined && timeLeft !== null && (
+            <div className="w-full bg-red-50 border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_0px_#000] flex items-center justify-between text-left">
+              <div className="flex items-center gap-1.5 text-black">
+                <Clock className="w-4 h-4 text-red-600 stroke-[2.5] animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Sisa Waktu Pembayaran</span>
+              </div>
+              <span className="text-base sm:text-lg font-black tabular-nums tracking-tight text-red-600 font-mono">
+                {formatTime(timeLeft)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

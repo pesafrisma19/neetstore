@@ -101,13 +101,6 @@ export const InvoicePage: React.FC = () => {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)] items-center justify-center">
@@ -471,20 +464,7 @@ export const InvoicePage: React.FC = () => {
               <div className="md:col-start-8 md:col-span-5 p-5 sm:p-7 flex flex-col items-center justify-center gap-3 bg-[#FAF5E9] relative z-10 text-center">
 
                 {isUnpaid && (
-                  <div className="w-full space-y-3">
-                    {/* COUNTDOWN TEPAT DI ATAS AREA BAYAR / QRIS */}
-                    {timeLeft !== null && (
-                      <div className="w-full bg-red-50 border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_0px_#000] flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-black">
-                          <Clock className="w-4 h-4 text-red-600 stroke-[2.5] animate-pulse" />
-                          <span className="text-[10px] font-black uppercase tracking-wider">Sisa Waktu</span>
-                        </div>
-                        <span className="text-base sm:text-lg font-black tabular-nums tracking-tight text-red-600 font-mono">
-                          {formatTime(timeLeft)}
-                        </span>
-                      </div>
-                    )}
-
+                  <div className="w-full">
                     <PaymentDetails
                       methodName={transaction.paymentMethod}
                       gatewayCode={transaction.gatewayCode}
@@ -499,6 +479,7 @@ export const InvoicePage: React.FC = () => {
                       checkoutUrl={transaction.checkoutUrl}
                       paymentUrl={transaction.paymentUrl}
                       instructions={transaction.instructions}
+                      timeLeft={timeLeft}
                     />
                   </div>
                 )}
