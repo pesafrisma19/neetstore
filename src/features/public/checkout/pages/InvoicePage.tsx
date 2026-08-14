@@ -381,12 +381,36 @@ export const InvoicePage: React.FC = () => {
               {/* LEFT SECTION (col 1-7): Item, Akun, Rincian Pembayaran */}
               <div className="md:col-start-1 md:col-span-7 p-5 sm:p-7 flex flex-col gap-4 relative min-h-[300px]">
 
-                <div className="flex items-center gap-2 relative z-10">
-                  <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-2.5 py-0.5 flex items-center gap-1.5 font-black text-[11px] uppercase shadow-[2px_2px_0px_0px_#000]">
-                    <span className={`w-2 h-2 rounded-full ${isPaid ? 'bg-emerald-500' : isUnpaid ? 'bg-amber-500 animate-pulse' : 'bg-red-500'}`} />
-                    <span>{isPaid ? 'PAID' : isUnpaid ? 'UNPAID' : payStatus}</span>
+                {/* Top Row: Status Badge (Kiri) & Invoice ID + Dibuat Pada (Kanan) */}
+                <div className="flex flex-wrap items-start justify-between gap-3 relative z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-[#FFB7D5] border-2 border-black rounded-xl px-2.5 py-0.5 flex items-center gap-1.5 font-black text-[11px] uppercase shadow-[2px_2px_0px_0px_#000]">
+                      <span className={`w-2 h-2 rounded-full ${isPaid ? 'bg-emerald-500' : isUnpaid ? 'bg-amber-500 animate-pulse' : 'bg-red-500'}`} />
+                      <span>{isPaid ? 'PAID' : isUnpaid ? 'UNPAID' : payStatus}</span>
+                    </div>
+                    <Sparkles className="w-4 h-4 text-[#0284C7] fill-[#38BDF8] stroke-black stroke-[2]" />
                   </div>
-                  <Sparkles className="w-5 h-5 text-[#0284C7] fill-[#38BDF8] stroke-black stroke-[2]" />
+
+                  <div className="flex flex-col items-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(transaction.invoiceId, 'invoiceId')}
+                      className="bg-white hover:bg-yellow-100 border-2 border-black rounded-xl px-2.5 py-0.5 flex items-center gap-1.5 font-mono font-black text-[11px] text-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
+                      title="Salin Invoice ID"
+                    >
+                      <Receipt className="w-3.5 h-3.5 text-black stroke-[2.5]" />
+                      <span>{transaction.invoiceId}</span>
+                      {copied === 'invoiceId' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                      ) : (
+                        <Copy className="w-3 h-3 opacity-60" />
+                      )}
+                    </button>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-neutral-600">
+                      <Calendar className="w-3 h-3 text-neutral-500" />
+                      <span>{dateShort}, {timeShort}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Game & Product Headline */}
@@ -556,31 +580,6 @@ export const InvoicePage: React.FC = () => {
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* FOOTER BAR: Invoice info */}
-            <div className="border-t-4 border-black bg-black text-white px-5 sm:px-7 py-3 flex flex-wrap items-center justify-between gap-3 relative z-10">
-              <div className="flex items-center gap-1.5">
-                <Receipt className="w-3.5 h-3.5 text-[var(--nb-yellow)]" />
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-white/50 block leading-none">Invoice ID</span>
-                  <button
-                    onClick={() => handleCopy(transaction.invoiceId, 'invoiceId')}
-                    className="font-mono font-black text-xs flex items-center gap-1 hover:text-[var(--nb-yellow)]"
-                  >
-                    {transaction.invoiceId}
-                    {copied === 'invoiceId' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 opacity-60" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[var(--nb-yellow)]" />
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-white/50 block leading-none">Dibuat Pada</span>
-                  <span className="font-bold text-xs">{dateShort}, {timeShort}</span>
-                </div>
               </div>
             </div>
           </div>
