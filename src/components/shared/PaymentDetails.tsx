@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, ExternalLink, AlertCircle, QrCode, CreditCard, Building2 } from 'lucide-react';
+import { Copy, Check, ExternalLink, AlertCircle, CreditCard, Building2, HelpCircle, BookOpen } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
 
 export interface PaymentDetailsProps {
   methodName: string;
@@ -37,6 +38,7 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
   className = '',
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
 
   // Strict Manual Guard (gatewayCode canonical check)
   const isManual = gatewayCode?.toLowerCase() === 'manual';
@@ -52,23 +54,40 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
   const rawUrl = (checkoutUrl || paymentUrl || '').trim();
   const isExternalHttp = Boolean(rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')));
 
+  // Format default instructions if empty for QRIS
+  const defaultQrisGuide = `1. Screenshot / Simpan kode QR yang tampil
+2. Buka aplikasi e-wallet atau mobile banking (DANA, GoPay, OVO, ShopeePay, BCA Mobile, Livin Mandiri, dll)
+3. Pilih menu "Bayar" atau "Scan QRIS"
+4. Scan langsung kode QR atau pilih dari galeri gambar
+5. Pastikan detail penerima dan nominal pembayaran sudah sesuai
+6. Masukkan PIN dan selesaikan pembayaran
+7. Transaksi selesai dan status otomatis terverifikasi`;
+
+  const displayInstructions = instructions && instructions.trim().length > 0 ? instructions : (isQrisCategory ? defaultQrisGuide : null);
+
   return (
-    <div className={`space-y-4 font-sans text-left ${className}`}>
-      {/* HEADER RINGKASAN PEMBAYARAN */}
-      <div className="bg-neutral-900 text-white p-4 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex items-center justify-between">
+    <div className={`space-y-3 font-sans text-left ${className}`}>
+      {/* HEADER METODE PEMBAYARAN (Ringkas tanpa duplikasi Total Bayar) */}
+      <div className="bg-neutral-900 text-white p-3.5 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-black uppercase text-neutral-400 block mb-0.5">METODE PEMBAYARAN</span>
+          <span className="text-[9px] font-black uppercase tracking-wider text-neutral-400 block mb-0.5">METODE PEMBAYARAN</span>
           <div className="font-black text-sm uppercase text-white flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-[var(--nb-yellow)]" />
             <span>{methodName}</span>
           </div>
         </div>
-        <div className="text-right">
-          <span className="text-[10px] font-black uppercase text-neutral-400 block mb-0.5">TOTAL BAYAR</span>
-          <div className="font-black font-mono text-base text-[var(--nb-yellow)]">
-            Rp {totalAmount.toLocaleString('id-ID')}
-          </div>
-        </div>
+        {displayInstructions && (
+          <Button
+            type="button"
+            variant="yellow"
+            size="sm"
+            onClick={() => setIsGuideOpen(true)}
+            className="py-1 px-2.5 text-[10px] font-black uppercase flex items-center gap-1 border-2 border-black shadow-[2px_2px_0px_0px_#000]"
+          >
+            <HelpCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Panduan</span>
+          </Button>
+        )}
       </div>
 
       {/* NOTIFIKASI KODE UNIK (JIKA ADA) */}
@@ -84,29 +103,33 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         </div>
       )}
 
-      {/* 1. QRIS CODE DISPLAY (UNIVERSAL: TOKOPAY QRIS & MANUAL QRIS) */}
+      {/* 1. AREA BAYAR QRIS (MUTUALLY EXCLUSIVE: HANYA TAMPILKAN QR) */}
       {hasQrData && (
-        <div className="p-5 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-4">
-          <div className="inline-flex items-center gap-2 bg-black text-white px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#FFD700]">
-            <QrCode className="w-4 h-4 text-[var(--nb-yellow)]" />
-            <span>SCAN QRIS UNTUK MEMBAYAR</span>
-          </div>
-
-          <div className="bg-white p-4 border-[3px] border-black inline-block shadow-[4px_4px_0px_0px_#000]">
+        <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
+          <div className="bg-white p-3 border-[3px] border-black inline-block shadow-[4px_4px_0px_0px_#000]">
             {qrString ? (
-              <QRCodeSVG value={qrString} size={200} level="M" includeMargin={true} />
+              <QRCodeSVG value={qrString} size={190} level="M" includeMargin={true} />
             ) : (
-              <img src={qrImageUrl!} alt="QRIS Payment" className="w-48 h-48 object-contain" />
+              <img src={qrImageUrl!} alt="QRIS Payment" className="w-44 h-44 object-contain" />
             )}
           </div>
 
-          <p className="text-xs font-bold text-neutral-800">
-            Scan QRIS menggunakan aplikasi pembayaran Anda (GoPay, OVO, ShopeePay, DANA, BCA Mobile, dll).
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsGuideOpen(true)}
+              className="w-full bg-white hover:bg-neutral-100 border-2 border-black text-[11px] font-black uppercase py-2 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+              <span>Cara Bayar QRIS</span>
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* 2. MANUAL BANK TRANSFER / E-WALLET / VA — DETAIL REKENING & ATAS NAMA */}
+      {/* 2. AREA BAYAR REKENING MANUAL / VA (MUTUALLY EXCLUSIVE) */}
       {isManual && !isQrisCategory && (bankName || accountNumber || accountHolder) && (
         <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-3">
           <div className="font-black uppercase text-xs text-black flex items-center gap-2 border-b-2 border-black pb-2">
@@ -124,9 +147,9 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
 
             {accountNumber && (
               <div className="flex justify-between items-center border-t border-neutral-200 pt-2">
-                <span className="text-neutral-500 font-bold uppercase font-sans">No. Rekening / HP:</span>
+                <span className="text-neutral-500 font-bold uppercase font-sans">No. Rekening / VA:</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-lg text-blue-900">{accountNumber}</span>
+                  <span className="font-black text-base text-blue-900">{accountNumber}</span>
                   <Button
                     type="button"
                     variant="yellow"
@@ -148,11 +171,24 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
               </div>
             )}
           </div>
+
+          {displayInstructions && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsGuideOpen(true)}
+              className="w-full bg-white hover:bg-neutral-100 border-2 border-black text-[11px] font-black uppercase py-2 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+              <span>Petunjuk Transfer</span>
+            </Button>
+          )}
         </div>
       )}
 
-      {/* 3. EXTERNAL GATEWAY PAYMENT LINK (TOKOPAY CHECKOUT URL / PAY URL) */}
-      {isExternalHttp && (
+      {/* 3. AREA BAYAR REDIRECT GATEWAY (HANYA TAMPIL JIKA BUKAN QRIS & BUKAN MANUAL) */}
+      {!hasQrData && (!isManual || isQrisCategory) && isExternalHttp && (
         <div className="p-4 bg-cyan-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
           <span className="text-xs font-black uppercase text-black block">HALAMAN PEMBAYARAN GATEWAY ONLINE</span>
           <a
@@ -166,18 +202,36 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
         </div>
       )}
 
-      {/* 4. INSTRUKSI TAMBAHAN (CATATAN KHUSUS) */}
-      {instructions && (
-        <div className="p-4 bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-2">
-          <div className="font-black uppercase text-xs text-black flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 text-blue-600 stroke-[2.5]" />
-            <span>INSTRUKSI TAMBAHAN</span>
+      {/* 4. MODAL POP-UP PANDUAN PEMBAYARAN */}
+      <Dialog
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        title={`PANDUAN BAYAR: ${methodName}`}
+        className="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="bg-yellow-100 border-2 border-black p-3 rounded-lg text-xs font-bold text-black flex items-start gap-2">
+            <HelpCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5 stroke-[2.5]" />
+            <p>Ikuti langkah-langkah di bawah ini untuk menyelesaikan pembayaran pesanan Anda.</p>
           </div>
-          <div className="text-xs font-bold whitespace-pre-line text-neutral-800 bg-neutral-50 p-3 border-2 border-black font-mono">
-            {instructions}
+
+          <div className="bg-white border-2 border-black p-4 rounded-lg shadow-[3px_3px_0px_0px_#000]">
+            <div className="text-xs font-bold whitespace-pre-line text-neutral-800 leading-relaxed font-sans space-y-1">
+              {displayInstructions}
+            </div>
           </div>
+
+          <Button
+            type="button"
+            variant="yellow"
+            size="md"
+            onClick={() => setIsGuideOpen(false)}
+            className="w-full font-black uppercase text-xs"
+          >
+            Mengerti & Tutup
+          </Button>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 };

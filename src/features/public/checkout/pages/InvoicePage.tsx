@@ -5,7 +5,7 @@ import { format, differenceInSeconds } from 'date-fns';
 import { id } from 'date-fns/locale';
 import {
   Copy, ArrowLeft, Clock, CheckCircle, XCircle,
-  AlertTriangle, Sparkles, Check, Calendar, CreditCard,
+  AlertTriangle, Sparkles, Check, Calendar,
   Receipt, Tag, ShieldAlert, Zap, Star
 } from 'lucide-react';
 
@@ -467,11 +467,24 @@ export const InvoicePage: React.FC = () => {
               </div>
               <div className="md:hidden col-span-1 border-b-[3px] border-dashed border-black" />
 
-              {/* RIGHT SECTION (STUB): Pembayaran */}
+              {/* RIGHT SECTION (STUB): Pembayaran & Status Detail */}
               <div className="md:col-start-8 md:col-span-5 p-5 sm:p-7 flex flex-col items-center justify-center gap-3 bg-[#FAF5E9] relative z-10 text-center">
 
                 {isUnpaid && (
-                  <div className="w-full space-y-4">
+                  <div className="w-full space-y-3">
+                    {/* COUNTDOWN TEPAT DI ATAS AREA BAYAR / QRIS */}
+                    {timeLeft !== null && (
+                      <div className="w-full bg-red-50 border-2 border-black rounded-xl p-2.5 shadow-[2px_2px_0px_0px_#000] flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-black">
+                          <Clock className="w-4 h-4 text-red-600 stroke-[2.5] animate-pulse" />
+                          <span className="text-[10px] font-black uppercase tracking-wider">Sisa Waktu</span>
+                        </div>
+                        <span className="text-base sm:text-lg font-black tabular-nums tracking-tight text-red-600 font-mono">
+                          {formatTime(timeLeft)}
+                        </span>
+                      </div>
+                    )}
+
                     <PaymentDetails
                       methodName={transaction.paymentMethod}
                       gatewayCode={transaction.gatewayCode}
@@ -487,62 +500,80 @@ export const InvoicePage: React.FC = () => {
                       paymentUrl={transaction.paymentUrl}
                       instructions={transaction.instructions}
                     />
-
-                    {timeLeft !== null && (
-                      <div className="text-center pt-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500 block">Sisa Waktu Pembayaran</span>
-                        <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight text-red-600 whitespace-nowrap">
-                          {formatTime(timeLeft)}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {isProcessing && (
-                  <>
-                    <Clock className="w-14 h-14 text-amber-500 stroke-[2] animate-spin" />
-                    <p className="text-xs font-bold text-black/70">Sedang memproses pesananmu, mohon tunggu sebentar ya.</p>
-                  </>
+                  <div className="w-full bg-amber-50 border-[3px] border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-[var(--nb-yellow)] border-2 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_0px_#000]">
+                      <Clock className="w-8 h-8 text-black stroke-[3] animate-spin" />
+                    </div>
+                    <div>
+                      <h3 className="font-black uppercase text-sm sm:text-base text-black tracking-tight m-0">PEMBAYARAN DITERIMA</h3>
+                      <p className="text-xs font-bold text-neutral-700 mt-1 m-0">Sedang memproses pesananmu, mohon tunggu sebentar ya.</p>
+                    </div>
+                  </div>
                 )}
 
                 {isSuccess && (
-                  <>
-                    <CheckCircle className="w-14 h-14 text-emerald-500 stroke-[2]" />
+                  <div className="w-full bg-emerald-50 border-[3px] border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] text-center space-y-3.5">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500 border-2 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_0px_#000]">
+                      <CheckCircle className="w-8 h-8 text-white stroke-[3]" />
+                    </div>
+                    <div>
+                      <h3 className="font-black uppercase text-sm sm:text-base text-black tracking-tight m-0">TRANSAKSI BERHASIL!</h3>
+                      <p className="text-xs font-bold text-neutral-700 mt-1 m-0">Pembayaran terverifikasi & pesanan sukses diproses.</p>
+                    </div>
+
                     {transaction.sn ? (
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(transaction.sn!, 'ticketSn')}
-                        className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-2xl py-2.5 px-3 font-black uppercase text-xs flex items-center justify-between gap-2 shadow-[3px_3px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
-                      >
-                        <span className="truncate font-mono font-black">
-                          {copied === 'ticketSn' ? 'SN / TOKEN TERSALIN!' : `SN: ${transaction.sn}`}
-                        </span>
-                        <div className="flex items-center gap-1 shrink-0 bg-white border border-black rounded-lg px-2 py-0.5 text-[10px]">
-                          {copied === 'ticketSn' ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copied === 'ticketSn' ? 'Tersalin' : 'Salin SN'}</span>
-                        </div>
-                      </button>
+                      <div className="pt-2 border-t-2 border-dashed border-neutral-300 space-y-1 text-left">
+                        <span className="text-[10px] font-black uppercase text-neutral-600 block">SERIAL NUMBER / TOKEN:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(transaction.sn!, 'ticketSn')}
+                          className="w-full bg-[#FFB7D5] hover:bg-pink-300 text-black border-2 border-black rounded-xl py-2.5 px-3 font-black uppercase text-xs flex items-center justify-between gap-2 shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-y-0.5 cursor-pointer"
+                        >
+                          <span className="truncate font-mono font-black">
+                            {copied === 'ticketSn' ? 'SN TERSALIN!' : transaction.sn}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0 bg-white border border-black rounded-md px-2 py-0.5 text-[10px]">
+                            {copied === 'ticketSn' ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copied === 'ticketSn' ? 'Tersalin' : 'Salin'}</span>
+                          </div>
+                        </button>
+                      </div>
                     ) : (
-                      <p className="text-xs font-bold text-black/70">Item sudah dikirim ke akunmu. Selamat menikmati!</p>
+                      <p className="text-xs font-bold text-emerald-800 bg-white p-2 border-2 border-black rounded-lg">Item sudah berhasil dikirim ke akunmu!</p>
                     )}
-                  </>
+                  </div>
                 )}
 
                 {isRefund && (
-                  <>
-                    <ShieldAlert className="w-14 h-14 text-purple-500 stroke-[2]" />
-                    <p className="text-xs font-bold text-black/70">Saldo sudah dikembalikan otomatis ke akunmu.</p>
-                  </>
+                  <div className="w-full bg-purple-50 border-[3px] border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-purple-600 border-2 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_0px_#000]">
+                      <ShieldAlert className="w-8 h-8 text-white stroke-[3]" />
+                    </div>
+                    <div>
+                      <h3 className="font-black uppercase text-sm sm:text-base text-purple-950 tracking-tight m-0">DANA DIKEMBALIKAN</h3>
+                      <p className="text-xs font-bold text-neutral-700 mt-1 m-0">Saldo/dana transaksi sudah dikembalikan otomatis ke akunmu.</p>
+                    </div>
+                  </div>
                 )}
 
                 {((isFailed && !isRefund) || isExpired) && (
-                  <>
-                    <AlertTriangle className="w-14 h-14 text-red-500 stroke-[2]" />
-                    <p className="text-xs font-bold text-black/70">
-                      {isExpired ? 'Waktu pembayaran sudah habis.' : 'Transaksi tidak dapat diselesaikan.'}
-                    </p>
-                  </>
+                  <div className="w-full bg-red-50 border-[3px] border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-red-500 border-2 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_0px_#000]">
+                      <AlertTriangle className="w-8 h-8 text-white stroke-[3]" />
+                    </div>
+                    <div>
+                      <h3 className="font-black uppercase text-sm sm:text-base text-red-950 tracking-tight m-0">
+                        {isExpired ? 'PEMBAYARAN KEDALUWARSA' : 'TRANSAKSI GAGAL'}
+                      </h3>
+                      <p className="text-xs font-bold text-neutral-700 mt-1 m-0">
+                        {isExpired ? 'Waktu pembayaran sudah habis. Silakan buat pesanan baru.' : 'Transaksi tidak dapat diselesaikan atau telah dibatalkan.'}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -568,16 +599,6 @@ export const InvoicePage: React.FC = () => {
                 <div>
                   <span className="text-[9px] font-black uppercase tracking-wider text-white/50 block leading-none">Dibuat Pada</span>
                   <span className="font-bold text-xs">{dateShort}, {timeShort}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-[var(--nb-yellow)]" />
-                <div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-white/50 block leading-none">Status Pembayaran</span>
-                  <span className="inline-block bg-[var(--nb-yellow)] text-black text-[10px] font-black uppercase px-2 py-0.5 rounded-md mt-0.5">
-                    {payStatus}
-                  </span>
                 </div>
               </div>
             </div>
