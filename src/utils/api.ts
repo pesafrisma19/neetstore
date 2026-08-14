@@ -210,6 +210,7 @@ export interface CheckoutPayload {
   paymentMethod: number | string;
   voucherCode?: string;
   whatsapp?: string;
+  email?: string;
 }
 
 export interface CheckoutSuccessResponse {

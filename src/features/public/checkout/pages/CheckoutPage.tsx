@@ -398,9 +398,22 @@ export const CheckoutPage: React.FC = () => {
   const [appliedVoucherCode, setAppliedVoucherCode] = useState('');
   const [voucherError, setVoucherError] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  // Autofill whatsapp & email dari profile user jika login
+  useEffect(() => {
+    if (user) {
+      if (user.phone && !whatsapp) {
+        setWhatsapp(user.phone);
+      }
+      if (user.email && !email) {
+        setEmail(user.email);
+      }
+    }
+  }, [user]);
 
   const currentOwnerScope = getOwnerScope(user);
 
@@ -1253,6 +1266,30 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    const trimmedWa = whatsapp.trim();
+    const trimmedEmail = email.trim();
+
+    // Validasi Generik: Wajib ada MINIMAL SALAH SATU kontak (WhatsApp ATAU Email)
+    if (!trimmedWa && !trimmedEmail) {
+      checkoutSubmitLockRef.current = false;
+      setToast({
+        type: 'error',
+        title: 'KONTAK DIBUTUHKAN',
+        message: 'Masukkan nomor WhatsApp atau email.',
+      });
+      return;
+    }
+
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      checkoutSubmitLockRef.current = false;
+      setToast({
+        type: 'error',
+        title: 'EMAIL TIDAK VALID',
+        message: 'Format email yang dimasukkan tidak valid.',
+      });
+      return;
+    }
+
     const payload: CheckoutPayload = {
       productId: selectedItem.id,
       targetAccount: userId.trim(),
@@ -1260,7 +1297,8 @@ export const CheckoutPage: React.FC = () => {
       nickname: nickname.trim() || undefined,
       paymentMethod: selectedPayment,
       voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
-      whatsapp: whatsapp.trim() || undefined,
+      whatsapp: trimmedWa || undefined,
+      email: trimmedEmail || undefined,
     };
 
     let activeKey = '';
@@ -1858,7 +1896,7 @@ export const CheckoutPage: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Step 4: WhatsApp Contact */}
+                {/* Step 4: Kontak Bukti Transaksi */}
                 <Card variant="white" shadow="lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1866,14 +1904,23 @@ export const CheckoutPage: React.FC = () => {
                       <span>KONTAK BUKTI TRANSAKSI</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
+                  <CardContent className="flex flex-col md:flex-row gap-4">
                     <Input
-                      label="Nomor WhatsApp (Opsional)"
+                      label="Nomor WhatsApp"
                       placeholder="081234567890"
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
-                      helperText="Bukti transaksi dan status pemprosesan akan dikirimkan otomatis via WA."
-                      className="bg-[var(--nb-surface)]"
+                      helperText="Diisi untuk menerima notifikasi & bukti via WA."
+                      className="bg-[var(--nb-surface)] flex-1"
+                    />
+                    <Input
+                      label="Alamat Email"
+                      placeholder="pembeli@gmail.com"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      helperText="Diisi untuk menerima bukti transaksi via Email."
+                      className="bg-[var(--nb-surface)] flex-1"
                     />
                   </CardContent>
                 </Card>
