@@ -301,39 +301,16 @@ export const Navbar: React.FC = () => {
               </nav>
             </div>
 
-            {/* Bagian Bawah Drawer: Auth Section + Theme Toggle & Info Copyright */}
+            {/* Bagian Bawah Drawer: Tombol Masuk/Daftar (jika belum login) + Theme Toggle & Info Copyright */}
             <div className="flex flex-col gap-3 pt-4 border-t-[3px] border-[var(--nb-border)]/30">
-              {user ? (
-                // Sudah login → tampilkan info user + menu
-                <div className="flex flex-col gap-1 border-t-[3px] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] p-4">
-                  <div className="flex items-center gap-3 mb-3 pb-3 border-b-[2px] border-[var(--nb-border)]/30">
-                    <Avatar fallback={user.username.substring(0, 2).toUpperCase()} size="sm" variant="pink" />
-                    <div className="flex flex-col leading-tight">
-                      <span className="font-black text-sm uppercase text-[var(--nb-text)]">{user.username}</span>
-                      <span className="text-[10px] font-bold text-[var(--nb-text-muted)]">{user.phone || `ROLE: ${user.role}`}</span>
-                    </div>
-                  </div>
-                  {userMenuItems.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { item.onClick(); setMobileSidebarOpen(false); }}
-                      className={`flex items-center gap-2.5 p-2.5 font-black text-xs uppercase border-[2px] border-[var(--nb-border)]/40 hover:border-[var(--nb-border)] bg-[var(--nb-surface)] hover:bg-[var(--nb-surface-alt)] transition-all text-left ${
-                        item.tone === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-[var(--nb-text)]'
-                      }`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              ) : (
+              {!user && (
                 // Belum login → tampilkan tombol Masuk & Daftar
-                <div className="p-4 flex gap-3 border-t-[3px] border-[var(--nb-border)] bg-[var(--nb-surface-alt)]">
+                <div className="flex gap-2">
                   <Link to="/login" className="flex-1" onClick={() => setMobileSidebarOpen(false)}>
-                    <Button variant="outline" className="w-full">MASUK</Button>
+                    <Button variant="outline" size="sm" className="w-full">MASUK</Button>
                   </Link>
                   <Link to="/register" className="flex-1" onClick={() => setMobileSidebarOpen(false)}>
-                    <Button variant="yellow" className="w-full">DAFTAR</Button>
+                    <Button variant="yellow" size="sm" className="w-full">DAFTAR</Button>
                   </Link>
                 </div>
               )}
