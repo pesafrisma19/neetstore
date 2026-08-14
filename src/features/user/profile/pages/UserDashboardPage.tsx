@@ -30,6 +30,8 @@ import {
   Edit3,
   Trash2,
   Radio,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -810,14 +812,14 @@ export const UserDashboardPage: React.FC = () => {
 
             {/* TAB 5: DEVELOPER API */}
             <TabsContent value="api">
-              <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl p-6">
+              <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl overflow-hidden">
                 <CardHeader headerBg="#C4B5FD" className="border-b-[3px] border-black">
                   <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
                     <Key className="w-4 h-4 stroke-[3]" />
                     INTEGRASI API DEVELOPER (BOT WHATSAPP / WEBSITE RESELLER)
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6 max-w-2xl">
+                <CardContent className="p-4 sm:p-6 space-y-6">
                   {/* Status Banner */}
                   <div className="p-4 bg-neutral-900 text-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -860,18 +862,24 @@ export const UserDashboardPage: React.FC = () => {
                           className="bg-white font-mono text-xs font-black text-black border-[2.5px]"
                         />
                         <Button
+                          type="button"
                           variant="white"
                           size="md"
                           onClick={() => setShowApiKey(!showApiKey)}
-                          className="font-black text-xs shrink-0"
+                          className="font-black text-xs shrink-0 shadow-[2px_2px_0px_0px_#000] px-3"
+                          title={showApiKey ? 'Sembunyikan API Key' : 'Tampilkan API Key'}
+                          aria-label={showApiKey ? 'Sembunyikan API Key' : 'Tampilkan API Key'}
                         >
-                          {showApiKey ? 'SEMBUNYIKAN' : 'TAMPILKAN'}
+                          {showApiKey ? <EyeOff className="w-4 h-4 text-neutral-700 stroke-[2.5]" /> : <Eye className="w-4 h-4 text-neutral-700 stroke-[2.5]" />}
                         </Button>
                         <Button
+                          type="button"
                           variant="yellow"
                           size="md"
                           onClick={() => handleCopy(user.apiKey!, 'key')}
-                          className="font-black text-xs shrink-0"
+                          className="font-black text-xs shrink-0 shadow-[2px_2px_0px_0px_#000] px-3"
+                          title="Salin API Key"
+                          aria-label="Salin API Key"
                         >
                           {copiedKey ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4 stroke-[2.5]" />}
                         </Button>
@@ -1023,6 +1031,7 @@ export const UserDashboardPage: React.FC = () => {
                               className="bg-white font-mono text-xs font-black text-black border-[2.5px]"
                             />
                             <Button
+                              type="button"
                               variant="mint"
                               size="md"
                               onClick={() => {
@@ -1091,14 +1100,18 @@ export const UserDashboardPage: React.FC = () => {
                               className="bg-white font-mono text-xs font-black text-black border-[2px]"
                             />
                             <Button
+                              type="button"
                               variant="white"
                               size="sm"
                               onClick={() => setShowSecret(!showSecret)}
-                              className="font-black text-[10px] shrink-0"
+                              className="font-black text-[10px] shrink-0 shadow-[2px_2px_0px_0px_#000] px-2.5"
+                              title={showSecret ? 'Sembunyikan Secret' : 'Tampilkan Secret'}
+                              aria-label={showSecret ? 'Sembunyikan Secret' : 'Tampilkan Secret'}
                             >
-                              {showSecret ? 'SEMBUNYIKAN' : 'TAMPILKAN'}
+                              {showSecret ? <EyeOff className="w-3.5 h-3.5 text-neutral-700 stroke-[2.5]" /> : <Eye className="w-3.5 h-3.5 text-neutral-700 stroke-[2.5]" />}
                             </Button>
                             <Button
+                              type="button"
                               variant="yellow"
                               size="sm"
                               onClick={() => {
@@ -1106,7 +1119,9 @@ export const UserDashboardPage: React.FC = () => {
                                 setCopiedSecret(true);
                                 setTimeout(() => setCopiedSecret(false), 2000);
                               }}
-                              className="font-black text-[10px] shrink-0"
+                              className="font-black text-[10px] shrink-0 shadow-[2px_2px_0px_0px_#000] px-2.5"
+                              title="Salin Secret"
+                              aria-label="Salin Secret"
                             >
                               {copiedSecret ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5 stroke-[2.5]" />}
                             </Button>
