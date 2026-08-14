@@ -448,7 +448,7 @@ export const UserDashboardPage: React.FC = () => {
               <div className="space-y-6 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* RINGKASAN PROFIL */}
-                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl p-5 space-y-4">
+                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl overflow-hidden">
                     <CardHeader headerBg="#00F0FF" className="border-b-[3px] border-black flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
                         <User className="w-4 h-4 stroke-[3]" />
@@ -458,7 +458,7 @@ export const UserDashboardPage: React.FC = () => {
                         <Edit3 className="w-3 h-3 mr-1" /> EDIT PROFIL
                       </Button>
                     </CardHeader>
-                    <CardContent className="p-4 space-y-3 text-xs">
+                    <CardContent className="p-4 sm:p-5 space-y-3 text-xs">
                       <div className="flex justify-between py-1.5 border-b border-neutral-200">
                         <span className="font-bold text-neutral-500 uppercase">Username:</span>
                         <span className="font-black font-mono text-black">{user.username}</span>
@@ -498,7 +498,7 @@ export const UserDashboardPage: React.FC = () => {
                   </Card>
 
                   {/* CARD UPGRADE LEVEL MEMBERSHIP */}
-                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl space-y-4">
+                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl overflow-hidden">
                     <CardHeader headerBg="var(--nb-mint)" className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-[var(--nb-text)]">
                         <Award className="w-4 h-4 stroke-[3]" />
@@ -508,7 +508,7 @@ export const UserDashboardPage: React.FC = () => {
                         LEVEL: {user.level}
                       </Badge>
                     </CardHeader>
-                    <CardContent className="p-4 space-y-4">
+                    <CardContent className="p-4 sm:p-5 space-y-4">
                       {isFetchingLevelInfo ? (
                         <div className="text-center py-4 text-xs font-bold text-[var(--nb-text-muted)]">
                           Memuat data level membership...
@@ -578,14 +578,14 @@ export const UserDashboardPage: React.FC = () => {
                   </Card>
 
                   {/* QUICK ACTIONS & API STATUS */}
-                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl p-5 space-y-4">
+                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl overflow-hidden">
                     <CardHeader headerBg="#FFDC00" className="border-b-[3px] border-black">
                       <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
                         <Key className="w-4 h-4 stroke-[3]" />
                         AKSES API DEVELOPER & STATUS AKUN
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 space-y-4">
+                    <CardContent className="p-4 sm:p-5 space-y-4">
                       <div className="p-3 bg-neutral-100 border-[2.5px] border-black rounded-xl space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-black uppercase text-neutral-600">Status Akses API:</span>
@@ -1173,14 +1173,14 @@ export const UserDashboardPage: React.FC = () => {
 
             {/* TAB 6: PENGATURAN PROFIL */}
             <TabsContent value="settings">
-              <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl p-6">
+              <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl overflow-hidden">
                 <CardHeader headerBg="#C4B5FD" className="border-b-[3px] border-black">
                   <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
                     <User className="w-4 h-4 stroke-[3]" />
                     PENGATURAN PROFIL & KONTAK
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6 max-w-lg">
+                <CardContent className="p-4 sm:p-6 space-y-6 max-w-xl">
                   {profileMsg && (
                     <div
                       className={`p-3 border-[3px] border-black rounded-xl text-xs font-black flex items-center gap-2 shadow-[3px_3px_0px_0px_#000] ${
