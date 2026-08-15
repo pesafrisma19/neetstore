@@ -35,9 +35,14 @@ export const Progress: React.FC<ProgressProps> = ({
           {showPercentage && <span>{Math.round(percentage)}%</span>}
         </div>
       )}
-      <div className="w-full h-5 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-0.5 shadow-[3px_3px_0px_0px_var(--nb-shadow)] overflow-hidden">
+      <div
+        className="w-full h-5 border-[length:var(--nb-border-width)] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] rounded-[var(--nb-radius-element)] p-0.5 overflow-hidden"
+        style={{
+          boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+        }}
+      >
         <div
-          className={`h-full border-[1.5px] border-[var(--nb-border)] transition-all duration-300 ${toneBg[tone]}`}
+          className={`h-full border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] transition-all duration-300 ${toneBg[tone]}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
