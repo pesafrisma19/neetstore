@@ -3,29 +3,48 @@
 @layer base {
   :root {
     /* ============================================
-       NEON BRUTALISM — DESIGN TOKENS
+       1. SHAPE & RADIUS SYSTEM (Default: SOFT)
        ============================================ */
-    
-    /* Background */
-    --nb-bg: #FAF7EE;
-    --nb-surface: #FFFFFF;
-    --nb-surface-alt: #FAF7EE;
-    
-    /* Border & Shadow */
-    --nb-border: #000000;
-    --nb-shadow: #000000;
-    --nb-shadow-yellow: #000000;
-    --nb-shadow-pink: #000000;
-    --nb-shadow-mint: #000000;
-    --nb-shadow-purple: #000000;
-    --nb-shadow-cyan: #000000;
-    
-    /* Text */
+    --nb-radius-card: 1rem;       /* 16px: Container & Kartu Utama */
+    --nb-radius-element: 0.75rem; /* 12px: Tombol, Input, Alert Box */
+    --nb-radius-badge: 0.5rem;    /* 8px:  Badge, Tag, Pills Kecil */
+    --nb-radius-full: 9999px;     /* Avatar & Status Bulat */
+
+    /* ============================================
+       2. SHADOW GEOMETRY & BORDER WIDTH
+       ============================================ */
+    --nb-border-width: 3px;
+    --nb-shadow-x: 4px;
+    --nb-shadow-y: 4px;
+    --nb-shadow-blur: 0px;
+    --nb-shadow-spread: 0px;
+    --nb-shadow-sm-x: 2px;
+    --nb-shadow-sm-y: 2px;
+    --nb-shadow-lg-x: 6px;
+    --nb-shadow-lg-y: 6px;
+    --nb-shadow-xl-x: 8px;
+    --nb-shadow-xl-y: 8px;
+
+    /* ============================================
+       3. SURFACES & BACKGROUNDS (LIGHT MODE)
+       ============================================ */
+    --nb-bg: #FAF7EE;             /* Latar halaman utama (Krem) */
+    --nb-surface: #FFFFFF;        /* Latar kartu / panel putih */
+    --nb-surface-alt: #FAF7EE;    /* Latar sub-panel / baris alt */
+    --nb-surface-nested: #F0ECE1; /* Latar kotak di dalam kartu / input code */
+
+    /* ============================================
+       4. TEXT & BORDERS (LIGHT MODE)
+       ============================================ */
     --nb-text: #000000;
     --nb-text-muted: #6b7280;
     --nb-text-on-accent: #000000;
-    
-    /* Accent Colors (same for both themes) */
+    --nb-border: #000000;
+    --nb-border-subtle: rgba(0, 0, 0, 0.12);
+
+    /* ============================================
+       5. ACCENT PALETTE (KONSISTEN DI KEDUA TEMA)
+       ============================================ */
     --nb-yellow: #FFDC00;
     --nb-yellow-hover: #FFE633;
     --nb-pink: #FF4D79;
@@ -40,74 +59,121 @@
     --nb-orange-hover: #FFAA33;
     --nb-danger: #EF4444;
     --nb-danger-hover: #F87171;
-    
-    /* Component-specific */
-    --nb-input-bg: #FFFFFF;
-    --nb-input-focus-bg: #FAF7EE;
-    --nb-card-white: #FFFFFF;
-    --nb-table-header-bg: #FAF7EE;
-    --nb-table-row-hover: rgba(250, 247, 238, 0.7);
-    --nb-divider: #000000;
-    --nb-overlay: rgba(0, 0, 0, 0.5);
-    
-    /* Dark variant (for dark buttons/elements in light mode) */
+
+    /* ============================================
+       6. SHADOW COLORS — LIGHT MODE (SOLID HITAM FISIK)
+       ============================================ */
+    --nb-shadow: #000000;
+    --nb-shadow-yellow: #000000;
+    --nb-shadow-pink: #000000;
+    --nb-shadow-mint: #000000;
+    --nb-shadow-purple: #000000;
+    --nb-shadow-cyan: #000000;
+
+    /* ============================================
+       7. SEMANTIC STATUS ALERTS (LIGHT MODE)
+       ============================================ */
+    --nb-success-bg: #ECFDF5;
+    --nb-success-text: #065F46;
+    --nb-success-border: #10B981;
+
+    --nb-warning-bg: #FFFBEB;
+    --nb-warning-text: #92400E;
+    --nb-warning-border: #F59E0B;
+
+    --nb-danger-bg: #FEF2F2;
+    --nb-danger-text: #991B1B;
+    --nb-danger-border: #EF4444;
+
+    --nb-info-bg: #F5F3FF;
+    --nb-info-text: #5B21B6;
+    --nb-info-border: #8B5CF6;
+
+    /* ============================================
+       8. CONTRAST ELEMENTS & OVERLAY
+       ============================================ */
     --nb-dark-bg: #000000;
     --nb-dark-text: #FFFFFF;
-    
-    --nb-border-width: 3px;
+    --nb-overlay: rgba(0, 0, 0, 0.5);
+
+    /* ============================================
+       9. LEGACY ALIASES (Jaminan Kompatibilitas)
+       ============================================ */
+    --nb-card-white: var(--nb-surface);
+    --nb-input-bg: var(--nb-surface);
+    --nb-input-focus-bg: var(--nb-surface-alt);
+    --nb-table-header-bg: var(--nb-surface-alt);
+    --nb-table-row-hover: rgba(250, 247, 238, 0.7);
+    --nb-divider: var(--nb-border);
   }
 
   /* ============================================
-     DARK BRUTALISM THEME
+     DARK BRUTALISM THEME ([data-theme="dark"])
      ============================================ */
   [data-theme="dark"] {
-    /* Background */
+    /* Surfaces */
     --nb-bg: #0f0f1a;
     --nb-surface: #1a1a2e;
     --nb-surface-alt: #16213e;
-    
-    /* Border & Shadow — COLORFUL NEON GLOW! */
-    --nb-border: #e0e0e0;
-    --nb-shadow: #39FF14;           /* Default: neon green */
-    --nb-shadow-yellow: #FFDC00;    /* Yellow glow */
-    --nb-shadow-pink: #FF4D79;      /* Pink glow */
-    --nb-shadow-mint: #6EE7B7;      /* Mint glow */
-    --nb-shadow-purple: #C4B5FD;    /* Purple glow */
-    --nb-shadow-cyan: #7DD3FC;      /* Cyan glow */
-    
-    /* Text */
+    --nb-surface-nested: #121224;
+
+    /* Text & Borders */
     --nb-text: #f0f0f0;
     --nb-text-muted: #9ca3af;
     --nb-text-on-accent: #000000;
-    
-    /* Accent Colors — slightly brighter for dark bg */
-    --nb-yellow: #FFDC00;
+    --nb-border: #e0e0e0;
+    --nb-border-subtle: rgba(255, 255, 255, 0.12);
+
+    /* Accent Hover (Tuned Vibrancy) */
     --nb-yellow-hover: #FFE94D;
-    --nb-pink: #FF4D79;
     --nb-pink-hover: #FF7099;
-    --nb-mint: #6EE7B7;
     --nb-mint-hover: #A7F3D0;
-    --nb-purple: #C4B5FD;
     --nb-purple-hover: #E0D4FF;
-    --nb-cyan: #7DD3FC;
     --nb-cyan-hover: #B0E4FF;
-    --nb-orange: #FF9F1C;
     --nb-orange-hover: #FFB84D;
-    --nb-danger: #EF4444;
     --nb-danger-hover: #F87171;
-    
-    /* Component-specific */
-    --nb-input-bg: #1a1a2e;
-    --nb-input-focus-bg: #16213e;
-    --nb-card-white: #1a1a2e;
-    --nb-table-header-bg: #16213e;
-    --nb-table-row-hover: rgba(22, 33, 62, 0.7);
-    --nb-divider: #e0e0e0;
-    --nb-overlay: rgba(0, 0, 0, 0.7);
-    
-    /* Dark variant flips in dark mode */
+
+    /* SHADOW COLORS — DARK MODE (VIBRANT NEON GLOW LAMPS!) */
+    --nb-shadow: #39FF14;           /* Default: Neon Green */
+    --nb-shadow-yellow: #FFDC00;    /* Neon Yellow */
+    --nb-shadow-pink: #FF4D79;      /* Neon Pink */
+    --nb-shadow-mint: #6EE7B7;      /* Neon Mint Green */
+    --nb-shadow-purple: #C4B5FD;    /* Neon Purple */
+    --nb-shadow-cyan: #7DD3FC;      /* Neon Cyan */
+
+    /* Semantic Alerts (Dark Mode) */
+    --nb-success-bg: rgba(16, 185, 129, 0.15);
+    --nb-success-text: #6EE7B7;
+    --nb-success-border: #10B981;
+
+    --nb-warning-bg: rgba(245, 158, 11, 0.15);
+    --nb-warning-text: #FCD34D;
+    --nb-warning-border: #F59E0B;
+
+    --nb-danger-bg: rgba(239, 68, 68, 0.15);
+    --nb-danger-text: #FCA5A5;
+    --nb-danger-border: #EF4444;
+
+    --nb-info-bg: rgba(139, 92, 246, 0.15);
+    --nb-info-text: #C4B5FD;
+    --nb-info-border: #8B5CF6;
+
+    /* Contrast Inversion & Overlay */
     --nb-dark-bg: #f0f0f0;
     --nb-dark-text: #000000;
+    --nb-overlay: rgba(0, 0, 0, 0.7);
+
+    /* Legacy Aliases (Dark Mode) */
+    --nb-table-row-hover: rgba(22, 33, 62, 0.7);
+  }
+
+  /* ============================================
+     FORWARD-COMPATIBLE SHAPE ENGINE (SHARP MODE)
+     ============================================ */
+  [data-shape="sharp"] {
+    --nb-radius-card: 0px;
+    --nb-radius-element: 0px;
+    --nb-radius-badge: 0px;
   }
 
   body {
@@ -131,9 +197,9 @@
   background-size: 24px 24px;
 }
 
-/* Custom Neo-Brutalist Utilities */
+/* Custom Neo-Brutalist Utilities (Connected to Geometry Tokens) */
 .border-brutal {
-  border: 3px solid var(--nb-border) !important;
+  border: var(--nb-border-width) solid var(--nb-border) !important;
 }
 
 .border-brutal-4 {
@@ -141,19 +207,19 @@
 }
 
 .shadow-brutal-sm {
-  box-shadow: 2px 2px 0px 0px var(--nb-shadow) !important;
+  box-shadow: var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow) !important;
 }
 
 .shadow-brutal {
-  box-shadow: 4px 4px 0px 0px var(--nb-shadow) !important;
+  box-shadow: var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow) !important;
 }
 
 .shadow-brutal-lg {
-  box-shadow: 6px 6px 0px 0px var(--nb-shadow) !important;
+  box-shadow: var(--nb-shadow-lg-x) var(--nb-shadow-lg-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow) !important;
 }
 
 .shadow-brutal-xl {
-  box-shadow: 8px 8px 0px 0px var(--nb-shadow) !important;
+  box-shadow: var(--nb-shadow-xl-x) var(--nb-shadow-xl-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow) !important;
 }
 
 .btn-brutal-press {
@@ -162,7 +228,7 @@
 
 .btn-brutal-press:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px 0px var(--nb-shadow) !important;
+  box-shadow: var(--nb-shadow-lg-x) var(--nb-shadow-lg-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow) !important;
 }
 
 .btn-brutal-press:active {
