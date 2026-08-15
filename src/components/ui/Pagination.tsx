@@ -35,11 +35,16 @@ export const Pagination: React.FC<PaginationProps> = ({
             key={page}
             type="button"
             onClick={() => onPageChange(page)}
-            className={`w-9 h-9 border-[2.5px] border-[var(--nb-border)] font-black text-xs transition-all cursor-pointer ${
+            className={`w-9 h-9 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] font-black text-xs transition-all cursor-pointer ${
               isActive
-                ? 'bg-[var(--nb-yellow)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] -translate-y-0.5'
-                : 'bg-[var(--nb-surface)] hover:bg-gray-100 shadow-[1.5px_1.5px_0px_0px_#000]'
+                ? 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)] -translate-y-0.5'
+                : 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:bg-[var(--nb-surface-alt)]'
             }`}
+            style={{
+              boxShadow: isActive
+                ? `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`
+                : `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+            }}
           >
             {page}
           </button>
