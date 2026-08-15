@@ -24,17 +24,20 @@ export const Avatar: React.FC<AvatarProps> = ({
   };
 
   const bgStyles = {
-    yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text)]',
-    pink: 'bg-[var(--nb-pink)] text-white',
-    mint: 'bg-[var(--nb-mint)] text-[var(--nb-text)]',
-    purple: 'bg-[var(--nb-purple)] text-[var(--nb-text)]',
-    cyan: 'bg-[var(--nb-cyan)] text-[var(--nb-text)]',
+    yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)]',
+    pink: 'bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)]',
+    mint: 'bg-[var(--nb-mint)] text-[var(--nb-text-on-accent)]',
+    purple: 'bg-[var(--nb-purple)] text-[var(--nb-text-on-accent)]',
+    cyan: 'bg-[var(--nb-cyan)] text-[var(--nb-text-on-accent)]',
     white: 'bg-[var(--nb-surface)] text-[var(--nb-text)]',
   };
 
   return (
     <div
-      className={`inline-flex items-center justify-center font-black uppercase border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] overflow-hidden select-none shrink-0 ${sizeStyles[size]} ${bgStyles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center font-black uppercase border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] overflow-hidden select-none shrink-0 ${sizeStyles[size]} ${bgStyles[variant]} ${className}`}
+      style={{
+        boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+      }}
       {...props}
     >
       {src ? (
