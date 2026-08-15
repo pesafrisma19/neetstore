@@ -20,13 +20,18 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, className = '' })
           <React.Fragment key={idx}>
             {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[var(--nb-text)] stroke-[3]" />}
             {isLast ? (
-              <span className="bg-[var(--nb-yellow)] px-2 py-0.5 border-[2px] border-[var(--nb-border)] shadow-[1.5px_1.5px_0px_0px_#000]">
+              <span
+                className="bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)] px-2 py-0.5 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)]"
+                style={{
+                  boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+                }}
+              >
                 {item.label}
               </span>
             ) : (
               <a
                 href={item.href || '#'}
-                className="text-[var(--nb-text)] hover:underline hover:text-[#FF4D79] transition-colors"
+                className="text-[var(--nb-text)] hover:underline hover:text-[var(--nb-pink)] transition-colors"
               >
                 {item.label}
               </a>
