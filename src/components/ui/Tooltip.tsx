@@ -29,7 +29,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
       {children}
       {visible && (
         <div
-          className={`absolute z-50 px-3 py-1.5 bg-[var(--nb-yellow)] text-[var(--nb-text)] font-black text-xs uppercase tracking-wider border-[2.5px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] whitespace-nowrap pointer-events-none ${positionStyles[position]}`}
+          className={`absolute z-50 px-3 py-1.5 bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)] font-black text-xs uppercase tracking-wider border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] whitespace-nowrap pointer-events-none ${positionStyles[position]}`}
+          style={{
+            boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+          }}
         >
           {content}
         </div>
