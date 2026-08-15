@@ -54,8 +54,10 @@ export const TabsList: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 
   return (
     <div
-      className={`inline-flex flex-wrap items-center gap-2 p-1.5 bg-[var(--nb-surface-alt)] border-[3px] border-[var(--nb-border)] ${className}`}
-      style={{ boxShadow: `4px 4px 0px 0px var(--nb-shadow-${randomTone})` }}
+      className={`inline-flex flex-wrap items-center gap-2 p-1.5 bg-[var(--nb-surface-alt)] border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] ${className}`}
+      style={{
+        boxShadow: `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow-${randomTone})`,
+      }}
       {...props}
     >
       {children}
@@ -99,12 +101,18 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     <button
       type="button"
       onClick={() => ctx.setActiveTab(value)}
-      className={`px-4 py-2 text-xs md:text-sm font-black uppercase tracking-wider border-[2px] transition-all cursor-pointer select-none ${
+      className={`px-4 py-2 text-xs md:text-sm font-black uppercase tracking-wider border-[length:var(--nb-border-width-badge)] rounded-[var(--nb-radius-element)] transition-all cursor-pointer select-none ${
         isActive
-          ? `${activeBgClass} text-[#000000] border-[var(--nb-border)] -translate-y-[1px]`
+          ? `${activeBgClass} text-[var(--nb-text-on-accent)] border-[var(--nb-border)] -translate-y-[1px]`
           : 'border-transparent text-[var(--nb-text-muted)] hover:text-[var(--nb-text)] hover:border-[var(--nb-border)]/30'
       } ${className}`}
-      style={isActive ? { boxShadow: `2px 2px 0px 0px var(--nb-shadow-${randomTheme})` } : {}}
+      style={
+        isActive
+          ? {
+              boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow-${randomTheme})`,
+            }
+          : {}
+      }
       {...props}
     >
       {children}
