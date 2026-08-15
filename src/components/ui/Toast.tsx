@@ -38,7 +38,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
         return {
           bg: 'bg-[var(--nb-pink)]',
           shadowColor: 'var(--nb-shadow-pink)',
-          icon: <FaCircleExclamation className="w-5 h-5 text-white shrink-0" />,
+          icon: <FaCircleExclamation className="w-5 h-5 text-[var(--nb-text-on-accent)] shrink-0" />,
         };
       case 'warning':
         return {
@@ -60,8 +60,10 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   return (
     <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-top-4 fade-in duration-300 max-w-sm w-full">
       <div
-        className={`p-4 ${tone.bg} border-[3.5px] border-[var(--nb-border)] flex items-start gap-3 relative text-[var(--nb-text-on-accent)]`}
-        style={{ boxShadow: `5px 5px 0px 0px ${tone.shadowColor}` }}
+        className={`p-4 ${tone.bg} border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] flex items-start gap-3 relative text-[var(--nb-text-on-accent)]`}
+        style={{
+          boxShadow: `var(--nb-shadow-lg-x) var(--nb-shadow-lg-y) var(--nb-shadow-blur) var(--nb-shadow-spread) ${tone.shadowColor}`,
+        }}
       >
         {tone.icon}
         <div className="flex-1 text-left">
@@ -77,8 +79,10 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="p-1 bg-[var(--nb-surface)] border-[1.5px] border-[var(--nb-border)] hover:bg-[var(--nb-dark-bg)] hover:text-[var(--nb-dark-text)] transition-colors cursor-pointer"
-          style={{ boxShadow: `1.5px 1.5px 0px 0px var(--nb-shadow)` }}
+          className="p-1 bg-[var(--nb-surface)] text-[var(--nb-text)] border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] hover:opacity-80 transition-opacity cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+          style={{
+            boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+          }}
           aria-label="Tutup notifikasi"
         >
           <FaXmark className="w-3.5 h-3.5" />
