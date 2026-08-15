@@ -44,7 +44,7 @@ export const CountryPhoneInput: React.FC<CountryPhoneInputProps> = ({
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
         <label className="font-black text-xs uppercase tracking-wider text-[var(--nb-text)]">
-          {label} {required && <span className="text-red-500">*</span>}
+          {label} {required && <span className="text-[var(--nb-danger)]">*</span>}
         </label>
       )}
       <div className="flex gap-2">
@@ -52,7 +52,7 @@ export const CountryPhoneInput: React.FC<CountryPhoneInputProps> = ({
           value={countryCode}
           onChange={(e) => onCountryCodeChange(e.target.value)}
           disabled={disabled}
-          className="px-3 py-2.5 bg-[var(--nb-surface)] border-[2.5px] border-[var(--nb-border)] font-bold text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)] cursor-pointer disabled:opacity-50"
+          className="px-3 py-2.5 bg-[var(--nb-surface)] text-[var(--nb-text)] border-[length:var(--nb-border-width)] border-[var(--nb-border)] font-bold text-sm rounded-[var(--nb-radius-element)] focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)] cursor-pointer disabled:opacity-50"
         >
           {COUNTRY_LIST.map((c) => (
             <option key={c.code} value={c.code}>
@@ -68,7 +68,7 @@ export const CountryPhoneInput: React.FC<CountryPhoneInputProps> = ({
           onChange={(e) => onPhoneChange(e.target.value)}
           required={required}
           disabled={disabled}
-          className="flex-1 px-3 py-2.5 bg-[var(--nb-surface)] border-[2.5px] border-[var(--nb-border)] font-bold text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)] disabled:opacity-50"
+          className="flex-1 px-3 py-2.5 bg-[var(--nb-surface)] text-[var(--nb-text)] placeholder:text-[var(--nb-muted)] border-[length:var(--nb-border-width)] border-[var(--nb-border)] font-bold text-sm rounded-[var(--nb-radius-element)] focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)] disabled:opacity-50"
         />
       </div>
     </div>
