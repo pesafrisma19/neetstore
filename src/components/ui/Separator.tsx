@@ -14,8 +14,8 @@ export const Separator: React.FC<SeparatorProps> = ({
   const borderStyle = dashed ? 'border-dashed' : 'border-solid';
 
   if (orientation === 'vertical') {
-    return <div className={`h-full border-r-[3px] border-[var(--nb-border)] ${borderStyle} ${className}`} />;
+    return <div className={`h-full border-r-[length:var(--nb-border-width)] border-[var(--nb-border)] ${borderStyle} ${className}`} />;
   }
 
-  return <div className={`w-full border-b-[3px] border-[var(--nb-border)] ${borderStyle} my-4 ${className}`} />;
+  return <div className={`w-full border-b-[length:var(--nb-border-width)] border-[var(--nb-border)] ${borderStyle} my-4 ${className}`} />;
 };
