@@ -143,7 +143,7 @@ export const TransactionsPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <Button
-            variant="dark"
+            variant="outline"
             size="md"
             onClick={() => setSettingsModalOpen(true)}
             className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"

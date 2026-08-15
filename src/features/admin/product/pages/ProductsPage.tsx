@@ -307,16 +307,16 @@ export const ProductsPage: React.FC = () => {
               <Layers className="w-4 h-4 stroke-[3]" />
               <span className="font-black text-sm">{selectedIds.size} PRODUK DIPILIH</span>
               <div className="flex flex-wrap gap-2 ml-2">
-                <Button size="sm" variant="dark" onClick={() => { setBulkAction('category'); setIsBulkModalOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => { setBulkAction('category'); setIsBulkModalOpen(true); }}>
                   Set Kategori Produk
                 </Button>
-                <Button size="sm" variant="dark" onClick={() => { setBulkAction('region'); setIsBulkModalOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => { setBulkAction('region'); setIsBulkModalOpen(true); }}>
                   Set Region
                 </Button>
-                <Button size="sm" variant="dark" onClick={() => { setBulkAction('brand'); setIsBulkModalOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => { setBulkAction('brand'); setIsBulkModalOpen(true); }}>
                   Set Brand
                 </Button>
-                <Button size="sm" variant="dark" onClick={() => { setBulkAction('status'); setIsBulkModalOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => { setBulkAction('status'); setIsBulkModalOpen(true); }}>
                   Set Status
                 </Button>
               </div>
@@ -531,7 +531,7 @@ export const ProductsPage: React.FC = () => {
           </p>
           <div className="flex gap-3 pt-2">
             <Button
-              variant="dark"
+              variant="primary"
               className="flex-1 font-black"
               onClick={() => bulkMutation.mutate()}
               isLoading={bulkMutation.isPending}

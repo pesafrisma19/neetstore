@@ -400,7 +400,7 @@ export const SettingsApiPage: React.FC = () => {
             <div className="flex items-center gap-2 shrink-0">
               {/* SINGLE TEST BUTTON */}
               <Button
-                variant="dark"
+                variant="outline"
                 size="sm"
                 onClick={handleTestNeetflix}
                 disabled={neetflixConnState === 'TESTING'}
@@ -576,7 +576,7 @@ export const SettingsApiPage: React.FC = () => {
             <div className="flex items-center gap-1.5 shrink-0">
               {/* SINGLE TEST BUTTON */}
               <Button
-                variant="dark"
+                variant="outline"
                 size="sm"
                 onClick={handleTestSmtpConnection}
                 disabled={smtpConnState === 'TESTING'}
@@ -703,7 +703,7 @@ export const SettingsApiPage: React.FC = () => {
           <div className="flex items-center gap-1.5 shrink-0">
             {/* SINGLE TEST BUTTON */}
             <Button
-              variant="dark"
+              variant="outline"
               size="sm"
               onClick={handleTestFonnteConnection}
               disabled={fonnteConnState === 'TESTING'}

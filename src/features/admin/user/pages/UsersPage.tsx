@@ -84,7 +84,7 @@ export const UsersPage: React.FC = () => {
               TOTAL: {total} PENGGUNA
             </Badge>
             <Button
-              variant="dark"
+              variant="outline"
               size="sm"
               onClick={() => setUserSettingsModalOpen(true)}
               className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
