@@ -21,10 +21,10 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(({
     if (!isGeneric) return null;
     const tones = ['yellow', 'pink', 'mint', 'purple', 'cyan'];
     return tones[Math.floor(Math.random() * tones.length)];
-  }, []); // Only run once on mount
+  }, [isGeneric]); // Only run once on mount
 
   const bgStyles = {
-    white: 'bg-[var(--nb-card-white)]',
+    white: 'bg-[var(--nb-surface)]',
     cream: 'bg-[var(--nb-surface-alt)]',
     yellow: 'bg-[var(--nb-yellow)]',
     pink: 'bg-[var(--nb-pink)]',
@@ -46,26 +46,26 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(({
     dark: 'var(--nb-shadow)',
   };
 
-  const shadowSizes: Record<string, string> = {
+  const shadowGeometryMap: Record<string, string> = {
     none: '',
-    sm: '2px 2px 0px 0px',
-    md: '4px 4px 0px 0px',
-    lg: '6px 6px 0px 0px',
-    xl: '8px 8px 0px 0px',
+    sm: 'var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+    md: 'var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+    lg: 'var(--nb-shadow-lg-x) var(--nb-shadow-lg-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+    xl: 'var(--nb-shadow-xl-x) var(--nb-shadow-xl-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
   };
 
   const borderStyle = borderWidth === '4'
     ? 'border-[4px] border-[var(--nb-border)]'
-    : 'border-[3px] border-[var(--nb-border)]';
+    : 'border-[length:var(--nb-border-width)] border-[var(--nb-border)]';
 
   const shadowStyle = shadow !== 'none'
-    ? { boxShadow: `${shadowSizes[shadow]} ${shadowColorMap[variant]}` }
+    ? { boxShadow: `${shadowGeometryMap[shadow]} ${shadowColorMap[variant]}` }
     : {};
 
   return (
     <div
       ref={ref}
-      className={`${bgStyles[variant]} ${borderStyle} overflow-hidden transition-colors duration-300 ${className}`}
+      className={`${bgStyles[variant]} ${borderStyle} rounded-[var(--nb-radius-card)] overflow-hidden transition-colors duration-300 ${className}`}
       style={{ ...shadowStyle, ...style }}
       {...props}
     >
@@ -88,10 +88,12 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement> & { heade
     return tones[Math.floor(Math.random() * tones.length)];
   }, []);
 
+  const bg = headerBg || randomTone;
+
   return (
     <div
-      className={`p-4 border-b-[3px] border-[var(--nb-border)] font-black flex items-center justify-between text-[#000000] ${className}`}
-      style={{ backgroundColor: randomTone, ...style }}
+      className={`p-4 border-b-[length:var(--nb-border-width)] border-[var(--nb-border)] font-black flex items-center justify-between text-[var(--nb-text-on-accent)] ${className}`}
+      style={{ backgroundColor: bg, ...style }}
       {...props}
     >
       {children}
@@ -104,7 +106,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   className = '',
   ...props
 }) => (
-  <h3 className={`text-lg md:text-xl font-black uppercase tracking-tight text-[#000000] m-0 ${className}`} {...props}>
+  <h3 className={`text-lg md:text-xl font-black uppercase tracking-tight text-[var(--nb-text-on-accent)] m-0 ${className}`} {...props}>
     {children}
   </h3>
 );
@@ -114,7 +116,7 @@ export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   className = '',
   ...props
 }) => (
-  <div className={`p-4 md:p-6 ${className}`} {...props}>
+  <div className={`p-4 md:p-6 text-[var(--nb-text)] ${className}`} {...props}>
     {children}
   </div>
 );
@@ -124,7 +126,7 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   className = '',
   ...props
 }) => (
-  <div className={`p-4 border-t-[3px] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] flex items-center justify-between ${className}`} {...props}>
+  <div className={`p-4 border-t-[length:var(--nb-border-width)] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] text-[var(--nb-text)] flex items-center justify-between ${className}`} {...props}>
     {children}
   </div>
 );
