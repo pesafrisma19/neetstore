@@ -21,7 +21,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
 
   const variantStyles: Record<string, string> = {
     yellow: `bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-yellow-hover)]`,
-    pink: 'bg-[var(--nb-pink)] text-white hover:bg-[var(--nb-pink-hover)]',
+    pink: 'bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-pink-hover)]',
     mint: `bg-[var(--nb-mint)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-mint-hover)]`,
     purple: `bg-[var(--nb-purple)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-purple-hover)]`,
     cyan: `bg-[var(--nb-cyan)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-cyan-hover)]`,
@@ -45,7 +45,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center border-[3px] border-[var(--nb-border)] transition-all cursor-pointer select-none rounded-none active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed ${s.dim} ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] transition-all cursor-pointer select-none active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed ${s.dim} ${variantStyles[variant]} ${className}`}
       style={{ boxShadow: `${s.shadow} ${s.shadow} 0px 0px ${sc}` }}
       disabled={disabled}
       onMouseEnter={(e) => {
