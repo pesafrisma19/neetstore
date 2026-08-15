@@ -119,7 +119,7 @@ export const SettingsGeneralPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* GROUP 1 — IDENTITAS WEBSITE */}
         <Card variant="white">
-          <CardHeader headerBg="var(--nb-surface-alt)">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-black uppercase">
               <Globe className="w-5 h-5 stroke-[2.5]" />
               Group 1 — Identitas Website
