@@ -18,10 +18,10 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(({
   const checkboxId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   const toneBg = {
-    yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text)]',
-    pink: 'bg-[var(--nb-pink)] text-white',
-    mint: 'bg-[var(--nb-mint)] text-[var(--nb-text)]',
-    purple: 'bg-[var(--nb-purple)] text-[var(--nb-text)]',
+    yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)]',
+    pink: 'bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)]',
+    mint: 'bg-[var(--nb-mint)] text-[var(--nb-text-on-accent)]',
+    purple: 'bg-[var(--nb-purple)] text-[var(--nb-text-on-accent)]',
   };
 
   return (
@@ -37,9 +37,12 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(({
           {...props}
         />
         <div
-          className={`w-6 h-6 border-[3px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] transition-all flex items-center justify-center shrink-0 ${
+          className={`w-6 h-6 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] transition-all flex items-center justify-center shrink-0 ${
             checked ? toneBg[tone] : 'bg-[var(--nb-surface)]'
           }`}
+          style={{
+            boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+          }}
         >
           <Check className={`w-4 h-4 stroke-[4] ${checked ? 'opacity-100 scale-100' : 'opacity-0 scale-75'} transition-all`} />
         </div>
