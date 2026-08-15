@@ -64,7 +64,7 @@ export const Button: React.FC<ButtonProps> = ({
     white: 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:opacity-90',
     warning: 'bg-[var(--nb-orange)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-orange-hover)]',
     danger: 'bg-[var(--nb-danger)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-danger-hover)]',
-    dark: 'bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] hover:opacity-90',
+    dark: 'bg-[var(--nb-surface)] text-[var(--nb-text)] hover:opacity-90',
     outline: 'bg-transparent text-[var(--nb-text)] hover:bg-[var(--nb-surface-alt)] border-[var(--nb-border)]',
     primary: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)] hover:bg-[var(--nb-yellow-hover)]',
   };
