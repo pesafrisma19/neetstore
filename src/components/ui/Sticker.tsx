@@ -26,7 +26,7 @@ export const Sticker: React.FC<StickerProps> = ({
   const textColors: Record<string, string> = {
     mint: 'text-[var(--nb-text-on-accent)]',
     yellow: 'text-[var(--nb-text-on-accent)]',
-    pink: 'text-white',
+    pink: 'text-[var(--nb-text-on-accent)]',
     purple: 'text-[var(--nb-text-on-accent)]',
     cyan: 'text-[var(--nb-text-on-accent)]',
     dark: 'text-[var(--nb-dark-text)]',
