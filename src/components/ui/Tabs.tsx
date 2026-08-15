@@ -101,7 +101,7 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     <button
       type="button"
       onClick={() => ctx.setActiveTab(value)}
-      className={`px-4 py-2 text-xs md:text-sm font-black uppercase tracking-wider border-[length:var(--nb-border-width-badge)] rounded-[var(--nb-radius-element)] transition-all cursor-pointer select-none ${
+      className={`px-4 py-2 text-xs md:text-sm font-black uppercase tracking-wider border-[length:var(--nb-border-width-sm)] rounded-[var(--nb-radius-element)] transition-all cursor-pointer select-none ${
         isActive
           ? `${activeBgClass} text-[var(--nb-text-on-accent)] border-[var(--nb-border)] -translate-y-[1px]`
           : 'border-transparent text-[var(--nb-text-muted)] hover:text-[var(--nb-text)] hover:border-[var(--nb-border)]/30'

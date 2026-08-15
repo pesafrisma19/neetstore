@@ -14,7 +14,7 @@
        2. SHADOW GEOMETRY & BORDER WIDTH
        ============================================ */
     --nb-border-width: 3px;
-    --nb-border-width-badge: 2px;
+    --nb-border-width-sm: 2px;
     --nb-shadow-x: 4px;
     --nb-shadow-y: 4px;
     --nb-shadow-blur: 0px;
