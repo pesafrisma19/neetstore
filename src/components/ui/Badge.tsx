@@ -17,7 +17,7 @@ export const Badge: React.FC<BadgeProps> = ({
   style,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-black uppercase tracking-wider border-[2px] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] select-none';
+  const baseStyles = 'inline-flex items-center justify-center font-black uppercase tracking-wider border-[length:var(--nb-border-width-badge)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] select-none';
 
   const variantStyles: Record<string, string> = {
     yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)]',
