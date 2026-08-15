@@ -29,7 +29,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 z-40 w-48 bg-[var(--nb-surface)] border-[3px] border-[var(--nb-border)] shadow-[4px_4px_0px_0px_var(--nb-shadow)] py-1 flex flex-col">
+          <div
+            className="absolute right-0 mt-2 z-40 w-48 bg-[var(--nb-surface)] border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] overflow-hidden py-1 flex flex-col"
+            style={{
+              boxShadow: `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+            }}
+          >
             {items.map((item, idx) => (
               <button
                 key={idx}
@@ -38,8 +43,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
                   setOpen(false);
                   if (item.onClick) item.onClick();
                 }}
-                className={`w-full px-4 py-2.5 text-left text-xs font-black uppercase flex items-center gap-2 border-b-[1.5px] border-[var(--nb-border)] last:border-b-0 hover:bg-[var(--nb-yellow)] transition-colors ${
-                  item.tone === 'danger' ? 'text-red-600 hover:bg-red-500 hover:text-white' : 'text-[var(--nb-text)]'
+                className={`w-full px-4 py-2.5 text-left text-xs font-black uppercase flex items-center gap-2 border-b-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] last:border-b-0 transition-colors cursor-pointer ${
+                  item.tone === 'danger'
+                    ? 'text-[var(--nb-danger)] hover:bg-[var(--nb-danger)] hover:text-[var(--nb-text-on-accent)]'
+                    : 'text-[var(--nb-text)] hover:bg-[var(--nb-yellow)] hover:text-[var(--nb-text-on-accent)]'
                 }`}
               >
                 {item.icon}
