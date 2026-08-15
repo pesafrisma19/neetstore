@@ -1782,7 +1782,7 @@ export const CheckoutPage: React.FC = () => {
                               {(isTierDisabled || isTierAvailable || (item.isPopular && !tierMatch)) && (
                                 <div className="mb-2 flex items-center justify-between gap-1">
                                   {isTierDisabled && (
-                                    <Badge variant="dark" size="sm" className="text-[9px] py-0.5 px-1.5 font-black uppercase">
+                                    <Badge variant="orange" size="sm" className="text-[9px] py-0.5 px-1.5 font-black uppercase">
                                       BATAS TERCAPAI
                                     </Badge>
                                   )}
@@ -1955,7 +1955,7 @@ export const CheckoutPage: React.FC = () => {
                           <span>WHAT'S NEW - UPDATE &amp; PATCH NOTES</span>
                         </div>
                         {brandData.updatedOn && (
-                          <Badge variant="dark" size="sm">Updated: {brandData.updatedOn}</Badge>
+                          <Badge variant="white" size="sm">Updated: {brandData.updatedOn}</Badge>
                         )}
                       </CardTitle>
                     </CardHeader>
@@ -1979,7 +1979,7 @@ export const CheckoutPage: React.FC = () => {
                           <span>DESKRIPSI LENGKAP BRAND</span>
                         </div>
                         {brandData.releasedOn && (
-                          <Badge variant="dark" size="sm">Released: {brandData.releasedOn}</Badge>
+                          <Badge variant="white" size="sm">Released: {brandData.releasedOn}</Badge>
                         )}
                       </CardTitle>
                     </CardHeader>

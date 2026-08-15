@@ -17,11 +17,11 @@ export const Badge: React.FC<BadgeProps> = ({
   style,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-black uppercase tracking-wider border-[2px] border-[var(--nb-border)] select-none';
+  const baseStyles = 'inline-flex items-center justify-center font-black uppercase tracking-wider border-[2px] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] select-none';
 
   const variantStyles: Record<string, string> = {
     yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)]',
-    pink: 'bg-[var(--nb-pink)] text-white',
+    pink: 'bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)]',
     mint: 'bg-[var(--nb-mint)] text-[var(--nb-text-on-accent)]',
     purple: 'bg-[var(--nb-purple)] text-[var(--nb-text-on-accent)]',
     cyan: 'bg-[var(--nb-cyan)] text-[var(--nb-text-on-accent)]',
@@ -52,7 +52,10 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${rotationClass} ${className}`}
-      style={{ boxShadow: `2px 2px 0px 0px ${shadowColorMap[variant]}`, ...style }}
+      style={{
+        boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) ${shadowColorMap[variant]}`,
+        ...style,
+      }}
       {...props}
     >
       {children}
