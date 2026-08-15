@@ -14,9 +14,24 @@ export const IconButton: React.FC<IconButtonProps> = ({
   ...props
 }) => {
   const sizeMap = {
-    sm: { dim: 'w-8 h-8 p-1', shadow: '2px', hoverShadow: '3px', move: '1px' },
-    md: { dim: 'w-11 h-11 p-2', shadow: '3px', hoverShadow: '5px', move: '2px' },
-    lg: { dim: 'w-14 h-14 p-3', shadow: '4px', hoverShadow: '6px', move: '2px' },
+    sm: {
+      dim: 'w-8 h-8 p-1',
+      shadow: 'var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+      hoverShadow: 'var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+      move: '1px',
+    },
+    md: {
+      dim: 'w-11 h-11 p-2',
+      shadow: 'var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+      hoverShadow: 'var(--nb-shadow-lg-x) var(--nb-shadow-lg-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+      move: '2px',
+    },
+    lg: {
+      dim: 'w-14 h-14 p-3',
+      shadow: 'var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+      hoverShadow: 'var(--nb-shadow-lg-x) var(--nb-shadow-lg-y) var(--nb-shadow-blur) var(--nb-shadow-spread)',
+      move: '2px',
+    },
   };
 
   const variantStyles: Record<string, string> = {
@@ -46,17 +61,17 @@ export const IconButton: React.FC<IconButtonProps> = ({
     <button
       type="button"
       className={`inline-flex items-center justify-center border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] transition-all cursor-pointer select-none active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed ${s.dim} ${variantStyles[variant]} ${className}`}
-      style={{ boxShadow: `${s.shadow} ${s.shadow} 0px 0px ${sc}` }}
+      style={{ boxShadow: `${s.shadow} ${sc}` }}
       disabled={disabled}
       onMouseEnter={(e) => {
         if (!disabled) {
           e.currentTarget.style.transform = `translate(-${s.move}, -${s.move})`;
-          e.currentTarget.style.boxShadow = `${s.hoverShadow} ${s.hoverShadow} 0px 0px ${sc}`;
+          e.currentTarget.style.boxShadow = `${s.hoverShadow} ${sc}`;
         }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = '';
-        e.currentTarget.style.boxShadow = `${s.shadow} ${s.shadow} 0px 0px ${sc}`;
+        e.currentTarget.style.boxShadow = `${s.shadow} ${sc}`;
       }}
       onMouseDown={(e) => {
         if (!disabled) {
@@ -67,7 +82,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
       onMouseUp={(e) => {
         if (!disabled) {
           e.currentTarget.style.transform = `translate(-${s.move}, -${s.move})`;
-          e.currentTarget.style.boxShadow = `${s.hoverShadow} ${s.hoverShadow} 0px 0px ${sc}`;
+          e.currentTarget.style.boxShadow = `${s.hoverShadow} ${sc}`;
         }
       }}
       {...props}
