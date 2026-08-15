@@ -29,7 +29,7 @@ export const StatusDot: React.FC<StatusDotProps> = ({
           />
         )}
         <span
-          className={`relative inline-flex rounded-full h-3 w-3 border-[2px] border-[var(--nb-border)] ${statusColors[status]}`}
+          className={`relative inline-flex rounded-full h-3 w-3 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] ${statusColors[status]}`}
         />
       </span>
       {label && <span className="text-xs font-black uppercase tracking-wide text-[var(--nb-text)]">{label}</span>}
