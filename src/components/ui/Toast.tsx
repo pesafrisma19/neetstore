@@ -79,7 +79,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="p-1 bg-[var(--nb-surface)] text-[var(--nb-text)] border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] hover:opacity-80 transition-opacity cursor-pointer active:translate-x-[1px] active:translate-y-[1px]"
+          className="p-1 bg-[var(--nb-surface)] text-[var(--nb-text)] border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] hover:opacity-80 transition-opacity cursor-pointer"
           style={{
             boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
           }}
