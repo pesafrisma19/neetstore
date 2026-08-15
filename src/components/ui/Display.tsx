@@ -21,10 +21,17 @@ export const Display: React.FC<DisplayProps> = ({
 
   const highlightStyles = {
     none: '',
-    yellow: 'bg-[var(--nb-yellow)] px-2 py-0.5 border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] inline-block -rotate-1',
-    pink: 'bg-[var(--nb-pink)] text-white px-2 py-0.5 border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] inline-block rotate-1',
-    mint: 'bg-[var(--nb-mint)] px-2 py-0.5 border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] inline-block -rotate-1',
-    purple: 'bg-[var(--nb-purple)] px-2 py-0.5 border-[3px] border-[var(--nb-border)] shadow-[3px_3px_0px_0px_var(--nb-shadow)] inline-block rotate-1',
+    yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)] px-2 py-0.5 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] inline-block -rotate-1',
+    pink: 'bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)] px-2 py-0.5 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] inline-block rotate-1',
+    mint: 'bg-[var(--nb-mint)] text-[var(--nb-text-on-accent)] px-2 py-0.5 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] inline-block -rotate-1',
+    purple: 'bg-[var(--nb-purple)] text-[var(--nb-text-on-accent)] px-2 py-0.5 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] inline-block rotate-1',
+  };
+
+  const shadowMap: Record<string, string> = {
+    yellow: 'var(--nb-shadow-yellow)',
+    pink: 'var(--nb-shadow-pink)',
+    mint: 'var(--nb-shadow-mint)',
+    purple: 'var(--nb-shadow-purple)',
   };
 
   return (
@@ -32,7 +39,18 @@ export const Display: React.FC<DisplayProps> = ({
       className={`font-black uppercase tracking-tight text-[var(--nb-text)] leading-[1.1] ${sizeStyles[size]} ${className}`}
       {...props}
     >
-      {highlight !== 'none' ? <span className={highlightStyles[highlight]}>{children}</span> : children}
+      {highlight !== 'none' ? (
+        <span
+          className={highlightStyles[highlight]}
+          style={{
+            boxShadow: `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) ${shadowMap[highlight]}`,
+          }}
+        >
+          {children}
+        </span>
+      ) : (
+        children
+      )}
     </h1>
   );
 };
