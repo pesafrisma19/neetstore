@@ -17,12 +17,12 @@ export const Callout: React.FC<CalloutProps> = ({
 }) => {
   const bgStyles: Record<string, string> = {
     yellow: 'bg-[var(--nb-yellow)] text-[var(--nb-text-on-accent)]',
-    pink: 'bg-[var(--nb-pink)] text-white',
+    pink: 'bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)]',
     mint: 'bg-[var(--nb-mint)] text-[var(--nb-text-on-accent)]',
     purple: 'bg-[var(--nb-purple)] text-[var(--nb-text-on-accent)]',
     cyan: 'bg-[var(--nb-cyan)] text-[var(--nb-text-on-accent)]',
     warning: 'bg-[var(--nb-orange)] text-[var(--nb-text-on-accent)]',
-    danger: 'bg-[var(--nb-danger)] text-white',
+    danger: 'bg-[var(--nb-danger)] text-[var(--nb-text-on-accent)]',
   };
 
   const shadowMap: Record<string, string> = {
@@ -47,8 +47,10 @@ export const Callout: React.FC<CalloutProps> = ({
 
   return (
     <div
-      className={`p-4 border-[3px] border-[var(--nb-border)] flex items-start gap-3 text-left ${bgStyles[tone]} ${className}`}
-      style={{ boxShadow: `4px 4px 0px 0px ${shadowMap[tone]}` }}
+      className={`p-4 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] flex items-start gap-3 text-left ${bgStyles[tone]} ${className}`}
+      style={{
+        boxShadow: `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) ${shadowMap[tone]}`,
+      }}
       {...props}
     >
       {icon || defaultIcon[tone]}
