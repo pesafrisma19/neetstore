@@ -77,11 +77,16 @@ export const RadioGroupItem: React.FC<RadioGroupItemProps> = ({
         className="sr-only"
       />
       <div
-        className={`w-6 h-6 border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex items-center justify-center p-1 transition-all ${
+        className={`w-6 h-6 border-[length:var(--nb-border-width)] border-[var(--nb-border)] bg-[var(--nb-surface)] rounded-full flex items-center justify-center p-1 transition-all ${
           isChecked ? toneBg[tone] : ''
         }`}
+        style={{
+          boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+        }}
       >
-        {isChecked && <div className="w-2.5 h-2.5 bg-black border-[1.5px] border-[var(--nb-border)]" />}
+        {isChecked && (
+          <div className="w-2.5 h-2.5 bg-[var(--nb-text-on-accent)] border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-full" />
+        )}
       </div>
       {label && <span className="text-xs font-black uppercase text-[var(--nb-text)]">{label}</span>}
     </label>
