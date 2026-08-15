@@ -31,14 +31,20 @@ export const Switch: React.FC<SwitchProps> = ({
         role="switch"
         aria-checked={checked}
         onClick={() => !disabled && onChange(!checked)}
-        className={`w-14 h-8 border-[3px] border-[var(--nb-border)] p-0.5 shadow-[3px_3px_0px_0px_var(--nb-shadow)] transition-colors cursor-pointer relative ${
-          checked ? toneBg[tone] : 'bg-gray-200'
+        className={`w-14 h-8 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] p-0.5 transition-colors cursor-pointer relative ${
+          checked ? toneBg[tone] : 'bg-[var(--nb-surface-alt)]'
         }`}
+        style={{
+          boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+        }}
       >
         <div
-          className={`w-6 h-6 border-[2px] border-[var(--nb-border)] bg-[var(--nb-surface)] shadow-[1px_1px_0px_0px_var(--nb-shadow)] transform transition-transform duration-150 ${
+          className={`w-6 h-6 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] bg-[var(--nb-surface)] rounded-[var(--nb-radius-badge)] transform transition-transform duration-150 ${
             checked ? 'translate-x-6' : 'translate-x-0'
           }`}
+          style={{
+            boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+          }}
         />
       </button>
       {label && <span className="text-xs font-black uppercase text-[var(--nb-text)]">{label}</span>}
