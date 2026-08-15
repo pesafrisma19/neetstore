@@ -16,7 +16,7 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -54,6 +54,26 @@ export const VerifiedBadgeIcon: React.FC<{ size?: number; className?: string }> 
     <path d="M8.5 12L10.8 14.3L15.5 9.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+// Helper Icon Lucide untuk Pilihan Metode Pembayaran
+const getPaymentMethodIcon = (type?: string) => {
+  const normalizedType = String(type || '').toUpperCase();
+  switch (normalizedType) {
+    case 'QRIS':
+      return QrCode;
+    case 'SALDO_AKUN':
+      return Wallet;
+    case 'E-WALLET':
+      return Smartphone;
+    case 'VIRTUAL_ACCOUNT':
+    case 'BANK_TRANSFER':
+      return Building2;
+    case 'RETAIL':
+      return Store;
+    default:
+      return CreditCard;
+  }
+};
 
 // Component Event Carousel Slider (Ganti Grid Event agar tidak pecah/tertarik)
 const EventCarouselSlider: React.FC<{ events: { title: string; badge: string; bannerUrl: string }[] }> = ({ events }) => {
@@ -387,6 +407,7 @@ export const CheckoutPage: React.FC = () => {
   const [validMatchedRegionIds, setValidMatchedRegionIds] = useState<number[]>([]);
   const [checkIdError, setCheckIdError] = useState('');
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+  const [isLoginRequiredModalOpen, setIsLoginRequiredModalOpen] = useState(false);
 
   // State untuk merekam ID & Server yang BENAR-BENAR berhasil divalidasi
   const [validatedUserId, setValidatedUserId] = useState('');
@@ -634,15 +655,19 @@ export const CheckoutPage: React.FC = () => {
     checkoutSubmitLockRef.current = false;
   }, [slug, resetValidationState]);
 
-  // Effect UI: Auto-select metode pembayaran AKTIF pertama saat list dimuat
+  // Effect UI: Auto-select metode pembayaran AKTIF pertama saat list dimuat (skip SALDO_AKUN jika belum login)
   useEffect(() => {
-    const activePaymentMethods = paymentMethodsList.filter((p) => p.isActive !== false);
-    if (activePaymentMethods.length > 0) {
-      if (!selectedPayment || !activePaymentMethods.some((p) => p.id === selectedPayment)) {
-        setSelectedPayment(activePaymentMethods[0].id);
+    const eligiblePaymentMethods = paymentMethodsList.filter((p) => {
+      if (p.isActive === false) return false;
+      if (!user && p.type === 'SALDO_AKUN') return false;
+      return true;
+    });
+    if (eligiblePaymentMethods.length > 0) {
+      if (!selectedPayment || !eligiblePaymentMethods.some((p) => p.id === selectedPayment)) {
+        setSelectedPayment(eligiblePaymentMethods[0].id);
       }
     }
-  }, [paymentMethodsList, selectedPayment]);
+  }, [paymentMethodsList, selectedPayment, user]);
 
   const availableRegions = React.useMemo(() => {
     if (!brandData?.regions || !Array.isArray(brandData.regions)) return [];
@@ -1850,6 +1875,7 @@ export const CheckoutPage: React.FC = () => {
                           const isSelected = String(selectedPayment) === String(method.id);
                           const methodTheme = paymentThemes[method.id] || 'yellow';
                           const shadowColor = `var(--nb-shadow-${methodTheme})`;
+                          const MethodIcon = getPaymentMethodIcon(method.type);
 
                           return (
                             <Card
@@ -1864,15 +1890,21 @@ export const CheckoutPage: React.FC = () => {
                                   ? '-translate-y-1' 
                                   : 'hover:bg-[var(--nb-surface-alt)]'
                               }`}
-                              onClick={() => setSelectedPayment(method.id)}
+                              onClick={() => {
+                                if (!user && method.type === 'SALDO_AKUN') {
+                                  setIsLoginRequiredModalOpen(true);
+                                  return;
+                                }
+                                setSelectedPayment(method.id);
+                              }}
                             >
                               <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  {method.iconUrl ? (
-                                    <img src={method.iconUrl} alt={method.name} className="w-6 h-6 object-contain" />
-                                  ) : (
-                                    <span className="text-xl">💳</span>
-                                  )}
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] ${
+                                    isSelected ? 'bg-black text-white' : 'bg-[var(--nb-surface-alt)] text-[var(--nb-text)]'
+                                  }`}>
+                                    <MethodIcon className="w-4 h-4 stroke-[2.5]" />
+                                  </div>
                                   <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-[var(--nb-text-on-accent)]' : 'text-[var(--nb-text)]'}`}>
                                     {method.name}
                                   </span>
@@ -2227,6 +2259,64 @@ export const CheckoutPage: React.FC = () => {
                 className="font-black text-xs uppercase"
               >
                 YA, TAMPILKAN SEMUA REGION
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+
+        {/* Modal Login Diperlukan untuk Saldo Akun */}
+        <Dialog
+          isOpen={isLoginRequiredModalOpen}
+          onClose={() => setIsLoginRequiredModalOpen(false)}
+          title="LOGIN DIPERLUKAN"
+        >
+          <div className="flex flex-col gap-4 text-left font-sans">
+            <div className="p-3.5 bg-purple-50 border-[3px] border-black shadow-[3px_3px_0px_0px_#000] flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-purple-700 shrink-0 stroke-[2.5] mt-0.5" />
+              <div className="text-xs font-bold text-purple-950 space-y-1">
+                <div className="font-black uppercase text-purple-900">METODE SALDO AKUN</div>
+                <p className="text-neutral-700 leading-relaxed m-0">
+                  Untuk melakukan pembayaran menggunakan <b>Saldo Akun</b>, silakan Masuk ke akun Anda atau mendaftar terlebih dahulu.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <Button
+                type="button"
+                variant="yellow"
+                size="md"
+                onClick={() => {
+                  setIsLoginRequiredModalOpen(false);
+                  navigate('/login');
+                }}
+                className="w-full font-black uppercase text-xs"
+              >
+                MASUK / LOGIN
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => {
+                  setIsLoginRequiredModalOpen(false);
+                  navigate('/register');
+                }}
+                className="w-full font-black uppercase text-xs"
+              >
+                DAFTAR AKUN
+              </Button>
+            </div>
+
+            <div className="pt-2 border-t border-black/10 flex justify-end">
+              <Button
+                type="button"
+                variant="white"
+                size="sm"
+                onClick={() => setIsLoginRequiredModalOpen(false)}
+                className="font-black text-xs uppercase"
+              >
+                KEMBALI KE PEMBAYARAN
               </Button>
             </div>
           </div>
