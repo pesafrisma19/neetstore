@@ -66,8 +66,10 @@ export const Accordion: React.FC<AccordionProps> = ({
   return (
     <AccordionContext.Provider value={{ openValues: currentValues, toggleItem }}>
       <div
-        className={`flex flex-col gap-3 border-[3px] border-[var(--nb-border)] p-3 bg-[var(--nb-surface-alt)] ${className}`}
-        style={{ boxShadow: `5px 5px 0px 0px var(--nb-shadow)` }}
+        className={`flex flex-col gap-3 border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-card)] p-3 bg-[var(--nb-surface-alt)] ${className}`}
+        style={{
+          boxShadow: `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+        }}
       >
         {children}
       </div>
@@ -97,7 +99,11 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
 }) => {
   return (
     <AccordionItemContext.Provider value={{ value, disabled }}>
-      <div className={`border-[3px] border-[var(--nb-border)] bg-[var(--nb-surface)] overflow-hidden ${disabled ? 'opacity-50 pointer-events-none' : ''} ${className}`}>
+      <div
+        className={`border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] bg-[var(--nb-surface)] overflow-hidden ${
+          disabled ? 'opacity-50 pointer-events-none' : ''
+        } ${className}`}
+      >
         {children}
       </div>
     </AccordionItemContext.Provider>
@@ -133,9 +139,11 @@ export const AccordionTrigger: React.FC<AccordionTriggerProps> = ({
       type="button"
       onClick={() => !itemCtx.disabled && accordionCtx.toggleItem(itemCtx.value)}
       style={customBgStyle}
-      className={`w-full flex items-center justify-between p-4 font-black text-left text-[var(--nb-text)] transition-colors border-b-0 hover:opacity-90 select-none ${
-        isOpen ? 'border-b-[3px] border-[var(--nb-border)]' : ''
-      } ${!triggerBg ? 'bg-[var(--nb-surface-alt)]' : ''} ${className}`}
+      className={`w-full flex items-center justify-between p-4 font-black text-left transition-colors border-b-0 hover:opacity-90 select-none ${
+        triggerBg ? 'text-[var(--nb-text-on-accent)]' : 'bg-[var(--nb-surface-alt)] text-[var(--nb-text)]'
+      } ${
+        isOpen ? 'border-b-[length:var(--nb-border-width)] border-[var(--nb-border)]' : ''
+      } ${className}`}
     >
       <span className="flex items-center gap-2">{children}</span>
       <ChevronDown
