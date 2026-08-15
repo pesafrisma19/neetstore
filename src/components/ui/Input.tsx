@@ -41,14 +41,18 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
         id={inputId}
         {...props}
         value={props.value ?? ''}
-        className={`w-full px-4 py-2.5 font-semibold border-[3px] border-[var(--nb-border)] outline-none transition-all duration-150 rounded-none disabled:opacity-50 disabled:bg-[var(--nb-surface-alt)] ${
-          error ? 'border-red-600 bg-red-50 text-red-900 placeholder:text-red-400' : 'bg-[var(--nb-input-bg)] placeholder:text-[var(--nb-text-muted)]'
+        className={`w-full px-4 py-2.5 font-semibold border-[length:var(--nb-border-width)] outline-none transition-all duration-150 rounded-[var(--nb-radius-element)] disabled:opacity-50 disabled:bg-[var(--nb-surface-alt)] ${
+          error
+            ? 'border-[var(--nb-danger-border)] bg-[var(--nb-danger-bg)] text-[var(--nb-danger-text)] placeholder:text-[var(--nb-danger-text)]/60'
+            : 'border-[var(--nb-border)] bg-[var(--nb-surface)] placeholder:text-[var(--nb-text-muted)]'
         } ${className}`}
         style={{
-          boxShadow: isFocused ? `4px 4px 0px 0px ${shadowColor}` : `2px 2px 0px 0px ${shadowColor}`,
+          boxShadow: isFocused
+            ? `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) ${shadowColor}`
+            : `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) ${shadowColor}`,
           transform: isFocused ? 'translate(-1px, -1px)' : 'none',
           backgroundColor: isFocused && !error ? focusBgColor : undefined,
-          color: isFocused && !error ? focusTextColor : 'var(--nb-text)',
+          color: isFocused && !error ? focusTextColor : error ? 'var(--nb-danger-text)' : 'var(--nb-text)',
         }}
         onFocus={(e) => {
           setIsFocused(true);
@@ -59,7 +63,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           props.onBlur?.(e);
         }}
       />
-      {error && <span className="text-xs font-bold text-red-600 uppercase">{error}</span>}
+      {error && <span className="text-xs font-bold text-[var(--nb-danger-text)] uppercase">{error}</span>}
       {helperText && !error && <span className="text-xs font-medium text-[var(--nb-text-muted)]">{helperText}</span>}
     </div>
   );
