@@ -4,6 +4,7 @@ import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Input } from '../../../../components/ui/Input';
+import { Select, type SelectOption } from '../../../../components/ui/Select';
 import { Button } from '../../../../components/ui/Button';
 import { Sticker } from '../../../../components/ui/Sticker';
 import { Breadcrumb } from '../../../../components/ui/Breadcrumb';
@@ -54,6 +55,29 @@ export const VerifiedBadgeIcon: React.FC<{ size?: number; className?: string }> 
     <path d="M8.5 12L10.8 14.3L15.5 9.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+// Helper Parser Opsi Custom Field Select (Delimiter: Newline '\n', Format: 'value|label')
+const parseSelectOptions = (raw: string): SelectOption[] => {
+  if (!raw) return [{ value: '', label: '-- Pilih --' }];
+  const lines = raw.split(/\r?\n/);
+  const options: SelectOption[] = [{ value: '', label: '-- Pilih --' }];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const pipeIdx = trimmed.indexOf('|');
+    if (pipeIdx !== -1) {
+      const val = trimmed.slice(0, pipeIdx).trim();
+      const lbl = trimmed.slice(pipeIdx + 1).trim() || val;
+      options.push({ value: val, label: lbl });
+    } else {
+      options.push({ value: trimmed, label: trimmed });
+    }
+  }
+
+  return options;
+};
 
 // Helper Icon Lucide untuk Pilihan Metode Pembayaran
 const getPaymentMethodIcon = (type?: string) => {
@@ -1604,17 +1628,13 @@ export const CheckoutPage: React.FC = () => {
                                 )}
                               </div>
                               {field.fieldType === 'SELECT' ? (
-                                <select
-                                  className="w-full text-xs sm:text-sm py-2 px-3 bg-[var(--nb-surface)] border-2 border-[var(--nb-border)] rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-medium"
+                                <Select
+                                  options={parseSelectOptions(field.selectOptions || '')}
                                   value={isFirst ? userId : serverId}
                                   onChange={(e) => isFirst ? handleUserIdChange(e.target.value) : handleServerIdChange(e.target.value)}
                                   required
-                                >
-                                  <option value="">-- Pilih --</option>
-                                  {(field.selectOptions || '').split(',').map((opt: string) => (
-                                    <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
-                                  ))}
-                                </select>
+                                  className="w-full text-xs sm:text-sm py-2 px-3 bg-[var(--nb-surface)]"
+                                />
                               ) : (
                                 <Input
                                   type={field.inputType || 'text'}
