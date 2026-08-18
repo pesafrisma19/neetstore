@@ -583,13 +583,13 @@ export const getAdminMutations = (params?: AdminMutationsQueryParams) => {
   return apiFetch<{ data: any[]; total: number; page: number; limit: number }>(`/admin/mutations${qStr ? `?${qStr}` : ''}`);
 };
 
-// === Transactions ===
 export interface AdminTransactionsQueryParams {
   page?: number;
   limit?: number;
   search?: string;
   orderStatus?: string;
   paymentStatus?: string;
+  refundStatus?: string;
 }
 
 export const getAdminTransactions = (params?: AdminTransactionsQueryParams) => {
@@ -599,12 +599,14 @@ export const getAdminTransactions = (params?: AdminTransactionsQueryParams) => {
   if (params?.search) query.append('search', params.search);
   if (params?.orderStatus && params.orderStatus !== 'ALL') query.append('orderStatus', params.orderStatus);
   if (params?.paymentStatus && params.paymentStatus !== 'ALL') query.append('paymentStatus', params.paymentStatus);
+  if (params?.refundStatus && params.refundStatus !== 'ALL') query.append('refundStatus', params.refundStatus);
   const queryString = query.toString();
   return apiFetch<any[]>(`/admin/transactions${queryString ? `?${queryString}` : ''}`);
 };
 export const getAdminTransactionById = (id: number) => apiFetch<any>(`/admin/transactions/${id}`);
 export const updateAdminTransaction = (id: number, data: any) => apiFetch<any>(`/admin/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
 export const checkAdminTransactionStatus = (id: number) => apiFetch<any>(`/admin/transactions/${id}/check-status`, { method: 'POST' });
+export const markAdminGuestRefunded = (id: number) => apiFetch<any>(`/admin/transactions/${id}/mark-refunded`, { method: 'POST' });
 
 // === Banners ===
 export const getAdminBanners = () => apiFetch<any[]>('/admin/banners');

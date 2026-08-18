@@ -153,7 +153,7 @@ export const ReportsTransactionsPage: React.FC = () => {
           </div>
           <div className="text-2xl font-black text-purple-600">{isLoading ? '...' : refundedCount}</div>
           <div className="text-[10px] font-bold text-neutral-500">
-            PaymentStatus = REFUND
+            RefundStatus = REFUNDED
           </div>
         </Card>
       </div>

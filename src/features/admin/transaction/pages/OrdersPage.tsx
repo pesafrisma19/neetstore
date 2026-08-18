@@ -13,12 +13,14 @@ import {
   AlertCircle,
   Eye,
   AlertTriangle,
+  RotateCcw,
   X
 } from 'lucide-react';
 import { 
   getAdminTransactions, 
   updateAdminTransaction, 
-  checkAdminTransactionStatus 
+  checkAdminTransactionStatus,
+  markAdminGuestRefunded
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { useToast } from '../../../../components/ui/ToastContext';
@@ -33,9 +35,11 @@ export interface OrderItem {
   targetAccount: string;
   targetZone?: string;
   amount: number;
+  feeAmount?: number;
   paymentMethod: string;
   paymentStatus: string;
   orderStatus: string;
+  refundStatus?: string;
   sn?: string;
   createdAt: string;
   product?: {
@@ -165,6 +169,26 @@ export const OrdersPage: React.FC = () => {
         const next = new Set(prev);
         next.delete(id);
         return next;
+      });
+    },
+  });
+
+  // Mutation: Mark Guest Refunded (PENDING -> REFUNDED)
+  const markRefundedMutation = useMutation({
+    mutationFn: (id: number) => markAdminGuestRefunded(id),
+    onSuccess: (_, id) => {
+      addToast({
+        title: `REFUND TRANSAKSI #${id} SELESAI`,
+        message: 'Status refund guest berhasil diubah menjadi REFUNDED.',
+        type: 'success',
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.transactions.all });
+    },
+    onError: (err: any) => {
+      addToast({
+        title: 'GAGAL TANDAI REFUND',
+        message: err.message || 'Gagal memperbarui status refund.',
+        type: 'error',
       });
     },
   });
@@ -351,10 +375,20 @@ export const OrdersPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3 font-black text-black">
-                        Rp {(ord.amount || 0).toLocaleString('id-ID')}
+                        <div>Rp {(ord.amount || 0).toLocaleString('id-ID')}</div>
+                        {(ord.refundStatus === 'PENDING' || ord.refundStatus === 'REFUNDED') && (
+                          <div className="text-[10px] text-purple-700 font-extrabold font-mono mt-0.5">
+                            Refund: Rp {Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0)).toLocaleString('id-ID')}
+                          </div>
+                        )}
                       </td>
                       <td className="p-3">
-                        <TransactionStatusBadge type="payment" status={ord.paymentStatus} />
+                        <div className="flex flex-col gap-1">
+                          <TransactionStatusBadge type="payment" status={ord.paymentStatus} />
+                          {ord.refundStatus && ord.refundStatus !== 'NONE' && (
+                            <TransactionStatusBadge type="refund" status={ord.refundStatus} />
+                          )}
+                        </div>
                       </td>
                       <td className="p-3">
                         <TransactionStatusBadge type="order" status={ord.orderStatus} />
@@ -403,6 +437,25 @@ export const OrdersPage: React.FC = () => {
                           >
                             <XCircle className="w-3.5 h-3.5 mr-1" /> GAGAL
                           </Button>
+
+                          {/* 5. Tombol Tandai Sudah Refund (Guest PENDING) */}
+                          {(!ord.user?.username || ord.user.username === 'GUEST') && ord.orderStatus === 'FAILED' && ord.refundStatus === 'PENDING' && (
+                            <Button
+                              variant="purple"
+                              size="sm"
+                              onClick={() => {
+                                const refundAmt = Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0));
+                                if (window.confirm(`Konfirmasi: Tandai transaksi #${ord.id} sudah direfund manual ke Guest sebesar Rp ${refundAmt.toLocaleString('id-ID')}? (Biaya admin Rp ${(ord.feeAmount || 0).toLocaleString('id-ID')} tidak termasuk refund)`)) {
+                                  markRefundedMutation.mutate(ord.id);
+                                }
+                              }}
+                              disabled={markRefundedMutation.isPending}
+                              title={`Tandai Sudah Direfund Manual ke Guest: Rp ${Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0)).toLocaleString('id-ID')}`}
+                              className="text-[10px] py-1 px-2 font-black"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> REFUND GUEST
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

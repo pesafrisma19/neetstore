@@ -1,11 +1,14 @@
 export type PaymentStatusType = 'UNPAID' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUND';
 export type OrderStatusType = 'PENDING' | 'PROCESS' | 'SUCCESS' | 'FAILED';
+export type RefundStatusType = 'NONE' | 'PENDING' | 'REFUNDED';
 
 export interface PublicInvoiceResponse {
   invoiceVersion?: number;
   invoiceId: string;
   paymentStatus: PaymentStatusType;
   orderStatus: OrderStatusType;
+  refundStatus?: RefundStatusType;
+  isGuest?: boolean;
 
   game: {
     name: string;

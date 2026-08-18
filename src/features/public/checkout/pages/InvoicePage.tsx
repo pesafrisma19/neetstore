@@ -132,20 +132,24 @@ export const InvoicePage: React.FC = () => {
 
   const payStatus = transaction.paymentStatus;
   const ordStatus = transaction.orderStatus;
+  const refStatus = transaction.refundStatus || (payStatus === 'REFUND' ? 'REFUNDED' : 'NONE');
+  const isGuest = Boolean(transaction.isGuest);
 
   const isPaid = payStatus === 'PAID';
   const isExpired = payStatus === 'EXPIRED' || (payStatus === 'UNPAID' && timeLeft === 0);
-  const isRefund = payStatus === 'REFUND';
   const isUnpaid = payStatus === 'UNPAID' && !isExpired;
-  const isFailed = ordStatus === 'FAILED' || payStatus === 'FAILED' || isRefund;
-  const isProcessing = ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING');
   const isSuccess = ordStatus === 'SUCCESS';
+  const isRefunded = refStatus === 'REFUNDED';
+  const isRefundPending = refStatus === 'PENDING';
+  const hasRefund = isRefunded || isRefundPending;
+  const isFailed = ordStatus === 'FAILED' || payStatus === 'FAILED' || hasRefund;
+  const isProcessing = ordStatus === 'PROCESS' || (isPaid && ordStatus === 'PENDING');
 
   // 5-Step Progress Steps
   const steps = [
     { label: 'Dibuat', completed: true },
     { label: 'Bayar', completed: isPaid, active: isUnpaid, failed: isExpired || (isFailed && !isPaid) },
-    { label: 'Lunas', completed: isPaid, active: false, failed: isRefund },
+    { label: 'Lunas', completed: isPaid, active: false, failed: !isPaid && isFailed },
     { label: 'Diproses', completed: ordStatus === 'PROCESS' || ordStatus === 'SUCCESS', active: isPaid && ordStatus === 'PENDING' },
     { label: isSuccess ? 'Selesai' : isFailed ? 'Gagal' : 'Selesai', completed: isSuccess, active: ordStatus === 'PROCESS', failed: isFailed }
   ];
@@ -164,9 +168,10 @@ export const InvoicePage: React.FC = () => {
   // Warna aksen banner status utama
   const bannerBg = isSuccess ? 'bg-[#BBF7D2]'
     : isProcessing ? 'bg-[#BAE6FD]'
-      : isRefund || (isFailed && !isRefund) ? 'bg-[#E9D5FF]'
-        : isExpired ? 'bg-[#FED7AA]'
-          : 'bg-[var(--nb-yellow)]';
+      : hasRefund ? 'bg-[#E9D5FF]'
+        : isFailed ? 'bg-[#FECACA]'
+          : isExpired ? 'bg-[#FED7AA]'
+            : 'bg-[var(--nb-yellow)]';
 
   return (
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)]">
@@ -300,7 +305,7 @@ export const InvoicePage: React.FC = () => {
               </div>
             )}
 
-            {isRefund && (
+            {hasRefund && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left p-4 sm:p-5">
                 <div className="flex items-center gap-3.5">
                   <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
@@ -308,10 +313,16 @@ export const InvoicePage: React.FC = () => {
                   </div>
                   <div>
                     <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
-                      Saldo Dikembalikan (Refund)
+                      {isRefunded
+                        ? (isGuest ? 'Pengembalian Dana Selesai' : 'Dana Dikembalikan (Refund)')
+                        : 'Menunggu Pengembalian Dana'}
                     </h1>
                     <p className="text-xs font-semibold text-black/70 mt-0.5 m-0">
-                      Transaksi ini tidak dapat diproses oleh supplier. Saldo akun telah dikembalikan otomatis.
+                      {isRefunded
+                        ? (isGuest
+                            ? 'Pesanan gagal diproses. Pengembalian dana (refund) telah diselesaikan oleh Admin.'
+                            : 'Pesanan gagal diproses supplier. Dana telah dikembalikan otomatis ke Saldo Akun Anda.')
+                        : 'Pesanan gagal diproses supplier. Pengembalian dana sedang menunggu proses manual oleh Admin/CS.'}
                     </p>
                   </div>
                 </div>
@@ -323,7 +334,7 @@ export const InvoicePage: React.FC = () => {
               </div>
             )}
 
-            {((isFailed && !isRefund) || isExpired) && (
+            {((isFailed && !hasRefund) || isExpired) && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left p-4 sm:p-5">
                 <div className="flex items-center gap-3.5">
                   <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
@@ -562,19 +573,29 @@ export const InvoicePage: React.FC = () => {
                   </div>
                 )}
 
-                {isRefund && (
+                {hasRefund && (
                   <div className="w-full bg-purple-50 border-[3px] border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
                     <div className="w-14 h-14 rounded-2xl bg-purple-600 border-2 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_0px_#000]">
                       <ShieldAlert className="w-8 h-8 text-white stroke-[3]" />
                     </div>
                     <div>
-                      <h3 className="font-black uppercase text-sm sm:text-base text-purple-950 tracking-tight m-0">DANA DIKEMBALIKAN</h3>
-                      <p className="text-xs font-bold text-neutral-700 mt-1 m-0">Saldo/dana transaksi sudah dikembalikan otomatis ke akunmu.</p>
+                      <h3 className="font-black uppercase text-sm sm:text-base text-purple-950 tracking-tight m-0">
+                        {isRefunded
+                          ? (isGuest ? 'PENGEMBALIAN DANA SELESAI' : 'DANA DIKEMBALIKAN')
+                          : 'MENUNGGU PENGEMBALIAN DANA'}
+                      </h3>
+                      <p className="text-xs font-bold text-neutral-700 mt-1 m-0">
+                        {isRefunded
+                          ? (isGuest
+                              ? 'Pengembalian dana telah diselesaikan oleh Admin.'
+                              : 'Saldo/dana transaksi sudah dikembalikan otomatis ke akunmu.')
+                          : 'Pengembalian dana sedang menunggu proses manual oleh Admin/CS.'}
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {((isFailed && !isRefund) || isExpired) && (
+                {((isFailed && !hasRefund) || isExpired) && (
                   <div className="w-full bg-red-50 border-[3px] border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
                     <div className="w-14 h-14 rounded-2xl bg-red-500 border-2 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_0px_#000]">
                       <AlertTriangle className="w-8 h-8 text-white stroke-[3]" />

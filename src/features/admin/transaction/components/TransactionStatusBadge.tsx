@@ -2,11 +2,25 @@ import React from 'react';
 import { Badge } from '../../../../components/ui/Badge';
 
 interface TransactionStatusBadgeProps {
-  type: 'order' | 'payment';
+  type: 'order' | 'payment' | 'refund';
   status: string;
 }
 
 export const TransactionStatusBadge: React.FC<TransactionStatusBadgeProps> = ({ type, status }) => {
+  if (type === 'refund') {
+    if (!status || status === 'NONE') return null;
+    const isRefunded = status === 'REFUNDED';
+    return (
+      <Badge
+        variant={isRefunded ? 'purple' : 'yellow'}
+        size="sm"
+        className="font-black uppercase text-[10px]"
+      >
+        {isRefunded ? 'REFUNDED' : 'REFUND PENDING'}
+      </Badge>
+    );
+  }
+
   if (type === 'payment') {
     const isPaid = status === 'PAID';
     const isRefund = status === 'REFUND';

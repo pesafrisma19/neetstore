@@ -96,6 +96,12 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <span className="text-neutral-500">Status Order:</span>
                     <TransactionStatusBadge type="order" status={detail.orderStatus} />
                   </div>
+                  {detail.refundStatus && detail.refundStatus !== 'NONE' && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-500">Status Refund:</span>
+                      <TransactionStatusBadge type="refund" status={detail.refundStatus} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Kartu Informasi Pembeli & Target */}
@@ -120,12 +126,44 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <span className="text-neutral-500">Total Nominal:</span>
                     <span className="font-black text-green-700">Rp {(detail.amount || 0).toLocaleString('id-ID')}</span>
                   </div>
+                  {(detail.refundStatus === 'PENDING' || detail.refundStatus === 'REFUNDED') && (
+                    <>
+                      <div className="flex justify-between text-neutral-500">
+                        <span>Biaya Admin / Fee:</span>
+                        <span className="font-mono">Rp {(detail.feeAmount || 0).toLocaleString('id-ID')} (Tidak direfund)</span>
+                      </div>
+                      <div className="flex justify-between text-purple-700 pt-1 border-t border-purple-200">
+                        <span className="font-black">Nominal Refund:</span>
+                        <span className="font-black font-mono text-sm">
+                          Rp {Math.max(0, (detail.amount || 0) - (detail.feeAmount || 0)).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-neutral-500">Metode Bayar:</span>
                     <span className="font-black uppercase text-black">{detail.paymentMethod}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Box Khusus Panduan Refund Guest */}
+              {detail.refundStatus === 'PENDING' && (!detail.user && !detail.userId) && (
+                <div className="bg-amber-50 border-[2.5px] border-amber-500 p-4 shadow-[3px_3px_0px_0px_#f59e0b] space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between font-black uppercase text-amber-950">
+                    <span>⚠️ PANDUAN REFUND MANUAL GUEST</span>
+                    <span className="text-sm font-black bg-amber-200 px-2 py-0.5 border border-amber-600 rounded">
+                      Rp {Math.max(0, (detail.amount || 0) - (detail.feeAmount || 0)).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <p className="font-bold text-amber-900 m-0">
+                    Silakan transfer manual ke rekening/e-wallet Guest sebesar <strong className="underline">Rp {Math.max(0, (detail.amount || 0) - (detail.feeAmount || 0)).toLocaleString('id-ID')}</strong> (Formula: Total Rp {(detail.amount || 0).toLocaleString('id-ID')} - Fee Rp {(detail.feeAmount || 0).toLocaleString('id-ID')}).
+                  </p>
+                  <p className="text-[11px] font-semibold text-amber-800 m-0 italic">
+                    *Biaya admin Rp {(detail.feeAmount || 0).toLocaleString('id-ID')} tidak termasuk refund. Setelah transfer berhasil, klik tombol "REFUND GUEST" untuk menyelesaikan status.
+                  </p>
+                </div>
+              )}
 
               {/* 2. SN / VOUCHER & CATATAN PROVIDER */}
               <div className="bg-white p-4 border-[2.5px] border-black space-y-2 text-xs font-bold">
