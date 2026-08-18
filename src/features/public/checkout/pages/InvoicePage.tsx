@@ -469,6 +469,15 @@ export const InvoicePage: React.FC = () => {
                     <span className="font-mono font-bold">{formatRupiah(transaction.feeAmount)}</span>
                   </div>
 
+                  <div className="flex justify-between font-medium text-purple-700">
+                    <span>Kode Unik:</span>
+                    <span className="font-mono font-bold">
+                      {transaction.uniqueCode && transaction.uniqueCode > 0
+                        ? `+ ${formatRupiah(transaction.uniqueCode)}`
+                        : '-'}
+                    </span>
+                  </div>
+
                   <div className="border-t-2 border-black pt-1.5 flex justify-between items-center">
                     <span className="font-black uppercase text-xs text-black">Total Bayar:</span>
                     <span className="font-mono font-black text-base text-pink-600">{formatRupiah(transaction.amount)}</span>
