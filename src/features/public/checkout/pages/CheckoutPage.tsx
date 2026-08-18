@@ -99,6 +99,25 @@ const getPaymentMethodIcon = (type?: string) => {
   }
 };
 
+// Helper Format Keterangan Biaya Layanan Metode Pembayaran
+const formatPaymentFee = (flat?: number, percent?: number): string => {
+  const f = flat ?? 0;
+  const p = percent ?? 0;
+  const formattedFlat = `Rp ${f.toLocaleString('id-ID')}`;
+  const formattedPercent = `${p.toLocaleString('id-ID')}%`;
+
+  if (f > 0 && p > 0) {
+    return `+ ${formattedFlat} + ${formattedPercent} Fee`;
+  }
+  if (f > 0) {
+    return `+ ${formattedFlat} Fee`;
+  }
+  if (p > 0) {
+    return `+ ${formattedPercent} Fee`;
+  }
+  return 'BEBAS BIAYA ADMIN';
+};
+
 // Component Event Carousel Slider (Ganti Grid Event agar tidak pecah/tertarik)
 const EventCarouselSlider: React.FC<{ events: { title: string; badge: string; bannerUrl: string }[] }> = ({ events }) => {
   const [index, setIndex] = useState(0);
@@ -1937,7 +1956,7 @@ export const CheckoutPage: React.FC = () => {
                                 )}
                               </div>
                               <div className="mt-2 text-xs font-bold bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] py-1 px-2 rounded w-fit uppercase">
-                                {(method.feeFlat ?? 0) > 0 ? `+ Rp ${(method.feeFlat ?? 0).toLocaleString('id-ID')} Fee` : ((method.feePercent ?? 0) > 0 ? `+ ${method.feePercent}% Fee` : 'BEBAS BIAYA ADMIN')}
+                                {formatPaymentFee(method.feeFlat, method.feePercent)}
                               </div>
                             </Card>
                           );
