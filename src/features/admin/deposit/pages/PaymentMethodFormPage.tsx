@@ -4,12 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../../components
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Select } from '../../../../components/ui/Select';
-import { ArrowLeft, Save, CreditCard, Building2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Save, CreditCard, Building2, Zap, RefreshCw } from 'lucide-react';
 import { 
   getAdminPaymentGateways, 
   getAdminPaymentMethodById, 
   createAdminPaymentMethod, 
-  updateAdminPaymentMethod 
+  updateAdminPaymentMethod,
+  getNeetPayPaymentChannelsAdmin
 } from '../../../../utils/api';
 import { useToast } from '../../../../components/ui/ToastContext';
 
@@ -26,6 +27,8 @@ export const PaymentMethodFormPage: React.FC = () => {
   const { addToast } = useToast();
 
   const [gateways, setGateways] = useState<PaymentGatewayData[]>([]);
+  const [neetpayChannels, setNeetpayChannels] = useState<Array<{ id: string; name: string; method: string; provider: string }>>([]);
+  const [isLoadingChannels, setIsLoadingChannels] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -34,7 +37,7 @@ export const PaymentMethodFormPage: React.FC = () => {
     code: '',
     type: 'BANK_TRANSFER',
     paymentGatewayId: '',
-    usageScope: 'BOTH', // 'TRANSACTION' | 'DEPOSIT' | 'BOTH'
+    usageScope: 'BOTH',
     feeFlat: 0,
     feePercent: 0,
     minAmount: '' as string | number,
@@ -94,7 +97,26 @@ export const PaymentMethodFormPage: React.FC = () => {
 
   const selectedGateway = gateways.find(g => String(g.id) === formData.paymentGatewayId) || null;
   const isTokoPay = selectedGateway?.code?.toLowerCase() === 'tokopay';
+  const isNeetPay = selectedGateway?.code?.toLowerCase() === 'neetpay';
   const isManual = selectedGateway?.code?.toLowerCase() === 'manual';
+
+  useEffect(() => {
+    if (isNeetPay && neetpayChannels.length === 0) {
+      setIsLoadingChannels(true);
+      getNeetPayPaymentChannelsAdmin()
+        .then((res) => {
+          if (res && res.data && Array.isArray(res.data)) {
+            setNeetpayChannels(res.data);
+          }
+        })
+        .catch((err) => {
+          console.warn('Gagal memuat channel NeetPay:', err.message);
+        })
+        .finally(() => {
+          setIsLoadingChannels(false);
+        });
+    }
+  }, [isNeetPay, neetpayChannels.length]);
 
   const handleNameChange = (newName: string) => {
     setFormData(prev => {
@@ -122,7 +144,7 @@ export const PaymentMethodFormPage: React.FC = () => {
       const payload: any = {
         name: formData.name.trim(),
         code: finalCode,
-        type: formData.type,
+        type: isNeetPay ? 'QRIS' : formData.type,
         paymentGatewayId: formData.paymentGatewayId ? Number(formData.paymentGatewayId) : null,
         feeFlat: Number(formData.feeFlat),
         feePercent: Number(formData.feePercent),
@@ -141,15 +163,15 @@ export const PaymentMethodFormPage: React.FC = () => {
 
       if (isEdit && id) {
         await updateAdminPaymentMethod(Number(id), payload);
-        addToast({ title: 'BERHASIL DISIMPAN 🟢', message: `Metode ${payload.name} berhasil diperbarui.`, type: 'success' });
+        addToast({ title: 'BERHASIL DIPERBARUI! 🎉', message: `Metode ${payload.name} berhasil disimpan.`, type: 'success' });
       } else {
         await createAdminPaymentMethod(payload);
-        addToast({ title: 'METODE DITAMBAHKAN 🟢', message: `Metode ${payload.name} berhasil dibuat.`, type: 'success' });
+        addToast({ title: 'BERHASIL DITAMBAHKAN! 🎉', message: `Metode ${payload.name} berhasil dibuat.`, type: 'success' });
       }
 
       navigate('/admin/payment-methods');
     } catch (err: any) {
-      addToast({ title: 'GAGAL MENYIMPAN ❌', message: err?.message || 'Gagal menyimpan metode pembayaran.', type: 'error' });
+      addToast({ title: 'GAGAL MENYIMPAN', message: err?.message || 'Terjadi kesalahan saat menyimpan', type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -157,76 +179,70 @@ export const PaymentMethodFormPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl space-y-6 text-left font-sans pb-12">
-        <Card variant="white" className="p-12 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <h3 className="text-lg font-black uppercase">MEMUAT FORM METODE PEMBAYARAN...</h3>
-        </Card>
+      <div className="p-12 text-center font-sans">
+        <div className="animate-spin w-8 h-8 border-4 border-black border-t-transparent mx-auto mb-3" />
+        <span className="font-black text-sm uppercase">Memuat formulir pembayaran...</span>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl space-y-6 text-left font-sans pb-12">
-      {/* HEADER & NAVIGASI */}
+    <div className="space-y-6 max-w-4xl text-left font-sans pb-12">
       <div className="bg-[var(--nb-yellow)] border-[4px] border-black p-6 shadow-[8px_8px_0px_0px_#000] flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Button 
-              variant="white" 
-              size="sm" 
-              onClick={() => navigate('/admin/payment-methods')}
-              className="font-black uppercase text-xs border-2"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1 stroke-[3]" /> KEMBALI
-            </Button>
+        <div className="flex items-center gap-4">
+          <Button
+            type="button"
+            variant="white"
+            size="sm"
+            onClick={() => navigate('/admin/payment-methods')}
+            className="border-2 border-black"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" /> KEMBALI
+          </Button>
+          <div>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-black flex items-center gap-2">
+              <CreditCard className="w-6 h-6 stroke-[2.5]" />
+              <span>{isEdit ? 'EDIT METODE PEMBAYARAN' : 'TAMBAH METODE PEMBAYARAN'}</span>
+            </h1>
+            <p className="text-xs font-bold text-black/80 mt-0.5">
+              Konfigurasikan gateway provider, biaya admin, channel code, serta instruksi bayar.
+            </p>
           </div>
-          <h1 className="text-2xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <CreditCard className="w-7 h-7 stroke-[2.5]" />
-            <span>{isEdit ? 'EDIT METODE PEMBAYARAN' : 'TAMBAH METODE PEMBAYARAN BARU'}</span>
-          </h1>
-          <p className="text-xs font-bold text-black/80 mt-1">
-            Konfigurasi channel pembayaran, gateway provider, biaya admin, dan parameter instruksi.
-          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 1. INFORMASI UTAMA & GATEWAY */}
         <Card variant="white" shadow="xl" borderWidth="4">
           <CardHeader headerBg="#00F0FF" className="border-b-[3px] border-black">
-            <CardTitle className="text-base text-[var(--nb-text)] flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
-              <span>1. INFORMASI METODE & GATEWAY</span>
-            </CardTitle>
+            <CardTitle className="text-base text-black">1. INFORMASI DASAR & GATEWAY</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black uppercase text-black mb-1">
-                  NAMA METODE <span className="text-red-500">*</span>
+                  NAMA METODE PEMBAYARAN <span className="text-red-500">*</span>
                 </label>
                 <Input
                   required
                   value={formData.name}
                   onChange={e => handleNameChange(e.target.value)}
-                  placeholder="Contoh: BCA Manual, QRIS TokoPay, OVO"
+                  placeholder="Contoh: QRIS NeetPay, QRIS All Payment, BCA Transfer"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-black uppercase text-black mb-1">
-                  KATEGORI PEMBAYARAN <span className="text-red-500">*</span>
+                  PAYMENT GATEWAY PROVIDER <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                  value={formData.paymentGatewayId}
+                  onChange={e => setFormData({ ...formData, paymentGatewayId: e.target.value })}
                   options={[
-                    { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-                    { value: 'QRIS', label: 'QRIS' },
-                    { value: 'E-WALLET', label: 'E-Wallet' },
-                    { value: 'VIRTUAL_ACCOUNT', label: 'Virtual Account' },
-                    { value: 'RETAIL', label: 'Retail (Alfamart / Indomaret)' },
-                    { value: 'SALDO_AKUN', label: 'Saldo Akun (Internal)' },
+                    { value: '', label: 'Internal / Tanpa Gateway (Saldo Akun / Manual)' },
+                    ...gateways.map(g => ({
+                      value: String(g.id),
+                      label: `${g.name} (${g.code.toUpperCase()})`
+                    }))
                   ]}
                 />
               </div>
@@ -235,14 +251,18 @@ export const PaymentMethodFormPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black uppercase text-black mb-1">
-                  PAYMENT GATEWAY
+                  KATEGORI TIPE PEMBAYARAN <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  value={formData.paymentGatewayId}
-                  onChange={e => setFormData({ ...formData, paymentGatewayId: e.target.value })}
+                  value={formData.type}
+                  onChange={e => setFormData({ ...formData, type: e.target.value })}
                   options={[
-                    { value: '', label: '-- Tanpa Gateway (Internal / Saldo) --' },
-                    ...gateways.map(g => ({ value: String(g.id), label: `${g.name} (${g.code})` }))
+                    { value: 'QRIS', label: 'QRIS (Dynamic / Static QR Code)' },
+                    { value: 'BANK_TRANSFER', label: 'Bank Transfer Manual (BCA, Mandiri, BRI, dll)' },
+                    { value: 'VIRTUAL_ACCOUNT', label: 'Virtual Account' },
+                    { value: 'E-WALLET', label: 'E-Wallet (DANA, GoPay, OVO, ShopeePay)' },
+                    { value: 'RETAIL', label: 'Retail Outlet (Indomaret / Alfamart)' },
+                    { value: 'SALDO_AKUN', label: 'Saldo Akun Internal (Potong Saldo)' },
                   ]}
                 />
               </div>
@@ -255,9 +275,9 @@ export const PaymentMethodFormPage: React.FC = () => {
                   value={formData.usageScope}
                   onChange={e => setFormData({ ...formData, usageScope: e.target.value })}
                   options={[
-                    { value: 'BOTH', label: 'Keduanya (Transaksi Pembelian & Deposit Saldo)' },
-                    { value: 'TRANSACTION', label: 'Transaksi Pembelian Game Saja' },
-                    { value: 'DEPOSIT', label: 'Deposit Saldo User Saja' },
+                    { value: 'BOTH', label: 'Keduanya (Transaksi & Deposit)' },
+                    { value: 'TRANSACTION', label: 'Transaksi Pembelian Saja' },
+                    { value: 'DEPOSIT', label: 'Deposit Saldo Saja' },
                   ]}
                 />
               </div>
@@ -265,7 +285,6 @@ export const PaymentMethodFormPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* 2. DYNAMIC GATEWAY CONFIGURATION */}
         <Card variant="white" shadow="xl" borderWidth="4">
           <CardHeader headerBg="#FFD700" className="border-b-[3px] border-black">
             <CardTitle className="text-base text-black flex items-center gap-2">
@@ -274,6 +293,68 @@ export const PaymentMethodFormPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
+            {isNeetPay && (
+              <div className="p-4 bg-purple-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-3">
+                <div className="font-black text-xs uppercase text-purple-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-purple-700 stroke-[2.5]" />
+                    <span>⚡ KONFIGURASI CHANNEL NEETPAY GATEWAY</span>
+                  </div>
+                  {isLoadingChannels && (
+                    <span className="text-[10px] font-bold text-purple-700 flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" /> Memuat Channel...
+                    </span>
+                  )}
+                </div>
+
+                {neetpayChannels.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-black uppercase text-black mb-1">
+                      PILIH CHANNEL DARI NEETPAY (OTOMATIS)
+                    </label>
+                    <Select
+                      value={formData.code}
+                      onChange={(e) => {
+                        const channelId = e.target.value;
+                        const found = neetpayChannels.find((c) => c.id === channelId);
+                        setFormData((prev) => ({
+                          ...prev,
+                          code: channelId,
+                          name: prev.name || (found ? found.name : ''),
+                          type: 'QRIS',
+                        }));
+                      }}
+                      options={[
+                        { value: '', label: '-- Pilih Channel dari Akun NeetPay --' },
+                        ...neetpayChannels.map((c) => ({
+                          value: c.id,
+                          label: `${c.name} (${c.method} - ${c.provider} [${c.id}])`,
+                        })),
+                      ]}
+                    />
+                    <p className="text-[11px] font-bold text-neutral-600 mt-1">
+                      Pilih channel resmi yang terdaftar di akun NeetPay Anda.
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-black uppercase text-black mb-1">
+                    KODE CHANNEL / PAYMENT ACCOUNT ID <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    required
+                    value={formData.code}
+                    onChange={e => setFormData({ ...formData, code: e.target.value, type: 'QRIS' })}
+                    placeholder="Contoh: cms_7e05fcad2e5249419ad21b56a3eeb4d7"
+                  />
+                  <p className="text-[11px] font-bold text-neutral-600 mt-1">
+                    ID payment account NeetPay (format: <code>cms_xxxxx</code>) yang akan dipanggil saat checkout pelanggan.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {isTokoPay && (
               <div className="p-4 bg-cyan-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] space-y-3">
                 <div className="font-black text-xs uppercase text-cyan-900 flex items-center gap-2">
@@ -290,7 +371,7 @@ export const PaymentMethodFormPage: React.FC = () => {
                     placeholder="Contoh: QRIS_CUSTOM, bca_va, ovo, gopay, mandiri_va"
                   />
                   <p className="text-[11px] font-bold text-neutral-600 mt-1">
-                    Kode channel resmi yang terdaftar di dokumentasi API TokoPay (misal: <code>QRIS_CUSTOM</code> untuk QRIS).
+                    Kode channel resmi yang terdaftar di dokumentasi API TokoPay.
                   </p>
                 </div>
               </div>

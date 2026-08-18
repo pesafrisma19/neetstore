@@ -10,7 +10,8 @@ import {
   Wallet, 
   ShieldCheck, 
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from 'lucide-react';
 import { PaymentGatewayModal } from '../components/PaymentGatewayModal';
 import { WithdrawalModal } from '../components/WithdrawalModal';
@@ -49,15 +50,17 @@ export const PaymentGatewaysPage: React.FC = () => {
     (p) => p.code?.toLowerCase() === 'tokopay' || p.name?.toLowerCase().includes('tokopay')
   ) || null;
 
+  const neetpayGateway = gateways.find(
+    (p) => p.code?.toLowerCase() === 'neetpay' || p.name?.toLowerCase().includes('neetpay')
+  ) || null;
+
   // Mutation: Toggle Status Aktif/Nonaktif
   const toggleMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => updateAdminPaymentGateway(id, data),
     onSuccess: (res) => {
       addToast({
         title: res.isActive ? 'GATEWAY AKTIF 🟢' : 'GATEWAY NONAKTIF 🔴',
-        message: res.isActive
-          ? 'TokoPay diaktifkan. Pelanggan dapat membayar via QRIS/VA/E-Wallet.'
-          : 'TokoPay dinonaktifkan. Opsi pembayaran online ditutup sementara.',
+        message: `${res.name} berhasil ${res.isActive ? 'diaktifkan' : 'dinonaktifkan'}.`,
         type: 'success',
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentGateways.all });
@@ -77,7 +80,7 @@ export const PaymentGatewaysPage: React.FC = () => {
     onSuccess: (res) => {
       addToast({
         title: 'TEST KONEKSI BERHASIL! ⚡',
-        message: res.message || 'Kredensial TokoPay valid & saldo berhasil disinkronkan.',
+        message: res.message || 'Kredensial valid & koneksi berhasil diverifikasi.',
         type: 'success',
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentGateways.all });
@@ -85,32 +88,32 @@ export const PaymentGatewaysPage: React.FC = () => {
     onError: (err: any) => {
       addToast({
         title: 'TEST KONEKSI GAGAL ❌',
-        message: err.message || 'Periksa Merchant ID & Secret Key Anda.',
+        message: err.message || 'Periksa kembali kredensial gateway Anda.',
         type: 'error',
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.paymentGateways.all });
     },
   });
 
-  const handleToggleStatus = () => {
-    if (!tokopayGateway) return;
+  const handleToggleStatus = (gateway: PaymentGatewayData | null) => {
+    if (!gateway) return;
     toggleMutation.mutate({
-      id: tokopayGateway.id,
-      data: { isActive: !tokopayGateway.isActive },
+      id: gateway.id,
+      data: { isActive: !gateway.isActive },
     });
   };
 
-  const handleTestConnection = () => {
-    if (!tokopayGateway) return;
-    testConnectionMutation.mutate(tokopayGateway.id);
+  const handleTestConnection = (gateway: PaymentGatewayData | null) => {
+    if (!gateway) return;
+    testConnectionMutation.mutate(gateway.id);
   };
 
-  const copyWebhookUrl = () => {
-    const url = `${getPublicBackendUrl()}/api/tokopay/callback`;
+  const copyWebhookUrl = (path: string, label: string) => {
+    const url = `${getPublicBackendUrl()}${path}`;
     navigator.clipboard.writeText(url);
     addToast({
       title: 'WEBHOOK DISALIN 📋',
-      message: 'URL Callback berhasil disalin. Tempelkan di pengaturan TokoPay Anda.',
+      message: `URL Callback ${label} berhasil disalin. Tempelkan di dashboard ${label}.`,
       type: 'success',
     });
   };
@@ -124,12 +127,11 @@ export const PaymentGatewaysPage: React.FC = () => {
             <span>💳 PAYMENT GATEWAY INTEGRATION</span>
           </h1>
           <p className="text-sm font-bold text-black/80 mt-1">
-            Gerbang Pembayaran Otomatis TokoPay (Advance Order, QRIS, Virtual Account, & Webhook Callback).
+            Kelola gerbang pembayaran online otomatis (NeetPay & TokoPay) dengan Webhook Callback & Verifikasi Realtime.
           </p>
         </div>
       </div>
 
-      {/* 2. KARTU TOKOPAY INDONESIA */}
       {isLoading ? (
         <Card variant="white" className="p-12 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
           <RefreshCw className="w-10 h-10 stroke-[2] mx-auto mb-3 animate-spin text-neutral-400" />
@@ -147,191 +149,318 @@ export const PaymentGatewaysPage: React.FC = () => {
             </Button>
           </div>
         </Card>
-      ) : !tokopayGateway ? (
-        <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <Wallet className="w-12 h-12 stroke-[2] mx-auto mb-3 text-red-500" />
-          <h3 className="text-lg font-black uppercase text-red-600">PAYMENT GATEWAY TOKOPAY TIDAK DITEMUK</h3>
-          <p className="text-xs font-bold text-neutral-600 mt-1">
-            Data gateway TokoPay belum tersedia di database server.
-          </p>
-          <div className="mt-4">
-            <Button variant="yellow" size="sm" onClick={() => refetch()} className="font-black uppercase">
-              <RefreshCw className="w-4 h-4 mr-2" /> COBA LAGI
-            </Button>
-          </div>
-        </Card>
       ) : (
-        <Card variant="white" shadow="xl" borderWidth="4" className="overflow-hidden">
-          {/* Card Header dengan Toggle Aktif/Nonaktif */}
-          <div className="bg-[var(--nb-yellow)] border-b-[4px] border-black p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white border-[3px] border-black shadow-[3px_3px_0px_0px_#000] flex items-center justify-center font-black text-2xl text-black">
-                TP
-              </div>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-black uppercase text-black tracking-tight">
-                    TOKOPAY INDONESIA
-                  </h2>
-                  <Badge
-                    variant={tokopayGateway.isConnected ? 'mint' : 'pink'}
-                    size="md"
-                    className="border-2 border-black font-black uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1"
-                  >
-                    {tokopayGateway.isConnected ? (
-                      <>
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse block mr-1" />
-                        TERHUBUNG
-                      </>
-                    ) : (
-                      <>
-                        <span className="w-2 h-2 rounded-full bg-red-500 block mr-1" />
-                        TERPUTUS
-                      </>
-                    )}
-                  </Badge>
-                </div>
-                <p className="text-xs font-bold text-black/80 mt-1">
-                  Status: {tokopayGateway.isActive ? 'API AKTIF' : 'API NONAKTIF'} (Redirect & MD5 Webhook Verification)
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                variant={tokopayGateway.isActive ? 'pink' : 'mint'}
-                size="md"
-                onClick={handleToggleStatus}
-                disabled={toggleMutation.isPending}
-                className="font-black uppercase shadow-[4px_4px_0px_0px_#000] border-[3px] border-black"
-              >
-                <Power className="w-4 h-4 stroke-[3]" />
-                <span>{tokopayGateway.isActive ? 'DISABLE GATEWAY' : 'ENABLE GATEWAY'}</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Card Content */}
-          <CardContent className="p-6 space-y-6">
-            {/* Box Webhook URL (Menggunakan backend origin) */}
-            <div className="bg-[var(--nb-mint)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
-                <span className="text-xs font-black uppercase text-black block">
-                  URL WEBHOOK / CALLBACK TOKOPAY (WAJIB DITEMPEL DI DASBOR TOKOPAY):
-                </span>
-                <code className="text-sm font-black text-[var(--nb-purple)] mt-1 block font-mono">
-                  {`${getPublicBackendUrl()}/api/tokopay/callback`}
-                </code>
-              </div>
-              <Button
-                variant="cyan"
-                size="sm"
-                onClick={copyWebhookUrl}
-                className="font-black uppercase text-xs shrink-0"
-              >
-                <Copy className="w-3.5 h-3.5 stroke-[3]" />
-                <span>SALIN WEBHOOK URL</span>
-              </Button>
-            </div>
-
-            {/* Grid Statistik / Status TokoPay */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-                <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
-                  Saldo Merchant
-                </span>
-                {tokopayGateway.isConnected ? (
-                  <span className="text-2xl font-black text-black font-mono">
-                    Rp {(tokopayGateway.balance || 0).toLocaleString('id-ID')}
-                  </span>
-                ) : (
+        <div className="space-y-6">
+          {/* 2. KARTU NEETPAY (NEW) */}
+          {neetpayGateway && (
+            <Card variant="white" shadow="xl" borderWidth="4" className="overflow-hidden">
+              <div className="bg-[#A78BFA] border-b-[4px] border-black p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white border-[3px] border-black shadow-[3px_3px_0px_0px_#000] flex items-center justify-center font-black text-2xl text-black">
+                    <Zap className="w-8 h-8 text-purple-700 stroke-[2.5]" />
+                  </div>
                   <div>
-                    <span className="text-2xl font-black text-neutral-400 font-mono">
-                      —
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-black uppercase text-black tracking-tight">
+                        NEETPAY INDONESIA
+                      </h2>
+                      <Badge
+                        variant={neetpayGateway.isConnected ? 'mint' : 'pink'}
+                        size="md"
+                        className="border-2 border-black font-black uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1"
+                      >
+                        {neetpayGateway.isConnected ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse block mr-1" />
+                            TERHUBUNG
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-red-500 block mr-1" />
+                            TERPUTUS
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+                    <p className="text-xs font-bold text-black/80 mt-1">
+                      Status: {neetpayGateway.isActive ? 'API AKTIF' : 'API NONAKTIF'} (Dynamic QRIS & HMAC-SHA256 Webhook Verification)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant={neetpayGateway.isActive ? 'pink' : 'mint'}
+                    size="md"
+                    onClick={() => handleToggleStatus(neetpayGateway)}
+                    disabled={toggleMutation.isPending}
+                    className="font-black uppercase shadow-[4px_4px_0px_0px_#000] border-[3px] border-black"
+                  >
+                    <Power className="w-4 h-4 stroke-[3]" />
+                    <span>{neetpayGateway.isActive ? 'DISABLE GATEWAY' : 'ENABLE GATEWAY'}</span>
+                  </Button>
+                </div>
+              </div>
+
+              <CardContent className="p-6 space-y-6">
+                {/* Box Webhook URL */}
+                <div className="bg-[var(--nb-mint)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-black uppercase text-black block">
+                      URL WEBHOOK / CALLBACK NEETPAY (TEMPEL DI DASHBOARD NEETPAY):
                     </span>
-                    <span className="text-[10px] font-bold text-red-500 block mt-0.5">
-                      Tidak tersedia (Terputus)
+                    <code className="text-sm font-black text-[var(--nb-purple)] mt-1 block font-mono">
+                      {`${getPublicBackendUrl()}/api/neetpay/webhook`}
+                    </code>
+                  </div>
+                  <Button
+                    variant="cyan"
+                    size="sm"
+                    onClick={() => copyWebhookUrl('/api/neetpay/webhook', 'NeetPay')}
+                    className="font-black uppercase text-xs shrink-0"
+                  >
+                    <Copy className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>SALIN WEBHOOK URL</span>
+                  </Button>
+                </div>
+
+                {/* Grid Info NeetPay */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
+                      API Key (Masked)
+                    </span>
+                    <span className="text-sm font-black text-neutral-700 font-mono block truncate">
+                      {neetpayGateway.apiKey ? neetpayGateway.apiKey : '••••••••'}
                     </span>
                   </div>
-                )}
-              </div>
 
-              <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-                <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
-                  Merchant ID
-                </span>
-                <span className="text-lg font-black text-black truncate block font-mono">
-                  {tokopayGateway.merchantId ? tokopayGateway.merchantId : 'Belum Dikonfigurasi'}
-                </span>
-              </div>
+                  <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
+                      Webhook Secret (Masked)
+                    </span>
+                    <span className="text-sm font-black text-neutral-700 font-mono block truncate">
+                      {neetpayGateway.secretKey ? neetpayGateway.secretKey : '••••••••'}
+                    </span>
+                  </div>
 
-              <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-                <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
-                  Secret Key (Masked)
-                </span>
-                <span className="text-sm font-black text-neutral-700 font-mono block truncate">
-                  {tokopayGateway.secretKey ? tokopayGateway.secretKey : '••••••••'}
-                </span>
-              </div>
+                  <div className="bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-[10px] font-black uppercase text-black/50 block mb-1">
+                      LAST SYNC / TEST
+                    </span>
+                    <div className="text-sm font-black uppercase text-black font-mono tracking-tight">
+                      {neetpayGateway.isConnected && neetpayGateway.lastSync
+                        ? new Date(neetpayGateway.lastSync).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })
+                        : 'BELUM DIUJI'}
+                    </div>
+                  </div>
+                </div>
 
-              <div className="bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-                <span className="text-[10px] font-black uppercase text-black/50 block mb-1">
-                  LAST SYNC
-                </span>
-                <div className="text-sm font-black uppercase text-black font-mono tracking-tight">
-                  {tokopayGateway.isConnected && tokopayGateway.lastSync
-                    ? new Date(tokopayGateway.lastSync).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })
-                    : 'GAGAL / BELUM SYNC'}
+                {/* Action Bar NeetPay */}
+                <div className="border-t-[3px] border-black pt-6">
+                  <h4 className="text-xs font-black uppercase text-neutral-500 mb-3">
+                    AKSI KONTROL GATEWAY NEETPAY:
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button
+                      variant="yellow"
+                      size="md"
+                      onClick={() => {
+                        setSelectedGateway(neetpayGateway);
+                        setModalOpen(true);
+                      }}
+                      className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+                    >
+                      <Key className="w-4 h-4 stroke-[3]" />
+                      <span>1. KELOLA KREDENSIAL</span>
+                    </Button>
+
+                    <Button
+                      variant="mint"
+                      size="md"
+                      onClick={() => handleTestConnection(neetpayGateway)}
+                      disabled={testConnectionMutation.isPending}
+                      className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+                    >
+                      <ShieldCheck className={`w-4 h-4 stroke-[3] ${testConnectionMutation.isPending ? 'animate-spin' : ''}`} />
+                      <span>{testConnectionMutation.isPending ? 'MENGUJI...' : '2. TES & SINKRONKAN KONEKSI'}</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 3. KARTU TOKOPAY INDONESIA */}
+          {tokopayGateway && (
+            <Card variant="white" shadow="xl" borderWidth="4" className="overflow-hidden">
+              <div className="bg-[var(--nb-yellow)] border-b-[4px] border-black p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white border-[3px] border-black shadow-[3px_3px_0px_0px_#000] flex items-center justify-center font-black text-2xl text-black">
+                    TP
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-black uppercase text-black tracking-tight">
+                        TOKOPAY INDONESIA
+                      </h2>
+                      <Badge
+                        variant={tokopayGateway.isConnected ? 'mint' : 'pink'}
+                        size="md"
+                        className="border-2 border-black font-black uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1"
+                      >
+                        {tokopayGateway.isConnected ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse block mr-1" />
+                            TERHUBUNG
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-red-500 block mr-1" />
+                            TERPUTUS
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+                    <p className="text-xs font-bold text-black/80 mt-1">
+                      Status: {tokopayGateway.isActive ? 'API AKTIF' : 'API NONAKTIF'} (Redirect & MD5 Webhook Verification)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant={tokopayGateway.isActive ? 'pink' : 'mint'}
+                    size="md"
+                    onClick={() => handleToggleStatus(tokopayGateway)}
+                    disabled={toggleMutation.isPending}
+                    className="font-black uppercase shadow-[4px_4px_0px_0px_#000] border-[3px] border-black"
+                  >
+                    <Power className="w-4 h-4 stroke-[3]" />
+                    <span>{tokopayGateway.isActive ? 'DISABLE GATEWAY' : 'ENABLE GATEWAY'}</span>
+                  </Button>
                 </div>
               </div>
-            </div>
 
-            {/* Action Bar (Kontrol) */}
-            <div className="border-t-[3px] border-black pt-6">
-              <h4 className="text-xs font-black uppercase text-neutral-500 mb-3">
-                AKSI KONTROL GATEWAY TOKOPAY:
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <Button
-                  variant="yellow"
-                  size="md"
-                  onClick={() => {
-                    setSelectedGateway(tokopayGateway);
-                    setModalOpen(true);
-                  }}
-                  className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-                >
-                  <Key className="w-4 h-4 stroke-[3]" />
-                  <span>1. KELOLA KREDENSIAL</span>
-                </Button>
+              <CardContent className="p-6 space-y-6">
+                <div className="bg-[var(--nb-mint)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-black uppercase text-black block">
+                      URL WEBHOOK / CALLBACK TOKOPAY (WAJIB DITEMPEL DI DASBOR TOKOPAY):
+                    </span>
+                    <code className="text-sm font-black text-[var(--nb-purple)] mt-1 block font-mono">
+                      {`${getPublicBackendUrl()}/api/tokopay/callback`}
+                    </code>
+                  </div>
+                  <Button
+                    variant="cyan"
+                    size="sm"
+                    onClick={() => copyWebhookUrl('/api/tokopay/callback', 'TokoPay')}
+                    className="font-black uppercase text-xs shrink-0"
+                  >
+                    <Copy className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>SALIN WEBHOOK URL</span>
+                  </Button>
+                </div>
 
-                <Button
-                  variant="mint"
-                  size="md"
-                  onClick={handleTestConnection}
-                  disabled={testConnectionMutation.isPending}
-                  className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-                >
-                  <ShieldCheck className={`w-4 h-4 stroke-[3] ${testConnectionMutation.isPending ? 'animate-spin' : ''}`} />
-                  <span>{testConnectionMutation.isPending ? 'MENGUJI...' : '2. TES & SINKRONKAN KONEKSI'}</span>
-                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
+                      Saldo Merchant
+                    </span>
+                    {tokopayGateway.isConnected ? (
+                      <span className="text-2xl font-black text-black font-mono">
+                        Rp {(tokopayGateway.balance || 0).toLocaleString('id-ID')}
+                      </span>
+                    ) : (
+                      <div>
+                        <span className="text-2xl font-black text-neutral-400 font-mono">
+                          —
+                        </span>
+                        <span className="text-[10px] font-bold text-red-500 block mt-0.5">
+                          Tidak tersedia (Terputus)
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                <Button
-                  variant="purple"
-                  size="md"
-                  onClick={() => setWithdrawModalOpen(true)}
-                  className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-                >
-                  <Wallet className="w-4 h-4 stroke-[3]" />
-                  <span>3. TARIK SALDO (WITHDRAW)</span>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
+                      Merchant ID
+                    </span>
+                    <span className="text-lg font-black text-black truncate block font-mono">
+                      {tokopayGateway.merchantId ? tokopayGateway.merchantId : 'Belum Dikonfigurasi'}
+                    </span>
+                  </div>
+
+                  <div className="bg-[var(--nb-card)] border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-xs font-black uppercase text-neutral-500 block mb-1">
+                      Secret Key (Masked)
+                    </span>
+                    <span className="text-sm font-black text-neutral-700 font-mono block truncate">
+                      {tokopayGateway.secretKey ? tokopayGateway.secretKey : '••••••••'}
+                    </span>
+                  </div>
+
+                  <div className="bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
+                    <span className="text-[10px] font-black uppercase text-black/50 block mb-1">
+                      LAST SYNC
+                    </span>
+                    <div className="text-sm font-black uppercase text-black font-mono tracking-tight">
+                      {tokopayGateway.isConnected && tokopayGateway.lastSync
+                        ? new Date(tokopayGateway.lastSync).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })
+                        : 'GAGAL / BELUM SYNC'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t-[3px] border-black pt-6">
+                  <h4 className="text-xs font-black uppercase text-neutral-500 mb-3">
+                    AKSI KONTROL GATEWAY TOKOPAY:
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <Button
+                      variant="yellow"
+                      size="md"
+                      onClick={() => {
+                        setSelectedGateway(tokopayGateway);
+                        setModalOpen(true);
+                      }}
+                      className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+                    >
+                      <Key className="w-4 h-4 stroke-[3]" />
+                      <span>1. KELOLA KREDENSIAL</span>
+                    </Button>
+
+                    <Button
+                      variant="mint"
+                      size="md"
+                      onClick={() => handleTestConnection(tokopayGateway)}
+                      disabled={testConnectionMutation.isPending}
+                      className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+                    >
+                      <ShieldCheck className={`w-4 h-4 stroke-[3] ${testConnectionMutation.isPending ? 'animate-spin' : ''}`} />
+                      <span>{testConnectionMutation.isPending ? 'MENGUJI...' : '2. TES & SINKRONKAN KONEKSI'}</span>
+                    </Button>
+
+                    <Button
+                      variant="purple"
+                      size="md"
+                      onClick={() => setWithdrawModalOpen(true)}
+                      className="w-full font-black uppercase shadow-[4px_4px_0px_0px_#000]"
+                    >
+                      <Wallet className="w-4 h-4 stroke-[3]" />
+                      <span>3. TARIK SALDO (WITHDRAW)</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
-      {/* Modal Kelola Kredensial TokoPay */}
+      {/* Modal Kelola Kredensial */}
       <PaymentGatewayModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -349,4 +478,5 @@ export const PaymentGatewaysPage: React.FC = () => {
     </div>
   );
 };
+
 

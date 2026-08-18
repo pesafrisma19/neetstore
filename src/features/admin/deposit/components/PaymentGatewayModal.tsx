@@ -12,6 +12,7 @@ export interface PaymentGatewayData {
   code: string;
   merchantId?: string;
   secretKey?: string;
+  apiKey?: string;
   balance?: number;
   isActive: boolean;
   isConnected?: boolean;
@@ -35,12 +36,17 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const { addToast } = useToast();
   const [merchantId, setMerchantId] = useState('');
   const [secretKey, setSecretKey] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isNeetPay = gateway?.code === 'neetpay';
+  const isTokoPay = gateway?.code === 'tokopay';
 
   useEffect(() => {
     if (gateway && isOpen) {
       setMerchantId(gateway.merchantId || '');
       setSecretKey(gateway.secretKey || '');
+      setApiKey(gateway.apiKey || '');
     }
   }, [gateway, isOpen]);
 
@@ -50,21 +56,30 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await updateAdminPaymentGateway(gateway.id, {
-        merchantId: merchantId.trim(),
+      const payload: Record<string, any> = {
         secretKey: secretKey.trim(),
-      });
+      };
+
+      if (isTokoPay) {
+        payload.merchantId = merchantId.trim();
+      }
+
+      if (isNeetPay) {
+        payload.apiKey = apiKey.trim();
+      }
+
+      const res = await updateAdminPaymentGateway(gateway.id, payload);
 
       if (res.isConnected) {
         addToast({
           title: 'KREDENSIAL DISIMPAN & TERHUBUNG! 🟢',
-          message: res.connectionMessage || 'Merchant ID dan Secret Key valid. Saldo berhasil disinkronkan.',
+          message: res.connectionMessage || 'Kredensial valid dan koneksi API berhasil diverifikasi.',
           type: 'success',
         });
       } else {
         addToast({
           title: 'KREDENSIAL DISIMPAN (TIDAK TERHUBUNG) ⚠️',
-          message: res.connectionMessage || 'Kredensial disimpan, namun koneksi ke TokoPay tidak valid / ditolak.',
+          message: res.connectionMessage || 'Kredensial disimpan, namun koneksi ke provider tidak valid / ditolak.',
           type: 'error',
         });
       }
@@ -73,7 +88,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     } catch (err: any) {
       addToast({
         title: 'GAGAL MENYIMPAN',
-        message: err.message || 'Terjadi kesalahan saat menyimpan kredensial TokoPay.',
+        message: err.message || `Terjadi kesalahan saat menyimpan kredensial ${gateway.name}.`,
         type: 'error',
       });
     } finally {
@@ -97,42 +112,65 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             <ShieldAlert className="w-5 h-5 stroke-[3] text-black shrink-0 mt-0.5" />
             <div>
               <h4 className="font-black uppercase text-xs text-black mb-1">
-                Spesifikasi API & Advance Order TokoPay
+                {isNeetPay ? 'Spesifikasi API & Webhook NeetPay' : 'Spesifikasi API & Advance Order TokoPay'}
               </h4>
               <p className="text-[11px] font-bold text-black/90 leading-snug">
-                Sistem otomatis menggunakan mode <b>Order Advanced</b> (redirect otomatis setelah bayar) dan memvalidasi Webhook dengan MD5 Signature.
+                {isNeetPay
+                  ? 'Sistem menggunakan API Key untuk pembuatan transaksi QRIS dinamis dan memvalidasi Webhook event dengan HMAC-SHA256 Secret.'
+                  : 'Sistem otomatis menggunakan mode Order Advanced (redirect otomatis setelah bayar) dan memvalidasi Webhook dengan MD5 Signature.'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Input Merchant ID */}
-        <div>
-          <Input
-            label="TokoPay Merchant ID"
-            type="text"
-            value={merchantId}
-            onChange={(e) => setMerchantId(e.target.value)}
-            placeholder="Contoh: M1234567890"
-            required
-          />
-          <p className="text-[10px] font-bold text-neutral-500 mt-1">
-            *Didapatkan dari halaman Pengaturan Merchant TokoPay.
-          </p>
-        </div>
+        {/* Input NeetPay API Key */}
+        {isNeetPay && (
+          <div>
+            <Input
+              label="NeetPay API Key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Masukkan API Key NeetPay (Bearer Token)"
+              required
+            />
+            <p className="text-[10px] font-bold text-neutral-500 mt-1">
+              *Didapatkan dari Dashboard Merchant NeetPay untuk otentikasi API.
+            </p>
+          </div>
+        )}
 
-        {/* Input Secret Key */}
+        {/* Input TokoPay Merchant ID */}
+        {isTokoPay && (
+          <div>
+            <Input
+              label="TokoPay Merchant ID"
+              type="text"
+              value={merchantId}
+              onChange={(e) => setMerchantId(e.target.value)}
+              placeholder="Contoh: M1234567890"
+              required
+            />
+            <p className="text-[10px] font-bold text-neutral-500 mt-1">
+              *Didapatkan dari halaman Pengaturan Merchant TokoPay.
+            </p>
+          </div>
+        )}
+
+        {/* Input Secret Key / Webhook Secret */}
         <div>
           <Input
-            label="TokoPay Secret Key"
+            label={isNeetPay ? 'NeetPay Webhook Secret' : 'TokoPay Secret Key'}
             type="password"
             value={secretKey}
             onChange={(e) => setSecretKey(e.target.value)}
-            placeholder="Masukkan Secret Key TokoPay"
+            placeholder={isNeetPay ? 'Masukkan Webhook Secret NeetPay' : 'Masukkan Secret Key TokoPay'}
             required
           />
           <p className="text-[10px] font-bold text-neutral-500 mt-1">
-            *Digunakan untuk enkripsi MD5 Signature API & pengecekan Webhook.
+            {isNeetPay
+              ? '*Digunakan untuk verifikasi HMAC-SHA256 signature pada callback Webhook NeetPay.'
+              : '*Digunakan untuk enkripsi MD5 Signature API & pengecekan Webhook TokoPay.'}
           </p>
         </div>
 
@@ -150,3 +188,4 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
     </Dialog>
   );
 };
+

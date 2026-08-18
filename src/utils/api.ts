@@ -979,4 +979,8 @@ export const testUserWebhookConfig = () =>
     method: 'POST',
   });
 
+export const getNeetPayPaymentChannelsAdmin = () =>
+  apiFetch<{ success: boolean; data: Array<{ id: string; name: string; method: string; provider: string }> }>('/neetpay/channels');
+
+
 
