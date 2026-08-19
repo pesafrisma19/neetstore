@@ -95,6 +95,9 @@ export const PaymentMethodsPage: React.FC = () => {
   // Helper untuk format gateway name
   const getGatewayBadge = (pm: PaymentMethodData) => {
     const gatewayCode = pm.gateway?.code?.toLowerCase();
+    if (gatewayCode === 'neetpay') {
+      return <Badge variant="purple" size="sm" className="font-black">NEETPAY GATEWAY</Badge>;
+    }
     if (gatewayCode === 'tokopay') {
       return <Badge variant="cyan" size="sm" className="font-black">TOKOPAY GATEWAY</Badge>;
     }

@@ -144,7 +144,7 @@ export const PaymentMethodFormPage: React.FC = () => {
       const payload: any = {
         name: formData.name.trim(),
         code: finalCode,
-        type: isNeetPay ? 'QRIS' : formData.type,
+        type: formData.type,
         paymentGatewayId: formData.paymentGatewayId ? Number(formData.paymentGatewayId) : null,
         feeFlat: Number(formData.feeFlat),
         feePercent: Number(formData.feePercent),
@@ -317,12 +317,21 @@ export const PaymentMethodFormPage: React.FC = () => {
                       onChange={(e) => {
                         const channelId = e.target.value;
                         const found = neetpayChannels.find((c) => c.id === channelId);
-                        setFormData((prev) => ({
-                          ...prev,
-                          code: channelId,
-                          name: prev.name || (found ? found.name : ''),
-                          type: 'QRIS',
-                        }));
+                        setFormData((prev) => {
+                          const methodUpper = String(found?.method || '').toUpperCase();
+                          let suggestedType = prev.type;
+                          if (methodUpper.includes('GOPAY') || methodUpper.includes('WALLET') || methodUpper.includes('DANA') || methodUpper.includes('OVO')) {
+                            suggestedType = 'E-WALLET';
+                          } else if (methodUpper.includes('QRIS')) {
+                            suggestedType = 'QRIS';
+                          }
+                          return {
+                            ...prev,
+                            code: channelId,
+                            name: prev.name || (found ? found.name : ''),
+                            type: suggestedType,
+                          };
+                        });
                       }}
                       options={[
                         { value: '', label: '-- Pilih Channel dari Akun NeetPay --' },
@@ -345,7 +354,7 @@ export const PaymentMethodFormPage: React.FC = () => {
                   <Input
                     required
                     value={formData.code}
-                    onChange={e => setFormData({ ...formData, code: e.target.value, type: 'QRIS' })}
+                    onChange={e => setFormData({ ...formData, code: e.target.value })}
                     placeholder="Contoh: cms_7e05fcad2e5249419ad21b56a3eeb4d7"
                   />
                   <p className="text-[11px] font-bold text-neutral-600 mt-1">
