@@ -63,6 +63,12 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
   const rawUrl = (checkoutUrl || paymentUrl || '').trim();
   const isExternalHttp = Boolean(rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')));
 
+  const normType = (paymentType || '').toUpperCase().trim();
+  const isEwalletType = normType === 'E-WALLET' || normType === 'EWALLET' || normType.includes('WALLET');
+
+  const showQrSection = isEwalletType ? (!isExternalHttp && hasQrData) : hasQrData;
+  const showLinkSection = isEwalletType ? (isExternalHttp && !isManual) : (!hasQrData && (!isManual || isQrisCategory) && isExternalHttp);
+
   // Format default instructions if empty for QRIS
   const defaultQrisGuide = `1. Screenshot / Simpan kode QR yang tampil
 2. Buka aplikasi e-wallet atau mobile banking (DANA, GoPay, OVO, ShopeePay, BCA Mobile, Livin Mandiri, dll)
@@ -113,7 +119,7 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
       )}
 
       {/* 1. AREA BAYAR QRIS DENGAN COUNTDOWN LANGSUNG DI BAWAH QR */}
-      {hasQrData && (
+      {showQrSection && (
         <div className="p-4 bg-yellow-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
           <div className="bg-white p-3 border-[3px] border-black inline-block shadow-[4px_4px_0px_0px_#000]">
             {qrString ? (
@@ -197,7 +203,7 @@ export const PaymentDetails: React.FC<PaymentDetailsProps> = ({
       )}
 
       {/* 3. AREA BAYAR REDIRECT GATEWAY DENGAN COUNTDOWN */}
-      {!hasQrData && (!isManual || isQrisCategory) && isExternalHttp && (
+      {showLinkSection && (
         <div className="p-4 bg-cyan-50 border-[3px] border-black shadow-[4px_4px_0px_0px_#000] text-center space-y-3">
           <span className="text-xs font-black uppercase text-black block">HALAMAN PEMBAYARAN GATEWAY ONLINE</span>
           <a
