@@ -38,6 +38,7 @@ export interface UserDepositInvoice {
   paymentUrl: string | null;
   checkoutUrl?: string | null;
   qrString?: string | null;
+  qrImageUrl?: string | null;
   status: 'PENDING' | 'SUCCESS' | 'FAILED';
   failureReason: string | null;
   paidAt: string | null;
@@ -324,6 +325,7 @@ export const UserDepositSection: React.FC = () => {
                   accountNumber={activeInvoice.paymentMethodRel?.accountNumber}
                   accountHolder={activeInvoice.paymentMethodRel?.accountHolder}
                   qrString={activeInvoice.qrString || activeInvoice.paymentMethodRel?.qrString}
+                  qrImageUrl={activeInvoice.qrImageUrl}
                   checkoutUrl={activeInvoice.checkoutUrl}
                   paymentUrl={activeInvoice.paymentUrl}
                   instructions={activeInvoice.paymentInstructions || activeInvoice.instructions}
