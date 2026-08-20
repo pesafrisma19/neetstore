@@ -388,6 +388,11 @@ export const checkDigiflazzBalance = () =>
     method: 'POST',
   });
 
+export const checkWartopcoinBalance = () =>
+  apiFetch<{ success?: boolean; data?: { balance: number; username: string; statusAkun: string }; error?: string }>('/wartopcoin/saldo', {
+    method: 'POST',
+  });
+
 export const requestDigiflazzDeposit = (data: { amount: number; bank: string; owner_name: string }) =>
   apiFetch<{
     success?: boolean;
