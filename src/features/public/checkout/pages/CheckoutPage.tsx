@@ -1517,7 +1517,7 @@ export const CheckoutPage: React.FC = () => {
                     </div>
                     <div className="flex flex-col leading-tight">
                       <h4 className="font-black text-[10px] uppercase text-[var(--nb-text)] m-0 line-clamp-1">100% LEGAL &amp; AMAN</h4>
-                      <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">API Digiflazz Resmi</p>
+                      <p className="text-[9px] font-bold text-[var(--nb-text-muted)] m-0 mt-0.5">Distributor Resmi</p>
                     </div>
                   </div>
                   <div className="flex flex-row items-center gap-2 pr-2 border-r-[1.5px] border-dashed border-[var(--nb-border)]/40">

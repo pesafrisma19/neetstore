@@ -243,7 +243,7 @@ export const Home: React.FC = () => {
             <Card variant="purple" shadow="lg" className="p-6 flex flex-col gap-3">
               <div className="w-12 h-12 bg-black text-white font-black text-2xl flex items-center justify-center border-[2px] border-black shadow-[3px_3px_0px_0px_#fff]">3</div>
               <h3 className="font-black text-lg uppercase">PROSES DETIK ITU JUGA</h3>
-              <p className="text-xs font-semibold text-black/80">Sistem otomatis Digiflazz akan langsung mengirimkan item ke akun game kamu dalam hitungan detik.</p>
+              <p className="text-xs font-semibold text-black/80">Sistem otomatis kami akan langsung mengirimkan item ke akun game kamu dalam hitungan detik.</p>
             </Card>
           </div>
         </div>
@@ -275,7 +275,7 @@ export const Home: React.FC = () => {
                 Apakah top up di sini aman dan legal?
               </AccordionTrigger>
               <AccordionContent>
-                Sangat aman dan 100% legal! Kami bekerja sama langsung dengan distributor resmi provider game melalui API resmi Digiflazz, sehingga akun kamu dijamin bebas dari risiko banned.
+                Sangat aman dan 100% legal! Semua produk diproses langsung melalui jalur resmi distributor game terpercaya, sehingga akun kamu dijamin 100% aman dan bebas dari risiko banned.
               </AccordionContent>
             </AccordionItem>
 
