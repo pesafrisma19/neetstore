@@ -19,9 +19,10 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Checkbox } from '../../../../components/ui/Checkbox';
-import { Edit, Trash2, Search, ChevronLeft, ChevronRight, Layers, X, RefreshCw, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Search, ChevronLeft, ChevronRight, Layers, X, RefreshCw, AlertCircle, Download } from 'lucide-react';
 import type { ProductData, CategoryData, BrandData, ProviderData } from '../../types';
 import { ProductModal } from '../components/ProductModal';
+import { GetProductModal } from '../components/GetProductModal';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const ProductsPage: React.FC = () => {
@@ -30,6 +31,7 @@ export const ProductsPage: React.FC = () => {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGetProductModalOpen, setIsGetProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
 
   // Pagination & Filter States (Local UI State)
@@ -37,6 +39,7 @@ export const ProductsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCat, setFilterCat] = useState('ALL');
   const [filterBrand, setFilterBrand] = useState('ALL');
+  const [filterProvider, setFilterProvider] = useState('ALL');
   const [filterProductCat, setFilterProductCat] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const pageSize = 50;
@@ -97,10 +100,11 @@ export const ProductsPage: React.FC = () => {
       search: searchQuery.trim() || undefined,
       categoryId: filterCat,
       brandId: filterBrand,
+      providerId: filterProvider !== 'ALL' ? filterProvider : undefined,
       productCategoryId: filterProductCat,
       status: filterStatus,
     }),
-    [currentPage, searchQuery, filterCat, filterBrand, filterProductCat, filterStatus]
+    [currentPage, searchQuery, filterCat, filterBrand, filterProvider, filterProductCat, filterStatus]
   );
 
   const {
@@ -208,10 +212,45 @@ export const ProductsPage: React.FC = () => {
   const allSelected = products.length > 0 && selectedIds.size === products.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < products.length;
 
+  // Resolve active provider code from filterProvider
+  const selectedProviderObj = useMemo(() => {
+    if (filterProvider === 'ALL') return null;
+    return providers.find((p) => String(p.id) === filterProvider) || null;
+  }, [filterProvider, providers]);
+
+  const selectedProviderCode = selectedProviderObj?.code?.toLowerCase() || '';
+
+  const handleGetProductClick = () => {
+    if (filterProvider === 'ALL' || !selectedProviderObj) {
+      addToast({
+        title: 'PILIH PROVIDER',
+        message: 'Silakan pilih Provider spesifik pada filter Provider terlebih dahulu untuk mengambil produk live.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (selectedProviderCode === 'wartopcoin') {
+      setIsGetProductModalOpen(true);
+    } else if (selectedProviderCode === 'digiflazz') {
+      addToast({
+        title: 'DIGIFLAZZ CATALOG',
+        message: 'Provider Digiflazz menggunakan sistem sinkronisasi otomatis. Buka menu Admin > Providers untuk melakukan sync.',
+        type: 'info',
+      });
+    } else {
+      addToast({
+        title: 'KATALOG TIDAK DIDUKUNG',
+        message: `Provider '${selectedProviderObj.name || selectedProviderCode}' belum mendukung selective catalog import.`,
+        type: 'warning',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card variant="white" shadow="xl" borderWidth="4" className="text-left">
-        <CardHeader headerBg="#00F0FF" className="flex items-center justify-between">
+        <CardHeader headerBg="#00F0FF" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-base text-[var(--nb-text)] font-black uppercase">
               LEVEL 5: DAFTAR VARIAN PRODUK (SKU PROVIDER & PRICES)
@@ -219,6 +258,18 @@ export const ProductsPage: React.FC = () => {
             <p className="text-xs text-[var(--nb-text-muted)] font-bold mt-1 uppercase">
               Kelola penataan Kategori, Region, dan Status Aktif untuk varian produk provider
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="yellow"
+              size="sm"
+              onClick={handleGetProductClick}
+              className="font-black uppercase text-xs shadow-[3px_3px_0px_0px_#000]"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" />
+              <span>GET PRODUCT</span>
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -236,6 +287,20 @@ export const ProductsPage: React.FC = () => {
                 className="pl-9 text-sm py-1.5"
               />
             </div>
+
+            <Select
+              value={filterProvider}
+              onChange={(e) => {
+                setFilterProvider(e.target.value);
+                setCurrentPage(1);
+              }}
+              fullWidth={false}
+              className="w-full md:w-auto"
+              options={[
+                { value: 'ALL', label: 'SEMUA PROVIDER' },
+                ...providers.map((p) => ({ value: String(p.id), label: p.name.toUpperCase() })),
+              ]}
+            />
 
             <Select
               value={filterCat}
@@ -295,8 +360,8 @@ export const ProductsPage: React.FC = () => {
                 { value: 'ALL', label: 'SEMUA STATUS' },
                 { value: 'active', label: '✅ Web Aktif' },
                 { value: 'inactive', label: '❌ Web Non-Aktif' },
-                { value: 'provider_on', label: '⚡ Digiflazz ON' },
-                { value: 'provider_off', label: '⚠️ Digiflazz OFF' },
+                { value: 'provider_on', label: '⚡ Supplier ON' },
+                { value: 'provider_off', label: '⚠️ Supplier OFF' },
               ]}
             />
           </div>
@@ -555,6 +620,13 @@ export const ProductsPage: React.FC = () => {
         brands={brands}
         providers={providers}
         onSaved={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.products.all })}
+      />
+
+      {/* Get Product (Wartopcoin Live Selective Import) Modal */}
+      <GetProductModal
+        isOpen={isGetProductModalOpen}
+        onClose={() => setIsGetProductModalOpen(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.products.all })}
       />
     </div>
   );

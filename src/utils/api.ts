@@ -393,6 +393,45 @@ export const checkWartopcoinBalance = () =>
     method: 'POST',
   });
 
+export interface WartopcoinCatalogItem {
+  productCode: string;
+  productName: string;
+  category: string;
+  brand: string;
+  brandSlug: string;
+  brandId: number | null;
+  brandMapped: boolean;
+  type: string;
+  price: number;
+  isFlashsale: boolean;
+  imageUrl: string;
+  status: string;
+  isImported: boolean;
+  existingProductId?: number;
+}
+
+/** Ambil katalog live produk dari Wartopcoin untuk Selective Import (Tanpa simpan DB) */
+export const getWartopcoinCatalog = () =>
+  apiFetch<{ success: boolean; data: { total: number; products: WartopcoinCatalogItem[] }; error?: string }>('/wartopcoin/products');
+
+/** Selective Import produk Wartopcoin ke Database */
+export const importWartopcoinProducts = (productCodes: string[]) =>
+  apiFetch<{
+    success: boolean;
+    message?: string;
+    data?: { imported: number; updated: number; skipped: number; errors: string[] };
+    error?: string;
+  }>('/wartopcoin/import', {
+    method: 'POST',
+    body: JSON.stringify({ productCodes }),
+  });
+
+/** Sinkronisasi manual produk Wartopcoin yang SUDAH ADA di DB */
+export const syncWartopcoinProducts = () =>
+  apiFetch<{ success: boolean; count?: number; message?: string; error?: string }>('/wartopcoin/sync', {
+    method: 'POST',
+  });
+
 export const requestDigiflazzDeposit = (data: { amount: number; bank: string; owner_name: string }) =>
   apiFetch<{
     success?: boolean;
@@ -488,6 +527,7 @@ export const getAdminProducts = (params?: {
   brandId?: string;
   productCategoryId?: string;
   status?: string;
+  providerId?: string | number;
 }) => {
   const query = new URLSearchParams();
   if (params?.page) query.append('page', String(params.page));
@@ -497,6 +537,7 @@ export const getAdminProducts = (params?: {
   if (params?.brandId && params.brandId !== 'ALL') query.append('brandId', params.brandId);
   if (params?.productCategoryId && params.productCategoryId !== 'ALL') query.append('productCategoryId', params.productCategoryId);
   if (params?.status && params.status !== 'ALL') query.append('status', params.status);
+  if (params?.providerId && params.providerId !== 'ALL') query.append('providerId', String(params.providerId));
   const queryString = query.toString();
   return apiFetch<any[]>(`/admin/products${queryString ? `?${queryString}` : ''}`);
 };

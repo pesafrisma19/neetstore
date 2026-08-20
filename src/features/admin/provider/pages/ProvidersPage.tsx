@@ -11,7 +11,8 @@ import {
   updateAdminProvider,
   checkDigiflazzBalance,
   checkWartopcoinBalance,
-  syncDigiflazzProducts
+  syncDigiflazzProducts,
+  syncWartopcoinProducts,
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { useToast } from '../../../../components/ui/ToastContext';
@@ -97,7 +98,32 @@ export const ProvidersPage: React.FC = () => {
     },
   });
 
-  // 4. TanStack Mutation for Web Status Toggle
+  // 4. TanStack Mutation for Wartopcoin Existing Products Sync
+  const syncWartopcoinMutation = useMutation({
+    mutationFn: async () => {
+      const res = await syncWartopcoinProducts();
+      if (res?.error) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.providers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.products.all });
+      addToast({
+        title: 'SYNC WARTOPCOIN SUKSES',
+        message: data?.message || 'Produk Wartopcoin berhasil disinkronisasi!',
+        type: 'success',
+      });
+    },
+    onError: (err: any) => {
+      addToast({
+        title: 'SYNC GAGAL',
+        message: err.message || 'Gagal sinkronisasi produk Wartopcoin.',
+        type: 'error',
+      });
+    },
+  });
+
+  // 5. TanStack Mutation for Web Status Toggle
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, nextStatus }: { id: number; nextStatus: boolean; name: string }) => {
       return updateAdminProvider(id, {
@@ -288,6 +314,21 @@ export const ProvidersPage: React.FC = () => {
                           className="font-black uppercase text-xs shadow-[3px_3px_0px_0px_#000]"
                         >
                           <span>{syncProductsMutation.isPending ? 'SYNCING...' : 'SYNC PRODUK'}</span>
+                        </Button>
+                      )}
+
+                      {/* Aksi Khusus Wartopcoin: Sync Produk DB */}
+                      {isWartopcoin && (
+                        <Button
+                          variant="cyan"
+                          size="md"
+                          onClick={() => syncWartopcoinMutation.mutate()}
+                          disabled={syncWartopcoinMutation.isPending}
+                          isLoading={syncWartopcoinMutation.isPending}
+                          fullWidth
+                          className="font-black uppercase text-xs shadow-[3px_3px_0px_0px_#000]"
+                        >
+                          <span>{syncWartopcoinMutation.isPending ? 'SYNCING...' : 'SYNC PRODUK DB'}</span>
                         </Button>
                       )}
 
