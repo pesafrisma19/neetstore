@@ -32,12 +32,14 @@ import {
   Radio,
   Eye,
   EyeOff,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import {
-  apiFetch,
   updateUserProfile,
+  getUserTransactions,
   getUserMutations,
   requestUserApiKey,
   getUserLevelUpgradeInfo,
@@ -62,6 +64,13 @@ export const UserDashboardPage: React.FC = () => {
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedReff, setCopiedReff] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  // Pagination States for Tabs
+  const [txPage, setTxPage] = useState(1);
+  const txPageSize = 15;
+
+  const [mutationPage, setMutationPage] = useState(1);
+  const mutationPageSize = 15;
 
   // State Modal Konfirmasi Upgrade Level
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -100,14 +109,28 @@ export const UserDashboardPage: React.FC = () => {
     apiStatus: 'NONE',
   };
 
-  // 2. Fetch Transactions via TanStack Query
+  // 1b. Overview Latest Transactions Query (5 items, fixed & independent from txPage)
+  const {
+    data: overviewTxData,
+  } = useQuery<any>({
+    queryKey: ['user', 'overview-transactions', userId],
+    queryFn: () => getUserTransactions({ page: 1, limit: 5 }),
+    enabled: Boolean(userId),
+    staleTime: 30 * 1000,
+  });
+
+  const overviewTransactions: UserTransactionItem[] = Array.isArray(overviewTxData)
+    ? overviewTxData
+    : overviewTxData?.data || [];
+
+  // 2. Fetch Paginated Transactions for Tab 2
   const {
     data: transactionsData,
     isLoading: isFetchingTx,
     refetch: refetchTx,
   } = useQuery<any>({
-    queryKey: queryKeys.user.transactions.byUser(userId ?? 0),
-    queryFn: () => apiFetch<any>('/user/transactions'),
+    queryKey: ['user', 'transactions', userId, txPage],
+    queryFn: () => getUserTransactions({ page: txPage, limit: txPageSize }),
     enabled: Boolean(userId),
     staleTime: 30 * 1000,
   });
@@ -116,18 +139,29 @@ export const UserDashboardPage: React.FC = () => {
     ? transactionsData
     : transactionsData?.data || [];
 
-  const totalTransactions = typeof transactionsData?.total === 'number'
+  const totalTransactions = typeof (transactionsData as any)?._meta?.totalCount === 'number'
+    ? (transactionsData as any)._meta.totalCount
+    : typeof transactionsData?.total === 'number'
     ? transactionsData.total
+    : typeof (overviewTxData as any)?._meta?.totalCount === 'number'
+    ? (overviewTxData as any)._meta.totalCount
     : transactions.length;
 
-  // 3. Fetch Balance Mutations via TanStack Query
+  const totalTxPages = typeof (transactionsData as any)?._meta?.totalPages === 'number'
+    ? (transactionsData as any)._meta.totalPages
+    : Math.max(1, Math.ceil(totalTransactions / txPageSize));
+
+  const startTxItem = totalTransactions === 0 ? 0 : (txPage - 1) * txPageSize + 1;
+  const endTxItem = Math.min(txPage * txPageSize, totalTransactions);
+
+  // 3. Fetch Paginated Balance Mutations for Tab 3
   const {
     data: mutationsData,
     isLoading: isFetchingMutations,
     refetch: refetchMutations,
   } = useQuery<any>({
-    queryKey: queryKeys.user.mutations.byUser(userId ?? 0),
-    queryFn: () => getUserMutations(),
+    queryKey: ['user', 'mutations', userId, mutationPage],
+    queryFn: () => getUserMutations({ page: mutationPage, limit: mutationPageSize }),
     enabled: Boolean(userId),
     staleTime: 30 * 1000,
   });
@@ -135,6 +169,19 @@ export const UserDashboardPage: React.FC = () => {
   const mutations: any[] = Array.isArray(mutationsData)
     ? mutationsData
     : mutationsData?.data || [];
+
+  const totalMutations = typeof (mutationsData as any)?._meta?.totalCount === 'number'
+    ? (mutationsData as any)._meta.totalCount
+    : typeof mutationsData?.total === 'number'
+    ? mutationsData.total
+    : mutations.length;
+
+  const totalMutationPages = typeof (mutationsData as any)?._meta?.totalPages === 'number'
+    ? (mutationsData as any)._meta.totalPages
+    : Math.max(1, Math.ceil(totalMutations / mutationPageSize));
+
+  const startMutItem = totalMutations === 0 ? 0 : (mutationPage - 1) * mutationPageSize + 1;
+  const endMutItem = Math.min(mutationPage * mutationPageSize, totalMutations);
 
   // Mutation Update Profile
   const updateProfileMutation = useMutation({
@@ -623,7 +670,7 @@ export const UserDashboardPage: React.FC = () => {
                       5 TRANSAKSI TERAKHIR
                     </CardTitle>
                     <Button variant="white" size="sm" onClick={() => setActiveTab('transactions')} className="text-[10px] font-black py-1 px-2">
-                      LIHAT SEMUA ({transactions.length})
+                      LIHAT SEMUA ({totalTransactions})
                     </Button>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -638,7 +685,7 @@ export const UserDashboardPage: React.FC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {transactions.slice(0, 5).map((tx) => (
+                        {overviewTransactions.slice(0, 5).map((tx) => (
                           <TableRow key={tx.id}>
                             <TableCell className="font-mono font-black text-xs text-black">{tx.providerRef || `TRX-${tx.id}`}</TableCell>
                             <TableCell className="font-bold text-xs uppercase">{tx.product?.name || `Produk #${tx.productId}`}</TableCell>
@@ -651,7 +698,7 @@ export const UserDashboardPage: React.FC = () => {
                             </TableCell>
                           </TableRow>
                         ))}
-                        {transactions.length === 0 && (
+                        {overviewTransactions.length === 0 && (
                           <TableRow>
                             <TableCell colSpan={5} className="text-center py-6 text-xs font-bold text-neutral-500">
                               Belum ada transaksi.
@@ -733,6 +780,42 @@ export const UserDashboardPage: React.FC = () => {
                       )}
                     </TableBody>
                   </Table>
+
+                  {/* Pagination Footer Tab 2 */}
+                  {totalTransactions > 0 && (
+                    <div className="bg-neutral-50 border-t-[3px] border-black p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
+                      <div className="text-neutral-600">
+                        Menampilkan <span className="text-black font-black">{startTxItem}–{endTxItem}</span> dari <span className="text-black font-black">{totalTransactions}</span> transaksi {totalTxPages > 1 ? `(Halaman ${txPage} dari ${totalTxPages})` : ''}
+                      </div>
+                      {totalTxPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="white"
+                            size="sm"
+                            disabled={txPage <= 1 || isFetchingTx}
+                            onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+                          >
+                            <ChevronLeft className="w-4 h-4 stroke-[3]" />
+                            <span>SEBELUMNYA</span>
+                          </Button>
+                          <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
+                            {txPage} / {totalTxPages}
+                          </span>
+                          <Button
+                            variant="white"
+                            size="sm"
+                            disabled={txPage >= totalTxPages || isFetchingTx}
+                            onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
+                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+                          >
+                            <span>SELANJUTNYA</span>
+                            <ChevronRight className="w-4 h-4 stroke-[3]" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -799,6 +882,42 @@ export const UserDashboardPage: React.FC = () => {
                       )}
                     </TableBody>
                   </Table>
+
+                  {/* Pagination Footer Tab 3 */}
+                  {totalMutations > 0 && (
+                    <div className="bg-neutral-50 border-t-[3px] border-black p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
+                      <div className="text-neutral-600">
+                        Menampilkan <span className="text-black font-black">{startMutItem}–{endMutItem}</span> dari <span className="text-black font-black">{totalMutations}</span> mutasi {totalMutationPages > 1 ? `(Halaman ${mutationPage} dari ${totalMutationPages})` : ''}
+                      </div>
+                      {totalMutationPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="white"
+                            size="sm"
+                            disabled={mutationPage <= 1 || isFetchingMutations}
+                            onClick={() => setMutationPage((p) => Math.max(1, p - 1))}
+                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+                          >
+                            <ChevronLeft className="w-4 h-4 stroke-[3]" />
+                            <span>SEBELUMNYA</span>
+                          </Button>
+                          <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
+                            {mutationPage} / {totalMutationPages}
+                          </span>
+                          <Button
+                            variant="white"
+                            size="sm"
+                            disabled={mutationPage >= totalMutationPages || isFetchingMutations}
+                            onClick={() => setMutationPage((p) => Math.min(totalMutationPages, p + 1))}
+                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+                          >
+                            <span>SELANJUTNYA</span>
+                            <ChevronRight className="w-4 h-4 stroke-[3]" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

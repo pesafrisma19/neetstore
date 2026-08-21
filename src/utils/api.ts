@@ -944,12 +944,20 @@ export const updateUserProfile = (data: { fullname?: string | null; email?: stri
   });
 };
 
+export const getUserTransactions = (params?: { page?: number; limit?: number }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  const qStr = query.toString();
+  return apiFetch<any>(`/user/transactions${qStr ? `?${qStr}` : ''}`);
+};
+
 export const getUserMutations = (params?: { page?: number; limit?: number }) => {
   const query = new URLSearchParams();
   if (params?.page) query.append('page', String(params.page));
   if (params?.limit) query.append('limit', String(params.limit));
   const qStr = query.toString();
-  return apiFetch<{ data: any[]; total: number; page: number; limit: number }>(`/user/mutations${qStr ? `?${qStr}` : ''}`);
+  return apiFetch<any>(`/user/mutations${qStr ? `?${qStr}` : ''}`);
 };
 
 export const requestUserApiKey = () => {

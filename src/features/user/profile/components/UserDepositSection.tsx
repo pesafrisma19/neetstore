@@ -12,7 +12,9 @@ import {
   Clock, 
   XCircle, 
   RefreshCw, 
-  ArrowRight
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { 
   getDepositPaymentMethods, 
@@ -74,6 +76,10 @@ export const UserDepositSection: React.FC = () => {
   const [activeInvoice, setActiveInvoice] = useState<UserDepositInvoice | null>(null);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
+  // Pagination State for Deposit History
+  const [depositPage, setDepositPage] = useState<number>(1);
+  const depositPageSize = 10;
+
   // Idempotency Key Lifecycle per User Intent
   const [intentIdempotencyKey, setIntentIdempotencyKey] = useState<string>(() =>
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `dep-key-${Date.now()}-${Math.random()}`
@@ -111,18 +117,22 @@ export const UserDepositSection: React.FC = () => {
     }
   }, [paymentMethods, selectedMethodCode]);
 
-  // 3. Query User Deposit History
+  // 3. Query User Deposit History (Server-side Paginated)
   const { 
     data: historyData, 
     isLoading: isLoadingHistory, 
     refetch: refetchHistory 
   } = useQuery({
-    queryKey: queryKeys.user.deposits.history(user?.id || 0),
-    queryFn: () => getUserDepositHistory({ page: 1, limit: 10 }),
+    queryKey: ['user', 'deposits', 'history', user?.id || 0, depositPage],
+    queryFn: () => getUserDepositHistory({ page: depositPage, limit: depositPageSize }),
     enabled: Boolean(user?.id),
   });
 
   const historyItems: UserDepositInvoice[] = historyData?.data || [];
+  const totalDeposits: number = historyData?._meta?.totalCount || (Array.isArray(historyData) ? historyData.length : historyItems.length);
+  const totalDepositPages: number = historyData?._meta?.totalPages || Math.max(1, Math.ceil(totalDeposits / depositPageSize));
+  const startDepositItem = totalDeposits === 0 ? 0 : (depositPage - 1) * depositPageSize + 1;
+  const endDepositItem = Math.min(depositPage * depositPageSize, totalDeposits);
 
   // 4. Polling Status Active Invoice jika PENDING
   const activeRef = activeInvoice?.paymentRef;
@@ -576,6 +586,42 @@ export const UserDepositSection: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination Footer */}
+          {totalDeposits > 0 && (
+            <div className="bg-neutral-50 border-t-[3px] border-black p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
+              <div className="text-neutral-600">
+                Menampilkan <span className="text-black font-black">{startDepositItem}–{endDepositItem}</span> dari <span className="text-black font-black">{totalDeposits}</span> deposit {totalDepositPages > 1 ? `(Halaman ${depositPage} dari ${totalDepositPages})` : ''}
+              </div>
+              {totalDepositPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="white"
+                    size="sm"
+                    disabled={depositPage <= 1 || isLoadingHistory}
+                    onClick={() => setDepositPage((p) => Math.max(1, p - 1))}
+                    className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+                  >
+                    <ChevronLeft className="w-4 h-4 stroke-[3]" />
+                    <span>SEBELUMNYA</span>
+                  </Button>
+                  <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
+                    {depositPage} / {totalDepositPages}
+                  </span>
+                  <Button
+                    variant="white"
+                    size="sm"
+                    disabled={depositPage >= totalDepositPages || isLoadingHistory}
+                    onClick={() => setDepositPage((p) => Math.min(totalDepositPages, p + 1))}
+                    className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+                  >
+                    <span>SELANJUTNYA</span>
+                    <ChevronRight className="w-4 h-4 stroke-[3]" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
