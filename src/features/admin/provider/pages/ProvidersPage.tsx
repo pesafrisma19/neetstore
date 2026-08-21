@@ -16,7 +16,7 @@ import {
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { useToast } from '../../../../components/ui/ToastContext';
-import { RefreshCw, KeyRound, ArrowUpCircle } from 'lucide-react';
+import { RefreshCw, KeyRound, ArrowUpCircle, Copy } from 'lucide-react';
 
 export const ProvidersPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -26,6 +26,16 @@ export const ProvidersPage: React.FC = () => {
   const [credentialModalOpen, setCredentialModalOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ProviderData | null>(null);
   const [depositModalOpen, setDepositModalOpen] = useState(false);
+
+  const handleCopy = (text: string | null | undefined, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    addToast({
+      title: 'BERHASIL DISALIN',
+      message: `${label} berhasil disalin`,
+      type: 'success',
+    });
+  };
 
   // 1. TanStack Query for Providers list
   const {
@@ -265,6 +275,68 @@ export const ProvidersPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Section Khusus Wartopcoin: Konfigurasi Callback */}
+                  {isWartopcoin && (
+                    <div className="bg-white border-[3px] border-black p-6 shadow-[4px_4px_0px_0px_#000] space-y-4">
+                      <div>
+                        <h3 className="text-sm font-black uppercase text-[var(--nb-text)] tracking-tight">
+                          KONFIGURASI CALLBACK
+                        </h3>
+                        <p className="text-xs font-bold text-[var(--nb-text-muted)] mt-0.5">
+                          Informasi URL Webhook dan IP Whitelist untuk didaftarkan pada dashboard Member Wartopcoin.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Field 1: Webhook / Callback URL */}
+                        <div className="bg-neutral-50 border-2 border-black p-3.5 space-y-1.5">
+                          <span className="text-[11px] font-black uppercase text-neutral-600 block">
+                            Webhook / Callback URL
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 font-mono text-xs font-bold text-neutral-900 bg-white border border-black px-2.5 py-2 truncate select-all">
+                              {provider.connectionInfo?.webhookUrl || '-'}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="purple"
+                              size="sm"
+                              disabled={!provider.connectionInfo?.webhookUrl}
+                              onClick={() => handleCopy(provider.connectionInfo?.webhookUrl, 'Webhook URL')}
+                              className="font-black uppercase text-xs px-3 shadow-[2px_2px_0px_0px_#000] shrink-0"
+                            >
+                              <Copy className="w-3.5 h-3.5 mr-1" />
+                              <span>COPY</span>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Field 2: Whitelist IP Address */}
+                        <div className="bg-neutral-50 border-2 border-black p-3.5 space-y-1.5">
+                          <span className="text-[11px] font-black uppercase text-neutral-600 block">
+                            Whitelist IP Address
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 font-mono text-xs font-bold text-neutral-900 bg-white border border-black px-2.5 py-2 truncate select-all">
+                              {provider.connectionInfo?.outboundIp || '-'}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="cyan"
+                              size="sm"
+                              disabled={!provider.connectionInfo?.outboundIp}
+                              onClick={() => handleCopy(provider.connectionInfo?.outboundIp, 'IP Address')}
+                              className="font-black uppercase text-xs px-3 shadow-[2px_2px_0px_0px_#000] shrink-0 text-black"
+                            >
+                              <Copy className="w-3.5 h-3.5 mr-1" />
+                              <span>COPY</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* ACTION MENU BAR */}
                   <div className="bg-neutral-100 border-[3px] border-black p-6 shadow-[4px_4px_0px_0px_#000]">

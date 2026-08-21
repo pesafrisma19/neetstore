@@ -22,6 +22,10 @@ export interface ProviderData {
   _count?: {
     products: number;
   };
+  connectionInfo?: {
+    webhookUrl?: string | null;
+    outboundIp?: string | null;
+  } | null;
 }
 
 const DIGIFLAZZ_WEBHOOK_PATH = '/api/digiflazz/webhook';
