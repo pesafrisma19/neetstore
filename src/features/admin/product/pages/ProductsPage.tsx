@@ -592,7 +592,7 @@ export const ProductsPage: React.FC = () => {
                     className="shadow-[2px_2px_0px_0px_#000]"
                   >
                     <ChevronLeft className="w-4 h-4 stroke-[3]" />
-                    <span>SEBELUMNYA</span>
+                    <span>PREV</span>
                   </Button>
                   <div className="px-2.5 py-1 text-xs font-black bg-[var(--nb-surface)] border-2 border-black rounded shadow-[2px_2px_0px_0px_#000]">
                     {currentPage} / {totalPages}
@@ -604,7 +604,7 @@ export const ProductsPage: React.FC = () => {
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     className="shadow-[2px_2px_0px_0px_#000]"
                   >
-                    <span>SELANJUTNYA</span>
+                    <span>NEXT</span>
                     <ChevronRight className="w-4 h-4 stroke-[3]" />
                   </Button>
                 </div>

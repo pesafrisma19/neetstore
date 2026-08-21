@@ -797,7 +797,7 @@ export const UserDashboardPage: React.FC = () => {
                             className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
                           >
                             <ChevronLeft className="w-4 h-4 stroke-[3]" />
-                            <span>SEBELUMNYA</span>
+                            <span>PREV</span>
                           </Button>
                           <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
                             {txPage} / {totalTxPages}
@@ -809,7 +809,7 @@ export const UserDashboardPage: React.FC = () => {
                             onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
                             className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
                           >
-                            <span>SELANJUTNYA</span>
+                            <span>NEXT</span>
                             <ChevronRight className="w-4 h-4 stroke-[3]" />
                           </Button>
                         </div>
@@ -899,7 +899,7 @@ export const UserDashboardPage: React.FC = () => {
                             className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
                           >
                             <ChevronLeft className="w-4 h-4 stroke-[3]" />
-                            <span>SEBELUMNYA</span>
+                            <span>PREV</span>
                           </Button>
                           <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
                             {mutationPage} / {totalMutationPages}
@@ -911,7 +911,7 @@ export const UserDashboardPage: React.FC = () => {
                             onClick={() => setMutationPage((p) => Math.min(totalMutationPages, p + 1))}
                             className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
                           >
-                            <span>SELANJUTNYA</span>
+                            <span>NEXT</span>
                             <ChevronRight className="w-4 h-4 stroke-[3]" />
                           </Button>
                         </div>
