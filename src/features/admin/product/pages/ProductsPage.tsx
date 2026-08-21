@@ -19,7 +19,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Checkbox } from '../../../../components/ui/Checkbox';
-import { Edit, Trash2, Search, ChevronLeft, ChevronRight, Layers, X, RefreshCw, AlertCircle, Download } from 'lucide-react';
+import { Edit, Trash2, Search, ChevronLeft, ChevronRight, Layers, X, RefreshCw, AlertCircle, Download, Filter, RotateCcw } from 'lucide-react';
 import type { ProductData, CategoryData, BrandData, ProviderData } from '../../types';
 import { ProductModal } from '../components/ProductModal';
 import { GetProductModal } from '../components/GetProductModal';
@@ -42,7 +42,8 @@ export const ProductsPage: React.FC = () => {
   const [filterProvider, setFilterProvider] = useState('ALL');
   const [filterProductCat, setFilterProductCat] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const pageSize = 50;
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const pageSize = 25;
 
   // Bulk select States (Local UI State)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -125,6 +126,30 @@ export const ProductsPage: React.FC = () => {
 
   const totalCount = (prodResult as any)?._meta?.totalCount || products.length;
   const totalPages = (prodResult as any)?._meta?.totalPages || 1;
+
+  const startItem = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalCount);
+
+  const activeExtraFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filterCat !== 'ALL') count++;
+    if (filterBrand !== 'ALL') count++;
+    if (filterProductCat !== 'ALL') count++;
+    if (filterStatus !== 'ALL') count++;
+    return count;
+  }, [filterCat, filterBrand, filterProductCat, filterStatus]);
+
+  const hasAnyFilter = searchQuery.trim() !== '' || filterProvider !== 'ALL' || activeExtraFiltersCount > 0;
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setFilterProvider('ALL');
+    setFilterCat('ALL');
+    setFilterBrand('ALL');
+    setFilterProductCat('ALL');
+    setFilterStatus('ALL');
+    setCurrentPage(1);
+  };
 
   // Auto-adjust currentPage if bounds change due to deletion or filtering
   React.useEffect(() => {
@@ -253,10 +278,10 @@ export const ProductsPage: React.FC = () => {
         <CardHeader headerBg="#00F0FF" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-base text-[var(--nb-text)] font-black uppercase">
-              LEVEL 5: DAFTAR VARIAN PRODUK (SKU PROVIDER & PRICES)
+              PRODUK
             </CardTitle>
             <p className="text-xs text-[var(--nb-text-muted)] font-bold mt-1 uppercase">
-              Kelola penataan Kategori, Region, dan Status Aktif untuk varian produk provider
+              Kelola produk, kategori, provider, dan status publik.
             </p>
           </div>
 
@@ -273,97 +298,150 @@ export const ProductsPage: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Filter Bar */}
-          <div className="flex flex-col md:flex-row flex-wrap items-center gap-3">
-            <div className="relative w-full md:w-64">
-              <Search className="w-4 h-4 stroke-[3] absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-muted)]" />
-              <Input
-                placeholder="Cari produk / SKU..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="pl-9 text-sm py-1.5"
-              />
+          {/* Responsive Filter Bar */}
+          <div className="space-y-3">
+            {/* Primary Row: Search & Provider (Always Visible) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-4 h-4 stroke-[3] absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-muted)]" />
+                <Input
+                  placeholder="Cari produk / SKU..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9 text-sm py-1.5 w-full"
+                />
+              </div>
+
+              {/* Provider Select & Action Buttons */}
+              <div className="flex items-center gap-2">
+                <Select
+                  value={filterProvider}
+                  onChange={(e) => {
+                    setFilterProvider(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  fullWidth={false}
+                  className="flex-1 sm:w-auto min-w-[170px]"
+                  options={[
+                    { value: 'ALL', label: 'SEMUA PROVIDER' },
+                    ...providers.map((p) => ({ value: String(p.id), label: p.name.toUpperCase() })),
+                  ]}
+                />
+
+                {/* Mobile Filter Toggle Button */}
+                <Button
+                  variant={isFilterExpanded || activeExtraFiltersCount > 0 ? "yellow" : "white"}
+                  size="sm"
+                  onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                  className="md:hidden font-black text-xs px-3 shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 shrink-0"
+                >
+                  <Filter className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>FILTER</span>
+                  {activeExtraFiltersCount > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-black text-white text-[10px] flex items-center justify-center font-black">
+                      {activeExtraFiltersCount}
+                    </span>
+                  )}
+                </Button>
+
+                {/* Desktop Reset Button */}
+                {hasAnyFilter && (
+                  <Button
+                    variant="pink"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="hidden md:flex font-black text-xs px-2.5 shadow-[2px_2px_0px_0px_#000] items-center gap-1 shrink-0"
+                    title="Reset semua filter"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>RESET</span>
+                  </Button>
+                )}
+              </div>
             </div>
 
-            <Select
-              value={filterProvider}
-              onChange={(e) => {
-                setFilterProvider(e.target.value);
-                setCurrentPage(1);
-              }}
-              fullWidth={false}
-              className="w-full md:w-auto"
-              options={[
-                { value: 'ALL', label: 'SEMUA PROVIDER' },
-                ...providers.map((p) => ({ value: String(p.id), label: p.name.toUpperCase() })),
-              ]}
-            />
+            {/* Secondary Filters: Always visible on desktop, collapsible on mobile */}
+            <div className={`${isFilterExpanded ? 'flex' : 'hidden'} md:flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-2 md:gap-3 p-3 md:p-0 bg-yellow-50/70 md:bg-transparent border-2 md:border-0 border-black rounded-lg`}>
+              <Select
+                value={filterCat}
+                onChange={(e) => {
+                  setFilterCat(e.target.value);
+                  setFilterBrand('ALL');
+                  setCurrentPage(1);
+                }}
+                fullWidth={false}
+                className="w-full md:w-auto"
+                options={[
+                  { value: 'ALL', label: 'SEMUA KATEGORI UTAMA' },
+                  ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+              />
 
-            <Select
-              value={filterCat}
-              onChange={(e) => {
-                setFilterCat(e.target.value);
-                setFilterBrand('ALL');
-                setCurrentPage(1);
-              }}
-              fullWidth={false}
-              className="w-full md:w-auto"
-              options={[
-                { value: 'ALL', label: 'SEMUA KATEGORI UTAMA' },
-                ...categories.map((c) => ({ value: String(c.id), label: c.name })),
-              ]}
-            />
+              <Select
+                value={filterBrand}
+                onChange={(e) => {
+                  setFilterBrand(e.target.value);
+                  setCurrentPage(1);
+                }}
+                fullWidth={false}
+                className="w-full md:w-auto"
+                options={[
+                  { value: 'ALL', label: 'SEMUA BRAND' },
+                  ...brands
+                    .filter((b) => filterCat === 'ALL' || String(b.categoryId) === filterCat)
+                    .map((b) => ({ value: String(b.id), label: b.name })),
+                ]}
+              />
 
-            <Select
-              value={filterBrand}
-              onChange={(e) => {
-                setFilterBrand(e.target.value);
-                setCurrentPage(1);
-              }}
-              fullWidth={false}
-              className="w-full md:w-auto"
-              options={[
-                { value: 'ALL', label: 'SEMUA BRAND' },
-                ...brands
-                  .filter((b) => filterCat === 'ALL' || String(b.categoryId) === filterCat)
-                  .map((b) => ({ value: String(b.id), label: b.name })),
-              ]}
-            />
+              <Select
+                value={filterProductCat}
+                onChange={(e) => {
+                  setFilterProductCat(e.target.value);
+                  setCurrentPage(1);
+                }}
+                fullWidth={false}
+                className="w-full md:w-auto"
+                options={[
+                  { value: 'ALL', label: 'SEMUA PRODUCT CATEGORY' },
+                  { value: 'null', label: '⚠️ Belum ada kategori' },
+                  ...productCategories.map((pc) => ({ value: String(pc.id), label: pc.name })),
+                ]}
+              />
 
-            <Select
-              value={filterProductCat}
-              onChange={(e) => {
-                setFilterProductCat(e.target.value);
-                setCurrentPage(1);
-              }}
-              fullWidth={false}
-              className="w-full md:w-auto"
-              options={[
-                { value: 'ALL', label: 'SEMUA PRODUCT CATEGORY' },
-                { value: 'null', label: '⚠️ Belum ada kategori' },
-                ...productCategories.map((pc) => ({ value: String(pc.id), label: pc.name })),
-              ]}
-            />
+              <Select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                fullWidth={false}
+                className="w-full md:w-auto"
+                options={[
+                  { value: 'ALL', label: 'SEMUA STATUS' },
+                  { value: 'active', label: '✅ Web Aktif' },
+                  { value: 'inactive', label: '❌ Web Non-Aktif' },
+                  { value: 'provider_on', label: '⚡ Supplier ON' },
+                  { value: 'provider_off', label: '⚠️ Supplier OFF' },
+                ]}
+              />
 
-            <Select
-              value={filterStatus}
-              onChange={(e) => {
-                setFilterStatus(e.target.value);
-                setCurrentPage(1);
-              }}
-              fullWidth={false}
-              className="w-full md:w-auto"
-              options={[
-                { value: 'ALL', label: 'SEMUA STATUS' },
-                { value: 'active', label: '✅ Web Aktif' },
-                { value: 'inactive', label: '❌ Web Non-Aktif' },
-                { value: 'provider_on', label: '⚡ Supplier ON' },
-                { value: 'provider_off', label: '⚠️ Supplier OFF' },
-              ]}
-            />
+              {/* Mobile Reset Button */}
+              {hasAnyFilter && (
+                <Button
+                  variant="pink"
+                  size="sm"
+                  onClick={handleResetFilters}
+                  className="md:hidden font-black text-xs py-2 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5 w-full mt-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>RESET SEMUA FILTER</span>
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Bulk Action Toolbar */}
@@ -498,32 +576,39 @@ export const ProductsPage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {totalCount > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
               <span className="text-xs font-bold text-[var(--nb-text-muted)]">
                 {selectedIds.size > 0 ? <span className="text-[var(--nb-text)]">{selectedIds.size} dipilih · </span> : null}
-                Menampilkan {products.length} dari {totalCount} produk (Halaman {currentPage} dari {totalPages})
+                Menampilkan <span className="text-[var(--nb-text)] font-black">{startItem}–{endItem}</span> dari <span className="text-[var(--nb-text)] font-black">{totalCount}</span> produk {totalPages > 1 ? `(Halaman ${currentPage} dari ${totalPages})` : ''}
               </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="white"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                >
-                  <ChevronLeft className="w-4 h-4 stroke-[3]" />
-                  <span>SEBELUMNYA</span>
-                </Button>
-                <Button
-                  variant="white"
-                  size="sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                >
-                  <span>SELANJUTNYA</span>
-                  <ChevronRight className="w-4 h-4 stroke-[3]" />
-                </Button>
-              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="white"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    className="shadow-[2px_2px_0px_0px_#000]"
+                  >
+                    <ChevronLeft className="w-4 h-4 stroke-[3]" />
+                    <span>SEBELUMNYA</span>
+                  </Button>
+                  <div className="px-2.5 py-1 text-xs font-black bg-[var(--nb-surface)] border-2 border-black rounded shadow-[2px_2px_0px_0px_#000]">
+                    {currentPage} / {totalPages}
+                  </div>
+                  <Button
+                    variant="white"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    className="shadow-[2px_2px_0px_0px_#000]"
+                  >
+                    <span>SELANJUTNYA</span>
+                    <ChevronRight className="w-4 h-4 stroke-[3]" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

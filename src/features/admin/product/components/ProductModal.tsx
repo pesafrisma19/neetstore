@@ -167,7 +167,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black uppercase mb-1">KATEGORI UTAMA (LEVEL 1)</label>
+              <label className="block text-xs font-black uppercase mb-1">KATEGORI UTAMA</label>
               <Select
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
