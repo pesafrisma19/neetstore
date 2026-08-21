@@ -66,6 +66,12 @@ export function removePersistedAttemptsForOwner(targetOwnerScope: string): void 
   } catch {}
 }
 
+// Helper untuk membuang cache query public yang harganya dinamis berdasarkan status/level auth (GUEST/MEMBER/VIP/RESELLER)
+const removeAuthSensitivePricingQueries = () => {
+  queryClient.removeQueries({ queryKey: queryKeys.public.brands.all });
+  queryClient.removeQueries({ queryKey: ['public', 'products'] });
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(getAccessToken()));
   const [isLoading, setIsLoading] = useState(true);
@@ -86,11 +92,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(true);
       hadSession.current = true;
       bootstrapAttempted.current = true;
+      removeAuthSensitivePricingQueries();
     } catch (error) {
       bootstrapAttempted.current = true;
       localStorage.removeItem('netstore_has_session');
       setAccessToken(null);
       setIsAuthenticated(false);
+      queryClient.removeQueries({ queryKey: queryKeys.user.root });
+      removeAuthSensitivePricingQueries();
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsAuthenticated(false);
         localStorage.removeItem('netstore_has_session');
         queryClient.removeQueries({ queryKey: queryKeys.user.root });
+        removeAuthSensitivePricingQueries();
       } else if (event.data?.type === 'REFRESH_SUCCESS' && event.data?.token) {
         setAccessToken(event.data.token);
         setIsAuthenticated(true);
@@ -118,6 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(false);
       localStorage.removeItem('netstore_has_session');
       queryClient.removeQueries({ queryKey: queryKeys.user.root });
+      removeAuthSensitivePricingQueries();
     };
     window.addEventListener('auth:logout', handleForceLogout);
 
@@ -152,6 +163,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       },
     });
 
+    // Buang cache pricing lama agar data produk terbaru sesuai level user segera di-fetch
+    removeAuthSensitivePricingQueries();
+
     return profile;
   };
 
@@ -168,6 +182,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(false);
       hadSession.current = false;
       queryClient.removeQueries({ queryKey: queryKeys.user.root });
+      removeAuthSensitivePricingQueries();
       if (previousUserId) {
         removePersistedAttemptsForOwner(`user:${previousUserId}`);
       }
