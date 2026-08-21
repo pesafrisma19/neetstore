@@ -71,6 +71,7 @@ export interface ProductData {
   id: number;
   name: string;
   sku: string;
+  providerSku?: string | null;
   digiflazzSku?: string;
   originalPrice: number;
   priceUser: number;

@@ -434,6 +434,7 @@ export const ProductsPage: React.FC = () => {
                   products.map((p) => {
                     const prod = p as any;
                     const isDeleting = deletingId === p.id;
+                    const providerLabel = (prod.provider?.name || 'SUPPLIER').toUpperCase();
 
                     return (
                       <TableRow key={p.id} className={selectedIds.has(p.id) ? 'bg-yellow-50' : ''}>
@@ -460,9 +461,9 @@ export const ProductsPage: React.FC = () => {
                               <Badge variant="pink" size="sm">WEB: NON-AKTIF</Badge>
                             )}
                             {prod.providerActive !== false ? (
-                              <Badge variant="cyan" size="sm">DIGIFLAZZ: ON</Badge>
+                              <Badge variant="cyan" size="sm">{providerLabel}: ON</Badge>
                             ) : (
-                              <Badge variant="purple" size="sm">DIGIFLAZZ: OFF</Badge>
+                              <Badge variant="purple" size="sm">{providerLabel}: OFF</Badge>
                             )}
                           </div>
                         </TableCell>

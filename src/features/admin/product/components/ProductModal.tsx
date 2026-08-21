@@ -71,7 +71,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     }
   };
 
-  const providerName = product.provider?.name || providers.find((p) => String(p.id) === String(product.providerId))?.name || 'Digiflazz';
+  const providerName = product.provider?.name || providers.find((p) => String(p.id) === String(product.providerId))?.name || 'Supplier';
   const brandName = product.brand?.name || brands.find((b) => String(b.id) === String(product.brandId))?.name || 'Umum';
 
   return (
@@ -90,8 +90,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             {/* Header info SKU, Provider & Brand */}
             <div className="p-3 bg-[var(--nb-surface-alt)] border-2 border-black rounded flex flex-wrap items-center justify-between gap-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block">SKU PROVIDER (DIGIFLAZZ)</span>
-                <span className="font-mono text-xs font-bold text-[var(--nb-text)]">{product.digiflazzSku || product.sku}</span>
+                <span className="text-[10px] font-black uppercase text-[var(--nb-text-muted)] block">
+                  SKU PROVIDER ({providerName.toUpperCase()})
+                </span>
+                <span className="font-mono text-xs font-bold text-[var(--nb-text)]">
+                  {product.providerSku || product.digiflazzSku || product.sku}
+                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="cyan" size="sm" className="flex items-center gap-1 font-black">
