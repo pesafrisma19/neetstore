@@ -28,7 +28,7 @@ import { useToast } from '../../../../components/ui/ToastContext';
 import { queryClient } from '../../../../services/queryClient';
 import { queryKeys } from '../../../../services/queryKeys';
 
-type ConnectionState = 'IDLE' | 'TESTING' | 'CONNECTED' | 'FAILED';
+type ConnectionState = 'IDLE' | 'TESTING' | 'CONNECTED' | 'DISCONNECTED' | 'FAILED';
 
 export const SettingsApiPage: React.FC = () => {
   const { addToast } = useToast();
@@ -257,14 +257,18 @@ export const SettingsApiPage: React.FC = () => {
     setFonnteConnMsg('');
     try {
       const res = await testFonnteConnection();
-      if (res?.success) {
+      if (res?.tokenValid && res?.deviceConnected) {
         setFonnteConnState('CONNECTED');
-        setFonnteConnMsg(res.message || 'Device Terhubung');
-        addToast({ title: 'Koneksi Fonnte Berhasil', message: res.message || 'Token Fonnte valid dan device aktif.', type: 'success' });
+        setFonnteConnMsg(res.message || 'Token Fonnte valid dan perangkat WhatsApp terhubung.');
+        addToast({ title: 'Koneksi Fonnte Berhasil', message: res.message || 'Token Fonnte valid dan perangkat WhatsApp terhubung.', type: 'success' });
+      } else if (res?.tokenValid && !res?.deviceConnected) {
+        setFonnteConnState('DISCONNECTED');
+        setFonnteConnMsg(res.message || 'Token Fonnte valid, tetapi perangkat WhatsApp sedang tidak terhubung.');
+        addToast({ title: 'Device WhatsApp Disconnect', message: res.message || 'Token Fonnte valid, tetapi perangkat WhatsApp sedang tidak terhubung.', type: 'warning' });
       } else {
         setFonnteConnState('FAILED');
-        setFonnteConnMsg('Token Fonnte tidak terverifikasi');
-        addToast({ title: 'Koneksi Fonnte Gagal', message: 'Token Fonnte tidak terverifikasi.', type: 'error' });
+        setFonnteConnMsg(res?.message || 'Token Fonnte tidak valid atau server offline.');
+        addToast({ title: 'Koneksi Fonnte Gagal', message: res?.message || 'Token Fonnte tidak valid.', type: 'error' });
       }
     } catch (err: any) {
       const msg = err.message || 'Gagal terhubung ke Fonnte';
@@ -694,7 +698,15 @@ export const SettingsApiPage: React.FC = () => {
         <div className="p-5 pt-0 border-t-[2px] border-dashed border-[var(--nb-border)] mt-2 pt-4 flex items-center justify-between gap-2">
           <div className="text-[11px] font-bold text-[var(--nb-text-muted)] truncate max-w-[40%]">
             {fonnteConnMsg && (
-              <span className={`font-mono text-[10px] ${fonnteConnState === 'CONNECTED' ? 'text-emerald-700 font-black' : fonnteConnState === 'FAILED' ? 'text-rose-700 font-black' : ''}`}>
+              <span className={`font-mono text-[10px] ${
+                fonnteConnState === 'CONNECTED'
+                  ? 'text-emerald-700 font-black'
+                  : fonnteConnState === 'DISCONNECTED'
+                  ? 'text-amber-700 font-black'
+                  : fonnteConnState === 'FAILED'
+                  ? 'text-rose-700 font-black'
+                  : ''
+              }`}>
                 {fonnteConnMsg}
               </span>
             )}
