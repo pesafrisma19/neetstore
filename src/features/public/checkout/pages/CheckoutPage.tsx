@@ -418,7 +418,7 @@ export const CheckoutPage: React.FC = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   const slug = (gameId || '').toLowerCase();
 
@@ -637,7 +637,7 @@ export const CheckoutPage: React.FC = () => {
 
       return data;
     },
-    enabled: Boolean(slug),
+    enabled: Boolean(slug) && !authLoading,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
@@ -1390,7 +1390,7 @@ export const CheckoutPage: React.FC = () => {
     });
   };
 
-  if (isBrandLoading || isPaymentLoading) {
+  if (isBrandLoading || isPaymentLoading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brutalist-grid">
         <span className="font-black text-2xl uppercase tracking-wider text-[var(--nb-text)]">MEMUAT DETAIL GAME & PEMBAYARAN...</span>
