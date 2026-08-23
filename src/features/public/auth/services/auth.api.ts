@@ -1,5 +1,5 @@
 import { api } from '../../../../services/api';
-import type { LoginDto, RegisterDto, AuthResponse } from '../types';
+import type { LoginDto, RegisterDto, ForgotPasswordDto, AuthResponse, LinkOtpResponse } from '../types';
 
 export const authApi = {
   login: async (data: LoginDto): Promise<AuthResponse> => {
@@ -9,6 +9,34 @@ export const authApi = {
 
   register: async (data: RegisterDto): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/auth/register', data);
+    return response.data;
+  },
+
+  googleAuth: async (credential: string): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/google', { credential });
+    return response.data;
+  },
+
+  linkGoogleWithPassword: async (linkToken: string, password: string): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/google/link/password', {
+      linkToken,
+      password,
+    });
+    return response.data;
+  },
+
+  sendLinkOtp: async (linkToken: string): Promise<LinkOtpResponse> => {
+    const response = await api.post<LinkOtpResponse>('/auth/google/link/send-otp', {
+      linkToken,
+    });
+    return response.data;
+  },
+
+  verifyLinkOtp: async (linkToken: string, otp: string): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>('/auth/google/link/verify-otp', {
+      linkToken,
+      otp,
+    });
     return response.data;
   },
 
@@ -33,10 +61,9 @@ export const authApi = {
     return response.data;
   },
 
-  forgotPassword: async (phone: string) => {
-    const response = await api.post<{ success: boolean; message: string; cooldownSeconds: number; phone?: string }>('/auth/forgot-password', {
-      phone,
-    });
+  forgotPassword: async (data: string | ForgotPasswordDto) => {
+    const payload = typeof data === 'string' ? { phone: data } : data;
+    const response = await api.post<{ success: boolean; message: string; cooldownSeconds: number; phone?: string }>('/auth/forgot-password', payload);
     return response.data;
   },
 

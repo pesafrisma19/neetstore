@@ -7,6 +7,9 @@ import { Button, CountryPhoneInput } from '../../../../components/ui';
 import { authApi } from '../services/auth.api';
 import { ArrowRight, LogIn, Eye, EyeOff } from 'lucide-react';
 import { Display } from '../../../../components/ui/Display';
+import { GoogleSignInButton } from '../../../../components/shared/GoogleSignInButton';
+import { TurnstileWidget } from '../../../../components/shared/TurnstileWidget';
+import { AccountLinkingModal } from '../components/AccountLinkingModal';
 
 export const LoginPage: React.FC = () => {
   const { loginUser } = useAuth();
@@ -16,8 +19,26 @@ export const LoginPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Account Linking Modal States
+  const [showLinkingModal, setShowLinkingModal] = useState(false);
+  const [linkData, setLinkData] = useState<{
+    linkToken: string;
+    email?: string;
+    methods?: { password: boolean; whatsappOtp: boolean };
+    maskedPhone?: string | null;
+    message?: string;
+  } | null>(null);
+
+  const resetTurnstile = () => {
+    setTurnstileToken(null);
+    setTurnstileResetKey((prev) => prev + 1);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +46,7 @@ export const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      const data = await authApi.login({ countryCode, phone, password });
+      const data = await authApi.login({ countryCode, phone, password, turnstileToken });
       if (data.token) {
         const profile = await loginUser(data.token, data.role === 'ADMIN');
         if (profile?.role === 'ADMIN') {
@@ -35,6 +56,7 @@ export const LoginPage: React.FC = () => {
         }
       }
     } catch (err: any) {
+      resetTurnstile();
       const responseData = err.response?.data;
       if (responseData?.requiresVerification) {
         const targetPhone = responseData.phone || `${countryCode}${phone}`;
@@ -44,6 +66,52 @@ export const LoginPage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const res = await authApi.googleAuth(credential);
+
+      // Skenario Email Bentrok: Butuh verifikasi akun lama (Account Linking)
+      if (res.requiresLinking && res.linkToken) {
+        setLinkData({
+          linkToken: res.linkToken,
+          email: res.email,
+          methods: res.methods,
+          maskedPhone: res.maskedPhone,
+          message: res.message,
+        });
+        setShowLinkingModal(true);
+        return;
+      }
+
+      // Skenario Login Berhasil
+      if (res.token) {
+        const profile = await loginUser(res.token, res.role === 'ADMIN');
+        if (profile?.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Login dengan Google gagal.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleLinkingSuccess = async (token: string) => {
+    setShowLinkingModal(false);
+    const profile = await loginUser(token, false);
+    if (profile?.role === 'ADMIN') {
+      navigate('/admin');
+    } else {
+      navigate('/');
     }
   };
 
@@ -58,7 +126,7 @@ export const LoginPage: React.FC = () => {
             <Display size="sm" highlight="yellow" className="mt-2">
               MASUK AKUN
             </Display>
-            <p className="font-bold text-sm">Selamat datang kembali di NETSTORE</p>
+            <p className="font-bold text-sm">Selamat datang kembali di NEETSTORE</p>
           </div>
 
           <div className="p-6 sm:p-8">
@@ -68,7 +136,30 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-5">
+            {/* Google Sign-In Integration */}
+            <div className="mb-5">
+              <GoogleSignInButton
+                text="continue_with"
+                disabled={googleLoading || loading}
+                onSuccess={handleGoogleSuccess}
+                onError={(err) => setError(err)}
+              />
+              {googleLoading && (
+                <p className="text-xs font-bold text-center mt-1.5 text-neutral-500 animate-pulse">
+                  Memverifikasi akun Google...
+                </p>
+              )}
+            </div>
+
+            <div className="relative flex py-2 items-center mb-5">
+              <div className="flex-grow border-t-2 border-dashed border-neutral-300"></div>
+              <span className="flex-shrink mx-4 text-xs font-black text-neutral-400 uppercase tracking-widest">
+                ATAU MASUK DENGAN WA
+              </span>
+              <div className="flex-grow border-t-2 border-dashed border-neutral-300"></div>
+            </div>
+
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
               {/* Reusable Country Phone Input */}
               <CountryPhoneInput
                 countryCode={countryCode}
@@ -109,7 +200,16 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              <Button type="submit" variant="primary" size="lg" className="w-full mt-2" isLoading={loading}>
+              {/* Cloudflare Turnstile Managed CAPTCHA */}
+              <TurnstileWidget
+                action="login"
+                resetKey={turnstileResetKey}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
+
+              <Button type="submit" variant="primary" size="lg" className="w-full mt-1" isLoading={loading}>
                 {!loading && (
                   <>
                     <span>MASUK SEKARANG</span>
@@ -133,6 +233,14 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Account Linking Modal */}
+      <AccountLinkingModal
+        isOpen={showLinkingModal}
+        linkData={linkData}
+        onClose={() => setShowLinkingModal(false)}
+        onSuccess={handleLinkingSuccess}
+      />
 
       <Footer />
     </div>

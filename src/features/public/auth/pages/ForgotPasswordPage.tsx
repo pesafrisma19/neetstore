@@ -6,14 +6,22 @@ import { Button, CountryPhoneInput } from '../../../../components/ui';
 import { authApi } from '../services/auth.api';
 import { KeyRound, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Display } from '../../../../components/ui/Display';
+import { TurnstileWidget } from '../../../../components/shared/TurnstileWidget';
 
 export const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [countryCode, setCountryCode] = useState('+62');
   const [phone, setPhone] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const resetTurnstile = () => {
+    setTurnstileToken(null);
+    setTurnstileResetKey((prev) => prev + 1);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,10 +30,11 @@ export const ForgotPasswordPage: React.FC = () => {
 
     try {
       const fullPhone = `${countryCode}${phone}`;
-      const res = await authApi.forgotPassword(fullPhone);
+      const res = await authApi.forgotPassword({ phone: fullPhone, turnstileToken });
       const targetPhone = res.phone || fullPhone;
       navigate(`/reset-password?phone=${encodeURIComponent(targetPhone)}`);
     } catch (err: any) {
+      resetTurnstile();
       setError(err.response?.data?.error || 'Gagal mengirim OTP reset password. Periksa nomor WhatsApp Anda.');
     } finally {
       setLoading(false);
@@ -53,7 +62,7 @@ export const ForgotPasswordPage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <CountryPhoneInput
                 countryCode={countryCode}
                 phone={phone}
@@ -61,7 +70,16 @@ export const ForgotPasswordPage: React.FC = () => {
                 onPhoneChange={setPhone}
               />
 
-              <Button type="submit" variant="primary" size="lg" className="w-full mt-2" isLoading={loading}>
+              {/* Cloudflare Turnstile Managed CAPTCHA */}
+              <TurnstileWidget
+                action="forgot_password"
+                resetKey={turnstileResetKey}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
+
+              <Button type="submit" variant="primary" size="lg" className="w-full mt-1" isLoading={loading}>
                 {!loading && (
                   <>
                     <span>KIRIM KODE OTP</span>

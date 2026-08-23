@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Button, CountryPhoneInput } from '../../../../components/ui';
 import { authApi } from '../services/auth.api';
 import { ArrowRight, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { Display } from '../../../../components/ui/Display';
+import { GoogleSignInButton } from '../../../../components/shared/GoogleSignInButton';
+import { TurnstileWidget } from '../../../../components/shared/TurnstileWidget';
+import { AccountLinkingModal } from '../components/AccountLinkingModal';
 
 export const RegisterPage: React.FC = () => {
+  const { loginUser } = useAuth();
   const navigate = useNavigate();
 
   const [countryCode, setCountryCode] = useState('+62');
@@ -15,8 +20,26 @@ export const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Account Linking Modal States
+  const [showLinkingModal, setShowLinkingModal] = useState(false);
+  const [linkData, setLinkData] = useState<{
+    linkToken: string;
+    email?: string;
+    methods?: { password: boolean; whatsappOtp: boolean };
+    maskedPhone?: string | null;
+    message?: string;
+  } | null>(null);
+
+  const resetTurnstile = () => {
+    setTurnstileToken(null);
+    setTurnstileResetKey((prev) => prev + 1);
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +58,62 @@ export const RegisterPage: React.FC = () => {
         phone,
         password,
         confirmPassword,
+        turnstileToken,
       });
 
       const targetPhone = data.phone || `${countryCode}${phone}`;
       navigate(`/verify-otp?phone=${encodeURIComponent(targetPhone)}`);
     } catch (err: any) {
+      resetTurnstile();
       setError(err.response?.data?.error || 'Registrasi gagal. Silakan coba lagi.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const res = await authApi.googleAuth(credential);
+
+      // Skenario Email Bentrok: Butuh verifikasi akun lama (Account Linking)
+      if (res.requiresLinking && res.linkToken) {
+        setLinkData({
+          linkToken: res.linkToken,
+          email: res.email,
+          methods: res.methods,
+          maskedPhone: res.maskedPhone,
+          message: res.message,
+        });
+        setShowLinkingModal(true);
+        return;
+      }
+
+      // Skenario Registrasi / Login Berhasil
+      if (res.token) {
+        const profile = await loginUser(res.token, res.role === 'ADMIN');
+        if (profile?.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Pendaftaran dengan Google gagal.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleLinkingSuccess = async (token: string) => {
+    setShowLinkingModal(false);
+    const profile = await loginUser(token, false);
+    if (profile?.role === 'ADMIN') {
+      navigate('/admin');
+    } else {
+      navigate('/');
     }
   };
 
@@ -57,7 +128,7 @@ export const RegisterPage: React.FC = () => {
             <Display size="sm" highlight="yellow" className="mt-2">
               DAFTAR AKUN BARU
             </Display>
-            <p className="font-bold text-sm">Daftar instan via WhatsApp di NETSTORE</p>
+            <p className="font-bold text-sm">Daftar instan di NEETSTORE</p>
           </div>
 
           <div className="p-6 sm:p-8">
@@ -67,7 +138,30 @@ export const RegisterPage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleRegister} className="flex flex-col gap-5">
+            {/* Google Sign-In Integration */}
+            <div className="mb-5">
+              <GoogleSignInButton
+                text="signup_with"
+                disabled={googleLoading || loading}
+                onSuccess={handleGoogleSuccess}
+                onError={(err) => setError(err)}
+              />
+              {googleLoading && (
+                <p className="text-xs font-bold text-center mt-1.5 text-neutral-500 animate-pulse">
+                  Mendaftarkan akun Google...
+                </p>
+              )}
+            </div>
+
+            <div className="relative flex py-2 items-center mb-5">
+              <div className="flex-grow border-t-2 border-dashed border-neutral-300"></div>
+              <span className="flex-shrink mx-4 text-xs font-black text-neutral-400 uppercase tracking-widest">
+                ATAU DAFTAR DENGAN WA
+              </span>
+              <div className="flex-grow border-t-2 border-dashed border-neutral-300"></div>
+            </div>
+
+            <form onSubmit={handleRegister} className="flex flex-col gap-4">
               {/* Reusable Country Phone Input */}
               <CountryPhoneInput
                 countryCode={countryCode}
@@ -117,7 +211,16 @@ export const RegisterPage: React.FC = () => {
                 />
               </div>
 
-              <Button type="submit" variant="primary" size="lg" className="w-full mt-2" isLoading={loading}>
+              {/* Cloudflare Turnstile Managed CAPTCHA */}
+              <TurnstileWidget
+                action="register"
+                resetKey={turnstileResetKey}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setTurnstileToken(null)}
+              />
+
+              <Button type="submit" variant="primary" size="lg" className="w-full mt-1" isLoading={loading}>
                 {!loading && (
                   <>
                     <span>DAFTAR SEKARANG</span>
@@ -141,6 +244,14 @@ export const RegisterPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Account Linking Modal */}
+      <AccountLinkingModal
+        isOpen={showLinkingModal}
+        linkData={linkData}
+        onClose={() => setShowLinkingModal(false)}
+        onSuccess={handleLinkingSuccess}
+      />
 
       <Footer />
     </div>
