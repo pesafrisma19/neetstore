@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 declare global {
   interface Window {
@@ -20,7 +20,7 @@ declare global {
               text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
               shape?: 'rectangular' | 'pill' | 'circle' | 'square';
               logo_alignment?: 'left' | 'center';
-              width?: string | number;
+              width?: number | string;
               locale?: string;
             }
           ) => void;
@@ -30,6 +30,11 @@ declare global {
     };
   }
 }
+
+// Module-level state agar initialize() hanya dipanggil 1 kali per Client ID di seluruh lifecycle SPA
+let initializedClientId: string | null = null;
+let activeSuccessCallback: ((credential: string) => void) | null = null;
+let activeErrorCallback: ((errorMessage: string) => void) | null = null;
 
 interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void;
@@ -50,9 +55,19 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    activeSuccessCallback = onSuccess;
+    activeErrorCallback = onError || null;
+  });
+
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-  // 1. Load Google Identity Services script
+  // 1. Load Google Identity Services script secara dinamis (Hanya sekali di app)
   useEffect(() => {
     if (!clientId) {
       if (import.meta.env.DEV) {
@@ -80,50 +95,90 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       };
       script.onerror = () => {
         console.error('[Google GIS] Gagal memuat script Google Identity Services.');
-        if (onError) onError('Gagal memuat modul Google Sign-In');
+        onErrorRef.current?.('Gagal memuat modul Google Sign-In');
       };
       document.head.appendChild(script);
     } else {
       script.addEventListener('load', () => setScriptLoaded(true));
     }
-  }, [clientId, onError]);
+  }, [clientId]);
 
-  // 2. Initialize & Render Google Button
-  useEffect(() => {
-    if (!scriptLoaded || !containerRef.current || !clientId || !window.google?.accounts?.id) {
+  // 2. Fungsi terisolasi untuk merender button dengan pixel width valid
+  const renderGoogleButton = useCallback(() => {
+    if (!containerRef.current || !window.google?.accounts?.id || !clientId) {
       return;
     }
 
-    try {
+    // A. Pastikan initialize() HANYA dipanggil 1 kali seumur hidup aplikasi SPA
+    if (initializedClientId !== clientId) {
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (response) => {
           if (response.credential) {
-            onSuccess(response.credential);
+            activeSuccessCallback?.(response.credential);
           } else {
             console.warn('[Google GIS] Credential tidak diterima.');
-            if (onError) onError('Tidak ada kredensial Google yang diterima');
+            activeErrorCallback?.('Tidak ada kredensial Google yang diterima');
           }
         },
       });
+      initializedClientId = clientId;
+    }
 
-      // Bersihkan container sebelum render ulang
-      containerRef.current.innerHTML = '';
+    // B. Hitung lebar kontainer dalam pixel valid (Google GIS membatasi 200px - 400px)
+    const rawWidth = containerRef.current.clientWidth || 360;
+    const validWidth = Math.max(200, Math.min(400, Math.floor(rawWidth)));
 
+    // Bersihkan kontainer sebelum render
+    containerRef.current.innerHTML = '';
+
+    try {
       window.google.accounts.id.renderButton(containerRef.current, {
         type: 'standard',
         theme: 'outline',
         size: 'large',
         text,
         shape: 'rectangular',
-        logo_alignment: 'center',
-        width: '100%',
+        logo_alignment: 'left',
+        width: validWidth, // Menggunakan integer pixel valid (200 - 400), BUKAN "100%"
         locale: 'id',
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error('[Google Button Render Error]:', err);
     }
-  }, [scriptLoaded, clientId, text, onSuccess, onError]);
+  }, [clientId, text]);
+
+  // 3. Trigger render saat script siap atau saat mount
+  useEffect(() => {
+    if (!scriptLoaded) return;
+
+    renderGoogleButton();
+
+    // Pasang ResizeObserver agar lebar tombol menyesuaikan saat resize jendela/orientasi mobile
+    const currentContainer = containerRef.current;
+    if (!currentContainer || typeof ResizeObserver === 'undefined') return;
+
+    let resizeTimer: any = null;
+    const observer = new ResizeObserver(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        renderGoogleButton();
+      }, 150);
+    });
+
+    observer.observe(currentContainer);
+
+    return () => {
+      clearTimeout(resizeTimer);
+      observer.disconnect();
+      if (activeSuccessCallback === onSuccessRef.current) {
+        activeSuccessCallback = null;
+      }
+      if (activeErrorCallback === onErrorRef.current) {
+        activeErrorCallback = null;
+      }
+    };
+  }, [scriptLoaded, renderGoogleButton]);
 
   if (errorNotice) {
     return (
@@ -135,7 +190,10 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
   return (
     <div className={`w-full flex flex-col items-center justify-center ${disabled ? 'opacity-50 pointer-events-none' : ''} ${className}`}>
-      <div ref={containerRef} className="w-full flex justify-center min-h-[44px]" />
+      <div
+        ref={containerRef}
+        className="w-full flex justify-center min-h-[44px] max-w-[400px] overflow-hidden"
+      />
     </div>
   );
 };
