@@ -43,9 +43,21 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
   const widgetIdRef = useRef<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
+  // Simpan referensi callback terbaru menggunakan useRef agar perubahan referential identity dari parent
+  // TIDAK memicu penghancuran (cleanup) dan pembuatan ulang (re-render) iframe Turnstile.
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    onExpireRef.current = onExpire;
+  });
+
   const siteKey = import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '';
 
-  // 1. Inject Cloudflare Turnstile script dynamically
+  // 1. Inject Cloudflare Turnstile script secara dinamis (Hanya sekali, tanpa dependensi callback parent)
   useEffect(() => {
     if (!siteKey) {
       if (import.meta.env.DEV) {
@@ -73,21 +85,21 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       };
       script.onerror = () => {
         console.error('[Turnstile] Gagal memuat script Cloudflare Turnstile.');
-        if (onError) onError();
+        onErrorRef.current?.();
       };
       document.head.appendChild(script);
     } else {
       script.addEventListener('load', () => setScriptLoaded(true));
     }
-  }, [siteKey, onError]);
+  }, [siteKey]);
 
-  // 2. Render Widget saat script dan container siap
+  // 2. Render Widget saat script dan container siap (Hanya bergantung pada parameter esensial)
   useEffect(() => {
     if (!scriptLoaded || !containerRef.current || !siteKey || !window.turnstile) {
       return;
     }
 
-    // Bersihkan widget lama jika ada
+    // Bersihkan widget lama hanya jika memang terjadi re-init yang disengaja (misal resetKey berubah)
     if (widgetIdRef.current) {
       try {
         window.turnstile.remove(widgetIdRef.current);
@@ -102,15 +114,15 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         theme: 'auto',
         size: 'normal',
         callback: (token: string) => {
-          onSuccess(token);
+          onSuccessRef.current(token);
         },
-        'error-callback': () => {
-          console.warn('[Turnstile] Tantangan Turnstile mengalami error.');
-          if (onError) onError();
+        'error-callback': (errorCode?: string) => {
+          console.warn('[Turnstile] Tantangan Turnstile mengalami error code:', errorCode || 'UNKNOWN');
+          onErrorRef.current?.();
         },
         'expired-callback': () => {
           console.warn('[Turnstile] Token Turnstile telah kadaluarsa.');
-          if (onExpire) onExpire();
+          onExpireRef.current?.();
         },
       });
 
@@ -127,7 +139,7 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         widgetIdRef.current = null;
       }
     };
-  }, [scriptLoaded, siteKey, action, resetKey, onSuccess, onError, onExpire]);
+  }, [scriptLoaded, siteKey, action, resetKey]);
 
   // Jika sitekey belum diset (misal dev lokal awal), jangan render apapun
   if (!siteKey) {
