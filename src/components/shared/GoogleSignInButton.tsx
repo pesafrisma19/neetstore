@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 declare global {
   interface Window {
@@ -103,9 +103,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     }
   }, [clientId]);
 
-  // 2. Fungsi terisolasi untuk merender button dengan pixel width valid
-  const renderGoogleButton = useCallback(() => {
-    if (!containerRef.current || !window.google?.accounts?.id || !clientId) {
+  // 2. Render Google Button sekali saat script dan container siap
+  useEffect(() => {
+    if (!scriptLoaded || !containerRef.current || !window.google?.accounts?.id || !clientId) {
       return;
     }
 
@@ -125,11 +125,11 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       initializedClientId = clientId;
     }
 
-    // B. Hitung lebar kontainer dalam pixel valid (Google GIS membatasi 200px - 400px)
+    // B. Hitung lebar kontainer dalam pixel valid (Google GIS membatasi 200px - 400px) sekali saat mount
     const rawWidth = containerRef.current.clientWidth || 360;
     const validWidth = Math.max(200, Math.min(400, Math.floor(rawWidth)));
 
-    // Bersihkan kontainer sebelum render
+    // Bersihkan kontainer sebelum render pertama kali
     containerRef.current.innerHTML = '';
 
     try {
@@ -146,31 +146,8 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     } catch (err) {
       console.error('[Google Button Render Error]:', err);
     }
-  }, [clientId, text]);
-
-  // 3. Trigger render saat script siap atau saat mount
-  useEffect(() => {
-    if (!scriptLoaded) return;
-
-    renderGoogleButton();
-
-    // Pasang ResizeObserver agar lebar tombol menyesuaikan saat resize jendela/orientasi mobile
-    const currentContainer = containerRef.current;
-    if (!currentContainer || typeof ResizeObserver === 'undefined') return;
-
-    let resizeTimer: any = null;
-    const observer = new ResizeObserver(() => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        renderGoogleButton();
-      }, 150);
-    });
-
-    observer.observe(currentContainer);
 
     return () => {
-      clearTimeout(resizeTimer);
-      observer.disconnect();
       if (activeSuccessCallback === onSuccessRef.current) {
         activeSuccessCallback = null;
       }
@@ -178,7 +155,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         activeErrorCallback = null;
       }
     };
-  }, [scriptLoaded, renderGoogleButton]);
+  }, [scriptLoaded, clientId, text]);
 
   if (errorNotice) {
     return (
