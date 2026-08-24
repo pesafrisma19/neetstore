@@ -130,11 +130,11 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Copyright */}
         <div className="border-t border-gray-800 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between text-xs font-bold text-gray-400 gap-4">
-          <p>© 2026 NETSTORE VITE. ALL RIGHTS RESERVED.</p>
-          <div className="flex items-center gap-1">
-            <span>BUILT WITH</span>
+          <p>© 2026 NEETSTORE. Hak Cipta Dilindungi Undang-Undang.</p>
+          <div className="flex items-center gap-1.5">
+            <span>Dibuat dengan</span>
             <Heart className="w-3.5 h-3.5 fill-[#FF4D79] text-[#FF4D79]" />
-            <span>IN VITE + REACT & NEON BRUTALISM</span>
+            <span>untuk Gamers</span>
           </div>
         </div>
       </div>

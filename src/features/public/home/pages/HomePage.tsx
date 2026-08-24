@@ -263,7 +263,7 @@ export const Home: React.FC = () => {
           <Accordion type="single" collapsible defaultValue="faq-1">
             <AccordionItem value="faq-1">
               <AccordionTrigger triggerBg="#FFDC00">
-                Berapa lama proses top-up di NETSTORE VITE?
+                Berapa lama proses top-up di NEETSTORE?
               </AccordionTrigger>
               <AccordionContent>
                 Proses transaksi diproses secara **otomatis 24 jam nonstop** dalam waktu 1 s/d 3 detik setelah pembayaran kamu berhasil terverifikasi oleh sistem.
