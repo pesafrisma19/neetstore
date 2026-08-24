@@ -99,6 +99,41 @@ const getPaymentMethodIcon = (type?: string) => {
   }
 };
 
+// Component Tampilan Icon / Logo Metode Pembayaran dengan Auto Fallback
+const PaymentMethodIconDisplay: React.FC<{
+  iconUrl?: string | null;
+  name: string;
+  type?: string;
+  isSelected?: boolean;
+}> = ({ iconUrl, name, type, isSelected }) => {
+  const [imageError, setImageError] = useState(false);
+  const MethodIcon = getPaymentMethodIcon(type);
+
+  if (iconUrl && !imageError) {
+    return (
+      <div className={`w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-[2px_2px_0px_0px_#000] ${
+        isSelected ? 'bg-black text-white' : 'bg-white text-black'
+      }`}>
+        <img
+          src={iconUrl}
+          alt={name}
+          className="w-full h-full object-contain"
+          onError={() => setImageError(true)}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] ${
+      isSelected ? 'bg-black text-white' : 'bg-[var(--nb-surface-alt)] text-[var(--nb-text)]'
+    }`}>
+      <MethodIcon className="w-4 h-4 stroke-[2.5]" />
+    </div>
+  );
+};
+
 // Helper Format Keterangan Biaya Layanan Metode Pembayaran
 const formatPaymentFee = (flat?: number, percent?: number, minAmount?: number | null, currentPrice?: number): string => {
   const f = flat ?? 0;
@@ -1939,7 +1974,6 @@ export const CheckoutPage: React.FC = () => {
                           const isSelected = String(selectedPayment) === String(method.id);
                           const methodTheme = paymentThemes[method.id] || 'yellow';
                           const shadowColor = `var(--nb-shadow-${methodTheme})`;
-                          const MethodIcon = getPaymentMethodIcon(method.type);
 
                           return (
                             <Card
@@ -1964,11 +1998,12 @@ export const CheckoutPage: React.FC = () => {
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <div className="flex items-center gap-2.5">
-                                  <div className={`w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] ${
-                                    isSelected ? 'bg-black text-white' : 'bg-[var(--nb-surface-alt)] text-[var(--nb-text)]'
-                                  }`}>
-                                    <MethodIcon className="w-4 h-4 stroke-[2.5]" />
-                                  </div>
+                                  <PaymentMethodIconDisplay
+                                    iconUrl={method.iconUrl}
+                                    name={method.name}
+                                    type={method.type}
+                                    isSelected={isSelected}
+                                  />
                                   <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-[var(--nb-text-on-accent)]' : 'text-[var(--nb-text)]'}`}>
                                     {method.name}
                                   </span>

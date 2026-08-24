@@ -43,6 +43,7 @@ export const PaymentMethodFormPage: React.FC = () => {
     feeMinimumAmount: '' as string | number,
     minAmount: '' as string | number,
     maxAmount: '' as string | number,
+    iconUrl: '',
     instructions: '',
     bankName: '',
     accountNumber: '',
@@ -77,6 +78,7 @@ export const PaymentMethodFormPage: React.FC = () => {
               feeMinimumAmount: methodData.feeMinimumAmount !== undefined && methodData.feeMinimumAmount !== null ? methodData.feeMinimumAmount : '',
               minAmount: methodData.minAmount !== undefined && methodData.minAmount !== null ? methodData.minAmount : '',
               maxAmount: methodData.maxAmount !== undefined && methodData.maxAmount !== null ? methodData.maxAmount : '',
+              iconUrl: methodData.iconUrl || '',
               instructions: methodData.instructions || '',
               bankName: methodData.bankName || '',
               accountNumber: methodData.accountNumber || '',
@@ -158,6 +160,7 @@ export const PaymentMethodFormPage: React.FC = () => {
         forTransaction,
         forDeposit,
         useUniqueCode: Boolean(formData.useUniqueCode),
+        iconUrl: formData.iconUrl.trim() || null,
         bankName: isManual && (formData.type === 'BANK_TRANSFER' || formData.type === 'E-WALLET' || formData.type === 'VIRTUAL_ACCOUNT') && formData.bankName.trim() ? formData.bankName.trim() : null,
         accountNumber: isManual && (formData.type === 'BANK_TRANSFER' || formData.type === 'E-WALLET' || formData.type === 'VIRTUAL_ACCOUNT') && formData.accountNumber.trim() ? formData.accountNumber.trim() : null,
         accountHolder: isManual && (formData.type === 'BANK_TRANSFER' || formData.type === 'E-WALLET' || formData.type === 'VIRTUAL_ACCOUNT') && formData.accountHolder.trim() ? formData.accountHolder.trim() : null,
@@ -284,6 +287,20 @@ export const PaymentMethodFormPage: React.FC = () => {
                   ]}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase text-black mb-1">
+                ICON / LOGO PAYMENT METHOD (OPSIONAL)
+              </label>
+              <Input
+                value={formData.iconUrl}
+                onChange={e => setFormData({ ...formData, iconUrl: e.target.value })}
+                placeholder="Contoh: https://.../dana.png atau /images/payment/dana.png"
+              />
+              <p className="text-[11px] font-bold text-neutral-600 mt-1">
+                Kosongkan untuk menggunakan icon kategori default.
+              </p>
             </div>
           </CardContent>
         </Card>
