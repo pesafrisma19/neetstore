@@ -144,22 +144,24 @@ export const Home: React.FC = () => {
 
         {/* Filter Controls & Search */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8">
-          <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto">
-            <TabsList>
-              {uniqueCategories.map((cat) => (
-                <TabsTrigger key={cat} value={cat}>
-                  {cat === 'ALL' ? 'SEMUA' : cat}
-                  {cat === 'ALL' && (
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-black text-white text-[10px]">
-                      {games.length}
-                    </span>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div className="w-full md:w-auto overflow-hidden">
+            <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto">
+              <TabsList className="w-full md:w-auto overflow-x-auto flex-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {uniqueCategories.map((cat) => (
+                  <TabsTrigger key={cat} value={cat} className="shrink-0">
+                    {cat === 'ALL' ? 'SEMUA' : cat}
+                    {cat === 'ALL' && (
+                      <span className="ml-1.5 px-1.5 py-0.5 bg-black text-white text-[10px]">
+                        {games.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
 
-          <div className="w-full md:w-72">
+          <div className="w-full md:w-72 shrink-0">
             <Input
               placeholder="Cari game..."
               value={search}
