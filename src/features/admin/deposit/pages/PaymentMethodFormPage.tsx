@@ -40,6 +40,7 @@ export const PaymentMethodFormPage: React.FC = () => {
     usageScope: 'BOTH',
     feeFlat: 0,
     feePercent: 0,
+    feeMinimumAmount: '' as string | number,
     minAmount: '' as string | number,
     maxAmount: '' as string | number,
     instructions: '',
@@ -73,6 +74,7 @@ export const PaymentMethodFormPage: React.FC = () => {
               usageScope: scope,
               feeFlat: methodData.feeFlat || 0,
               feePercent: methodData.feePercent || 0,
+              feeMinimumAmount: methodData.feeMinimumAmount !== undefined && methodData.feeMinimumAmount !== null ? methodData.feeMinimumAmount : '',
               minAmount: methodData.minAmount !== undefined && methodData.minAmount !== null ? methodData.minAmount : '',
               maxAmount: methodData.maxAmount !== undefined && methodData.maxAmount !== null ? methodData.maxAmount : '',
               instructions: methodData.instructions || '',
@@ -148,6 +150,7 @@ export const PaymentMethodFormPage: React.FC = () => {
         paymentGatewayId: formData.paymentGatewayId ? Number(formData.paymentGatewayId) : null,
         feeFlat: Number(formData.feeFlat),
         feePercent: Number(formData.feePercent),
+        feeMinimumAmount: formData.feeMinimumAmount !== '' && formData.feeMinimumAmount !== null ? Number(formData.feeMinimumAmount) : null,
         minAmount: formData.minAmount !== '' && formData.minAmount !== null ? Number(formData.minAmount) : null,
         maxAmount: formData.maxAmount !== '' && formData.maxAmount !== null ? Number(formData.maxAmount) : null,
         instructions: formData.instructions.trim() || null,
@@ -492,6 +495,18 @@ export const PaymentMethodFormPage: React.FC = () => {
                   onChange={e => setFormData({ ...formData, feePercent: Number(e.target.value) })}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase text-black mb-1">BATAS MINIMAL KENA FEE (RP)</label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="Contoh: 500000"
+                value={formData.feeMinimumAmount}
+                onChange={e => setFormData({ ...formData, feeMinimumAmount: e.target.value })}
+              />
+              <p className="text-[11px] text-gray-600 mt-1">Kosongkan jika biaya berlaku untuk semua nominal transaksi.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

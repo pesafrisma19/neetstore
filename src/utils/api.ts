@@ -152,6 +152,9 @@ export interface PublicPaymentMethod {
   type: PaymentMethodType;
   feeFlat: number;
   feePercent: number;
+  feeMinimumAmount?: number | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
   iconUrl: string | null;
   isActive: boolean;
 }

@@ -100,9 +100,15 @@ const getPaymentMethodIcon = (type?: string) => {
 };
 
 // Helper Format Keterangan Biaya Layanan Metode Pembayaran
-const formatPaymentFee = (flat?: number, percent?: number): string => {
+const formatPaymentFee = (flat?: number, percent?: number, minAmount?: number | null, currentPrice?: number): string => {
   const f = flat ?? 0;
   const p = percent ?? 0;
+
+  // Jika ada threshold dan harga saat ini di bawah threshold -> BEBAS BIAYA ADMIN
+  if (minAmount && currentPrice !== undefined && currentPrice > 0 && currentPrice < minAmount) {
+    return 'BEBAS BIAYA ADMIN';
+  }
+
   const formattedFlat = `Rp ${f.toLocaleString('id-ID')}`;
   const formattedPercent = `${p.toLocaleString('id-ID')}%`;
 
@@ -1124,20 +1130,39 @@ export const CheckoutPage: React.FC = () => {
 
   const getPaymentDetails = (id: number | string) => {
     const selected = paymentMethodsList.find(p => p.id === id);
-    if (!selected) return { feeFlat: 0, feePercent: 0 };
-    return { feeFlat: selected.feeFlat || 0, feePercent: selected.feePercent || 0 };
+    if (!selected) return { feeFlat: 0, feePercent: 0, feeMinimumAmount: null };
+    return {
+      feeFlat: selected.feeFlat || 0,
+      feePercent: selected.feePercent || 0,
+      feeMinimumAmount: selected.feeMinimumAmount !== undefined && selected.feeMinimumAmount !== null ? selected.feeMinimumAmount : null,
+    };
   };
 
   const getCheckoutBreakdown = React.useCallback(() => {
-    const { feeFlat, feePercent } = getPaymentDetails(selectedPayment);
+    const { feeFlat, feePercent, feeMinimumAmount } = getPaymentDetails(selectedPayment);
     return calculateCheckoutBreakdown({
       basePrice: selectedItem?.price || 0,
       appliedDiscount,
       appliedDiscountType,
       feeFlat,
       feePercent,
+      feeMinimumAmount,
     });
   }, [selectedItem, appliedDiscount, appliedDiscountType, selectedPayment, paymentMethodsList]);
+
+  const currentDiscountedPrice = React.useMemo(() => {
+    const basePrice = selectedItem?.price || 0;
+    if (!basePrice) return 0;
+    let discountAmount = 0;
+    if (appliedDiscount > 0) {
+      if (appliedDiscountType === 'PERCENT') {
+        discountAmount = Math.round((basePrice * appliedDiscount) / 100);
+      } else {
+        discountAmount = Math.round(appliedDiscount);
+      }
+    }
+    return Math.max(0, basePrice - discountAmount);
+  }, [selectedItem, appliedDiscount, appliedDiscountType]);
 
   const calculateTotal = () => {
     return getCheckoutBreakdown().grandTotal;
@@ -1956,7 +1981,7 @@ export const CheckoutPage: React.FC = () => {
                                 )}
                               </div>
                               <div className="mt-2 text-xs font-bold bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] py-1 px-2 rounded w-fit uppercase">
-                                {formatPaymentFee(method.feeFlat, method.feePercent)}
+                                {formatPaymentFee(method.feeFlat, method.feePercent, method.feeMinimumAmount, currentDiscountedPrice)}
                               </div>
                             </Card>
                           );
@@ -2162,7 +2187,7 @@ export const CheckoutPage: React.FC = () => {
 
                   <div className="flex justify-between items-center text-sm font-bold text-[var(--nb-text-muted)]">
                     <span className="uppercase">BIAYA LAYANAN:</span>
-                    <span>{getPaymentDetails(selectedPayment).feeFlat > 0 || getPaymentDetails(selectedPayment).feePercent > 0 ? '+ Sesuai Metode Pembayaran' : 'GRATIS'}</span>
+                    <span>{getCheckoutBreakdown().adminFee > 0 ? '+ Sesuai Metode Pembayaran' : 'GRATIS'}</span>
                   </div>
                 </div>
 

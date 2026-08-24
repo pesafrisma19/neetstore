@@ -108,6 +108,7 @@ export interface PaymentMethodData {
   paymentGatewayId?: number | null;
   feeFlat: number;
   feePercent: number;
+  feeMinimumAmount?: number | null;
   minAmount?: number | null;
   maxAmount?: number | null;
   iconUrl?: string | null;

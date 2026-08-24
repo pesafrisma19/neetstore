@@ -6,6 +6,7 @@ export interface CheckoutBreakdownParams {
   appliedDiscountType: DiscountType | string;
   feeFlat: number;
   feePercent: number;
+  feeMinimumAmount?: number | null;
 }
 
 export interface CheckoutBreakdownResult {
@@ -38,7 +39,12 @@ export function calculateCheckoutBreakdown(params: CheckoutBreakdownParams): Che
   const discountedPrice = Math.max(0, basePrice - discountAmount);
 
   // 3. Biaya Layanan Pembayaran (Dihitung dari discountedPrice & dibulatkan)
-  const adminFee = Math.round((params.feeFlat || 0) + (discountedPrice * (params.feePercent || 0)) / 100);
+  // Threshold: Jika feeMinimumAmount != null dan discountedPrice < feeMinimumAmount -> adminFee = 0
+  let adminFee = 0;
+  const isFeeApplicable = params.feeMinimumAmount === undefined || params.feeMinimumAmount === null || discountedPrice >= params.feeMinimumAmount;
+  if (isFeeApplicable) {
+    adminFee = Math.round((params.feeFlat || 0) + (discountedPrice * (params.feePercent || 0)) / 100);
+  }
 
   // 4. Grand Total Pembayaran
   const grandTotal = discountedPrice + adminFee;

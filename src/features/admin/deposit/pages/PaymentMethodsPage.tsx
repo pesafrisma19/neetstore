@@ -80,14 +80,15 @@ export const PaymentMethodsPage: React.FC = () => {
 
   // Helper untuk format fee singkat
   const getFeeText = (pm: PaymentMethodData) => {
+    const minThresholdText = pm.feeMinimumAmount ? ` (Min. Rp ${pm.feeMinimumAmount.toLocaleString('id-ID')})` : '';
     if (pm.feePercent > 0 && pm.feeFlat > 0) {
-      return `${pm.feePercent}% + Rp ${pm.feeFlat.toLocaleString('id-ID')}`;
+      return `${pm.feePercent}% + Rp ${pm.feeFlat.toLocaleString('id-ID')}${minThresholdText}`;
     }
     if (pm.feePercent > 0) {
-      return `${pm.feePercent}%`;
+      return `${pm.feePercent}%${minThresholdText}`;
     }
     if (pm.feeFlat > 0) {
-      return `Rp ${pm.feeFlat.toLocaleString('id-ID')}`;
+      return `Rp ${pm.feeFlat.toLocaleString('id-ID')}${minThresholdText}`;
     }
     return 'Gratis (Rp 0)';
   };

@@ -162,8 +162,10 @@ export const UserDepositSection: React.FC = () => {
   // Calculation Estimates
   const requestedAmount = Number(amountInput) || 0;
   const selectedMethod = paymentMethods.find((m: PaymentMethodData) => m.code === selectedMethodCode);
-
-  const estimatedFee = selectedMethod 
+  const isFeeApplicable = selectedMethod
+    ? (selectedMethod.feeMinimumAmount === undefined || selectedMethod.feeMinimumAmount === null || requestedAmount >= selectedMethod.feeMinimumAmount)
+    : true;
+  const estimatedFee = (selectedMethod && isFeeApplicable)
     ? Math.round((selectedMethod.feeFlat || 0) + (requestedAmount * (selectedMethod.feePercent || 0)) / 100)
     : 0;
   const estimatedTotal = requestedAmount + estimatedFee;
