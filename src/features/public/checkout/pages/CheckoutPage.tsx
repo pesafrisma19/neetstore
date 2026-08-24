@@ -111,9 +111,7 @@ const PaymentMethodIconDisplay: React.FC<{
 
   if (iconUrl && !imageError) {
     return (
-      <div className={`w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-[2px_2px_0px_0px_#000] ${
-        isSelected ? 'bg-black text-white' : 'bg-white text-black'
-      }`}>
+      <div className="w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-[2px_2px_0px_0px_#000] bg-white">
         <img
           src={iconUrl}
           alt={name}
@@ -127,7 +125,7 @@ const PaymentMethodIconDisplay: React.FC<{
 
   return (
     <div className={`w-8 h-8 rounded-lg border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] ${
-      isSelected ? 'bg-black text-white' : 'bg-[var(--nb-surface-alt)] text-[var(--nb-text)]'
+      isSelected ? 'bg-white text-black' : 'bg-[var(--nb-surface-alt)] text-[var(--nb-text)]'
     }`}>
       <MethodIcon className="w-4 h-4 stroke-[2.5]" />
     </div>
