@@ -54,7 +54,7 @@ export const TabsList: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 
   return (
     <div
-      className={`inline-flex items-center gap-2 p-1.5 bg-[var(--nb-surface-alt)] border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] overflow-x-auto flex-nowrap max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
+      className={`inline-flex flex-wrap items-center gap-2 p-1.5 bg-[var(--nb-surface-alt)] border-[length:var(--nb-border-width)] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] ${className}`}
       style={{
         boxShadow: `var(--nb-shadow-x) var(--nb-shadow-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow-${randomTone})`,
       }}
@@ -101,7 +101,7 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     <button
       type="button"
       onClick={() => ctx.setActiveTab(value)}
-      className={`shrink-0 whitespace-nowrap px-4 py-2 text-xs md:text-sm font-black uppercase tracking-wider border-[length:var(--nb-border-width-sm)] rounded-[var(--nb-radius-element)] transition-all cursor-pointer select-none ${
+      className={`px-4 py-2 text-xs md:text-sm font-black uppercase tracking-wider border-[length:var(--nb-border-width-sm)] rounded-[var(--nb-radius-element)] transition-all cursor-pointer select-none ${
         isActive
           ? `${activeBgClass} text-[var(--nb-text-on-accent)] border-[var(--nb-border)] -translate-y-[1px]`
           : 'border-transparent text-[var(--nb-text-muted)] hover:text-[var(--nb-text)] hover:border-[var(--nb-border)]/30'
