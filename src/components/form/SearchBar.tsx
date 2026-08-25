@@ -84,11 +84,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onCloseMobile, isMobile = 
           {matchingGames.length > 0 ? (
             <>
               {matchingGames.map((g) => {
-                const gameId = g.id || g.slug;
+                const gameSlug = g.slug || String(g.id);
                 return (
                   <Link
-                    key={gameId}
-                    to={`/checkout/game/${gameId}`}
+                    key={g.id || g.slug}
+                    to={`/checkout/game/${gameSlug}`}
                     onClick={() => {
                       setShowSuggestions(false);
                       if (onCloseMobile) onCloseMobile();
