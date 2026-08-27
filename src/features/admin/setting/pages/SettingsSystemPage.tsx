@@ -15,6 +15,9 @@ export const SettingsSystemPage: React.FC = () => {
   const [pricelistEnabled, setPricelistEnabled] = useState(true);
   const [pricelistInterval, setPricelistInterval] = useState(5);
 
+  const [wtcPricelistEnabled, setWtcPricelistEnabled] = useState(true);
+  const [wtcPricelistInterval, setWtcPricelistInterval] = useState(5);
+
   const [ordersEnabled, setOrdersEnabled] = useState(true);
   const [ordersInterval, setOrdersInterval] = useState(1);
 
@@ -27,6 +30,7 @@ export const SettingsSystemPage: React.FC = () => {
   // Real Runtime Status State
   const [cronStatusMap, setCronStatusMap] = useState<Record<string, any>>({});
   const [digiflazzLastSync, setDigiflazzLastSync] = useState<string | null>(null);
+  const [wartopcoinLastSync, setWartopcoinLastSync] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -40,6 +44,9 @@ export const SettingsSystemPage: React.FC = () => {
       if (data) {
         setPricelistEnabled(Boolean(data.cron_pricelist_enabled ?? true));
         setPricelistInterval(Math.max(5, Number(data.cron_pricelist_interval_minutes) || 5));
+
+        setWtcPricelistEnabled(Boolean(data.cron_wartopcoin_pricelist_enabled ?? true));
+        setWtcPricelistInterval(Math.max(1, Number(data.cron_wartopcoin_pricelist_interval_minutes) || 5));
 
         setOrdersEnabled(Boolean(data.cron_orders_enabled ?? true));
         setOrdersInterval(Math.max(1, Number(data.cron_orders_interval_minutes) || 1));
@@ -57,6 +64,11 @@ export const SettingsSystemPage: React.FC = () => {
       if (digi && digi.lastSync) {
         setDigiflazzLastSync(digi.lastSync);
       }
+
+      const wtc = (providers || []).find((p: any) => p.code === 'wartopcoin');
+      if (wtc && wtc.lastSync) {
+        setWartopcoinLastSync(wtc.lastSync);
+      }
     } catch (err: any) {
       addToast({ title: 'GAGAL MEMUAT SETTING', message: err.message, type: 'error' });
     } finally {
@@ -73,6 +85,10 @@ export const SettingsSystemPage: React.FC = () => {
       addToast({ title: 'VALIDASI GAGAL', message: 'Interval Sync Pricelist Digiflazz minimal 5 menit.', type: 'error' });
       return;
     }
+    if (wtcPricelistInterval < 1) {
+      addToast({ title: 'VALIDASI GAGAL', message: 'Interval Sync Pricelist Wartopcoin minimal 1 menit.', type: 'error' });
+      return;
+    }
     if (ordersInterval < 1) {
       addToast({ title: 'VALIDASI GAGAL', message: 'Interval Sync Orders minimal 1 menit.', type: 'error' });
       return;
@@ -87,6 +103,9 @@ export const SettingsSystemPage: React.FC = () => {
       await updateAdminSettings({
         cron_pricelist_enabled: pricelistEnabled,
         cron_pricelist_interval_minutes: Number(pricelistInterval),
+
+        cron_wartopcoin_pricelist_enabled: wtcPricelistEnabled,
+        cron_wartopcoin_pricelist_interval_minutes: Number(wtcPricelistInterval),
 
         cron_orders_enabled: ordersEnabled,
         cron_orders_interval_minutes: Number(ordersInterval),
@@ -171,7 +190,7 @@ export const SettingsSystemPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 CRON JOB CARDS */}
+      {/* 5 CRON JOB CARDS */}
       <div className="space-y-4">
         {/* CARD 1: SYNC PRICELIST DIGIFLAZZ */}
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
@@ -226,13 +245,66 @@ export const SettingsSystemPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* CARD 2: SYNC ORDERS DIGIFLAZZ */}
+        {/* CARD 2: SYNC PRICELIST WARTOPCOIN */}
+        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-md">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🪙</span>
+                <h3 className="text-base font-black uppercase">2. Sync Pricelist Wartopcoin</h3>
+                {renderStatusBadge('wartopcoin_pricelist', wtcPricelistEnabled)}
+              </div>
+              <p className="text-xs font-bold text-neutral-600">
+                Memperbarui harga dan status produk Wartopcoin yang sudah ada di database secara otomatis.
+              </p>
+              {wartopcoinLastSync && (
+                <p className="text-[11px] font-mono font-bold text-cyan-800 flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-700" />
+                  <span>Terakhir Sync LIVE: {new Date(wartopcoinLastSync).toLocaleString('id-ID')}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4 bg-yellow-50 p-3 border-[2px] border-black">
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Interval Sync</label>
+                <select
+                  value={wtcPricelistInterval}
+                  onChange={(e) => setWtcPricelistInterval(Number(e.target.value))}
+                  disabled={!wtcPricelistEnabled}
+                  className="p-2 bg-white border-[2px] border-black font-mono font-bold text-xs outline-none shadow-[2px_2px_0px_0px_#000]"
+                >
+                  <option value={5}>Setiap 5 Menit (Default)</option>
+                  <option value={10}>Setiap 10 Menit</option>
+                  <option value={15}>Setiap 15 Menit</option>
+                  <option value={30}>Setiap 30 Menit</option>
+                  <option value={60}>Setiap 60 Menit</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-1">Status Switch</label>
+                <label className="flex items-center gap-2 cursor-pointer font-black text-xs uppercase">
+                  <input
+                    type="checkbox"
+                    checked={wtcPricelistEnabled}
+                    onChange={(e) => setWtcPricelistEnabled(e.target.checked)}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <span>{wtcPricelistEnabled ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* CARD 3: SYNC ORDERS DIGIFLAZZ */}
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-xl">⚡</span>
-                <h3 className="text-base font-black uppercase">2. Sync Orders Digiflazz</h3>
+                <h3 className="text-base font-black uppercase">3. Sync Orders Digiflazz</h3>
                 {renderStatusBadge('orders', ordersEnabled)}
               </div>
               <p className="text-xs font-bold text-neutral-600">
@@ -272,13 +344,13 @@ export const SettingsSystemPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* CARD 3: SYNC DEPOSITS */}
+        {/* CARD 4: SYNC DEPOSITS */}
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-xl">💰</span>
-                <h3 className="text-base font-black uppercase">3. Sync Deposits</h3>
+                <h3 className="text-base font-black uppercase">4. Sync Deposits</h3>
                 {renderStatusBadge('deposits', depositsEnabled)}
               </div>
               <p className="text-xs font-bold text-neutral-600">
@@ -318,13 +390,13 @@ export const SettingsSystemPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* CARD 4: GOOGLE PLAY METADATA SCRAPER */}
+        {/* CARD 5: GOOGLE PLAY METADATA SCRAPER */}
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🎮</span>
-                <h3 className="text-base font-black uppercase">4. Google Play Metadata Scraper</h3>
+                <h3 className="text-base font-black uppercase">5. Google Play Metadata Scraper</h3>
                 {renderStatusBadge('gplay_scraper', gplayEnabled)}
               </div>
               <p className="text-xs font-bold text-neutral-600">
