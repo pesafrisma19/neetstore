@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../../components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
+import { Input } from '../../../../components/ui/Input';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { 
@@ -10,7 +12,6 @@ import {
   Search, 
   Eye, 
   ExternalLink,
-  AlertTriangle,
   SlidersHorizontal
 } from 'lucide-react';
 import { getAdminTransactions } from '../../../../utils/api';
@@ -135,269 +136,247 @@ export const TransactionsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 w-full text-left font-sans pb-12">
-      {/* 1. HEADER JUDUL */}
-      <div className="bg-[var(--nb-yellow)] border-[4px] border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="cyan" size="sm" className="border-2 font-black uppercase">
-              READ-ONLY HISTORI
-            </Badge>
-            <Badge variant="white" size="sm" className="border-2 font-mono">
-              TOTAL TRANSAKSI: {totalCount}
+    <div className="space-y-6 text-left font-sans">
+      <Card variant="white" shadow="xl" borderWidth="4" className="rounded-3xl overflow-hidden">
+        {/* 1. HEADER DENGAN AKSEN NEBRUTALISM */}
+        <CardHeader headerBg="#00F0FF" className="border-b-[4px] border-black flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base text-[var(--nb-text)] font-black uppercase">
+            <History className="w-5 h-5 stroke-[3]" />
+            <span>RIWAYAT TRANSAKSI (TRANSACTIONS)</span>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="yellow" size="sm" className="font-black">
+              TOTAL: {totalCount} TRANSAKSI
             </Badge>
             {isFetching && !isLoading && (
-              <Badge variant="pink" size="sm" className="border-2 font-mono animate-pulse">
+              <Badge variant="pink" size="sm" className="font-mono animate-pulse">
                 REFRESHING...
               </Badge>
             )}
-          </div>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <History className="w-8 h-8 text-black" />
-            <span>RIWAYAT TRANSAKSI (TRANSACTIONS)</span>
-          </h1>
-          <p className="text-sm font-bold text-black/80 mt-1">
-            Arsip lengkap seluruh riwayat transaksi top-up (Sukses, Gagal, Pending, & Proses).
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => setSettingsModalOpen(true)}
-            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-            title="Pengaturan Transaksi"
-            aria-label="Pengaturan Transaksi"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            <span className="hidden sm:inline">Pengaturan</span>
-          </Button>
-
-          <Button
-            variant="white"
-            size="md"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-          >
-            <RefreshCw className={`w-4 h-4 stroke-[3] ${isFetching ? 'animate-spin' : ''}`} />
-            <span>REFRESH</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* 2. TAB FILTER & PENCARIAN HISTORI */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-        <div className="flex flex-wrap gap-2">
-          {[
-            { id: 'ALL', label: '📋 SEMUA STATUS' },
-            { id: 'SUCCESS', label: '🟢 SUKSES' },
-            { id: 'PROCESS', label: '🟣 DIPROSES' },
-            { id: 'PENDING', label: '🟡 PENDING' },
-            { id: 'FAILED', label: '🔴 GAGAL' },
-          ].map((tab) => (
             <Button
-              key={tab.id}
-              type="button"
-              variant={filterStatus === tab.id ? 'yellow' : 'white'}
+              variant="outline"
               size="sm"
-              onClick={() => handleFilterChange(tab.id)}
-              className="font-black uppercase text-xs"
+              onClick={() => setSettingsModalOpen(true)}
+              className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+              title="Pengaturan Transaksi"
+              aria-label="Pengaturan Transaksi"
             >
-              {tab.label}
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="hidden sm:inline">Pengaturan</span>
             </Button>
-          ))}
-        </div>
-
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari Invoice / Email / WA / Target..."
-            className="w-full bg-white border-[2px] border-black px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)]"
-          />
-          <Search className="w-4 h-4 stroke-[2.5] text-neutral-400 absolute right-2.5 top-2" />
-        </div>
-      </div>
-
-      {/* 3. TABEL RIWAYAT TRANSAKSI */}
-      {isLoading ? (
-        <Card variant="white" className="p-12 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <RefreshCw className="w-10 h-10 stroke-[2] mx-auto mb-3 animate-spin text-neutral-400" />
-          <h3 className="text-lg font-black uppercase">MEMUAT RIWAYAT TRANSAKSI...</h3>
-          <p className="text-xs font-bold text-neutral-500 mt-1">Mengambil arsip transaksi dari server.</p>
-        </Card>
-      ) : isError ? (
-        <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <AlertTriangle className="w-12 h-12 stroke-[2] mx-auto mb-3 text-red-500" />
-          <h3 className="text-lg font-black uppercase text-red-600">GAGAL MEMUAT HISTORI</h3>
-          <p className="text-xs font-bold text-neutral-600 mt-1">
-            {(error as any)?.message || 'Terjadi kesalahan saat terhubung ke server backend.'}
-          </p>
-          <div className="mt-4">
-            <Button variant="yellow" size="sm" onClick={() => refetch()} className="font-black uppercase">
-              <RefreshCw className="w-4 h-4 mr-2" /> COBA LAGI
+            <Button
+              variant="white"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+            >
+              <RefreshCw className={`w-4 h-4 stroke-[3] ${isFetching ? 'animate-spin' : ''}`} />
+              <span>REFRESH</span>
             </Button>
           </div>
-        </Card>
-      ) : transactions.length === 0 ? (
-        <Card variant="white" className="p-8 text-center border-[3px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <History className="w-12 h-12 stroke-[2] mx-auto mb-3 text-neutral-400" />
-          <h3 className="text-lg font-black uppercase">
-            {debouncedSearch ? 'TIDAK DITEMUKAN HASIL PENCARIAN' : 'BELUM ADA RIWAYAT TRANSAKSI'}
-          </h3>
-          <p className="text-xs font-bold text-neutral-500 mt-1">
-            {debouncedSearch
-              ? `Tidak ada transaksi yang cocok dengan pencarian "${debouncedSearch}".`
-              : `Belum ada data transaksi yang tercatat dalam sistem.`}
-          </p>
-        </Card>
-      ) : (
-        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[1100px] border-collapse text-left">
-              <thead>
-                <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3 min-w-[170px]">Transaksi</th>
-                  <th className="p-3 min-w-[230px]">Pengguna</th>
-                  <th className="p-3 min-w-[240px]">Produk &amp; Target</th>
-                  <th className="p-3 min-w-[170px]">Pembayaran</th>
-                  <th className="p-3 min-w-[160px]">Status</th>
-                  <th className="p-3 min-w-[150px] text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-[2px] divide-black text-sm font-bold">
-                {transactions.map((tx) => {
-                  const displayInvoice = tx.invoiceId || tx.providerRef || `TRX-${tx.id}`;
-                  const isActive = tx.orderStatus === 'PENDING' || tx.orderStatus === 'PROCESS';
-                  const level = tx.userLevel || tx.user?.level || (tx.userId ? 'MEMBER' : 'GUEST');
-                  const email = tx.email || tx.user?.email;
-                  const phone = tx.whatsapp || tx.user?.phone;
-                  const primaryContact = email || phone || (tx.userId ? `User #${tx.userId}` : 'Guest');
-                  const showPhoneSub = Boolean(email && phone);
-                  const badgeVariant = level === 'VIP' ? 'purple' : level === 'RESELLER' ? 'orange' : level === 'MEMBER' ? 'cyan' : 'white';
+        </CardHeader>
 
-                  return (
-                    <tr key={tx.id} className="hover:bg-yellow-50 transition-colors">
-                      {/* 1. TRANSAKSI */}
-                      <td className="p-3 font-mono">
-                        <div className="font-black text-xs text-black" title={displayInvoice}>
-                          {displayInvoice}
-                        </div>
-                        <div className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5 whitespace-nowrap">
-                          {new Date(tx.createdAt).toLocaleString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
-                      </td>
+        <CardContent className="p-6 space-y-5">
+          {/* 2. FILTER STATUS & PENCARIAN */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'ALL', label: '📋 SEMUA' },
+                { id: 'SUCCESS', label: '🟢 SUKSES' },
+                { id: 'PROCESS', label: '🟣 DIPROSES' },
+                { id: 'PENDING', label: '🟡 PENDING' },
+                { id: 'FAILED', label: '🔴 GAGAL' },
+              ].map((tab) => (
+                <Button
+                  key={tab.id}
+                  type="button"
+                  variant={filterStatus === tab.id ? 'yellow' : 'white'}
+                  size="sm"
+                  onClick={() => handleFilterChange(tab.id)}
+                  className="font-black uppercase text-xs shadow-[2px_2px_0px_0px_#000]"
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
 
-                      {/* 2. PENGGUNA */}
-                      <td className="p-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
-                            <Badge
-                              variant={badgeVariant}
-                              size="sm"
-                              className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
-                            >
-                              {level}
-                            </Badge>
-                            <span className="font-bold text-xs text-black truncate max-w-[180px]" title={primaryContact}>
-                              {primaryContact}
-                            </span>
+            <div className="relative w-full sm:w-80">
+              <Input
+                placeholder="Cari Invoice / Email / WA / Target..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-white"
+              />
+              <Search className="w-4 h-4 text-black absolute left-3 top-1/2 -translate-y-1/2 stroke-[3]" />
+            </div>
+          </div>
+
+          {/* 3. TABEL DESIGN SYSTEM BERIKUTNYA */}
+          <div className="border-[3px] border-black rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#000]">
+            <Table className="min-w-[1100px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[170px]">TRANSAKSI</TableHead>
+                  <TableHead className="min-w-[230px]">PENGGUNA</TableHead>
+                  <TableHead className="min-w-[240px]">PRODUK &amp; TARGET</TableHead>
+                  <TableHead className="min-w-[170px]">PEMBAYARAN</TableHead>
+                  <TableHead className="min-w-[160px]">STATUS</TableHead>
+                  <TableHead className="min-w-[150px] text-right">AKSI</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 font-black text-xs uppercase">
+                      Memuat data transaksi...
+                    </TableCell>
+                  </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 font-black text-xs text-rose-600 uppercase">
+                      ⚠️ {(error as any)?.message || 'Gagal mengambil data transaksi'}
+                    </TableCell>
+                  </TableRow>
+                ) : transactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 font-black text-xs text-neutral-500 uppercase">
+                      {debouncedSearch
+                        ? `Tidak ada transaksi yang cocok dengan pencarian "${debouncedSearch}".`
+                        : `Belum ada data transaksi yang tercatat dalam sistem.`}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  transactions.map((tx) => {
+                    const displayInvoice = tx.invoiceId || tx.providerRef || `TRX-${tx.id}`;
+                    const isActive = tx.orderStatus === 'PENDING' || tx.orderStatus === 'PROCESS';
+                    const level = tx.userLevel || tx.user?.level || (tx.userId ? 'MEMBER' : 'GUEST');
+                    const email = tx.email || tx.user?.email;
+                    const phone = tx.whatsapp || tx.user?.phone;
+                    const primaryContact = email || phone || (tx.userId ? `User #${tx.userId}` : 'Guest');
+                    const showPhoneSub = Boolean(email && phone);
+                    const badgeVariant = level === 'VIP' ? 'pink' : level === 'RESELLER' ? 'purple' : level === 'MEMBER' ? 'mint' : 'white';
+
+                    return (
+                      <TableRow key={tx.id}>
+                        {/* 1. TRANSAKSI */}
+                        <TableCell className="font-mono">
+                          <div className="font-black text-xs text-black" title={displayInvoice}>
+                            {displayInvoice}
                           </div>
-                          {showPhoneSub && (
-                            <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
-                              {phone}
-                            </div>
-                          )}
-                        </div>
-                      </td>
+                          <span className="block text-[10px] font-mono text-neutral-500 whitespace-nowrap mt-0.5">
+                            {new Date(tx.createdAt).toLocaleString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </TableCell>
 
-                      {/* 3. PRODUK & TARGET */}
-                      <td className="p-3">
-                        <div className="font-black text-xs text-black truncate max-w-[220px]" title={tx.product?.name || `Produk #${tx.id}`}>
-                          {tx.product?.name || `Produk #${tx.id}`}
-                        </div>
-                        <div
-                          className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate max-w-[220px]"
-                          title={`Target: ${tx.targetAccount}${tx.targetZone ? ` (${tx.targetZone})` : ''}`}
-                        >
-                          Target: {tx.targetAccount} {tx.targetZone ? `(${tx.targetZone})` : ''}
-                        </div>
-                      </td>
-
-                      {/* 4. PEMBAYARAN */}
-                      <td className="p-3 whitespace-nowrap">
-                        {(() => {
-                          const methodName = tx.paymentMethodRel?.name || tx.paymentMethod;
-                          const gatewayName = tx.paymentMethodRel?.gateway?.name;
-                          const subText = gatewayName ? `${methodName} · ${gatewayName}` : methodName;
-
-                          return (
-                            <div className="min-w-0">
-                              <div className="font-black text-xs text-black">
-                                Rp {(tx.amount || 0).toLocaleString('id-ID')}
-                              </div>
-                              <div
-                                className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5"
-                                title={subText}
+                        {/* 2. PENGGUNA */}
+                        <TableCell>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+                              <Badge
+                                variant={badgeVariant}
+                                size="sm"
+                                className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
                               >
-                                {subText}
-                              </div>
+                                {level}
+                              </Badge>
+                              <span className="font-bold text-xs text-black truncate max-w-[180px]" title={primaryContact}>
+                                {primaryContact}
+                              </span>
                             </div>
-                          );
-                        })()}
-                      </td>
+                            {showPhoneSub && (
+                              <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
+                                {phone}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
 
-                      {/* 5. STATUS (BAYAR & ORDER GABUNG) */}
-                      <td className="p-3">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <TransactionStatusBadge type="payment" status={tx.paymentStatus} />
-                          <TransactionStatusBadge type="order" status={tx.orderStatus} />
-                          {tx.refundStatus && tx.refundStatus !== 'NONE' && (
-                            <TransactionStatusBadge type="refund" status={tx.refundStatus} />
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 6. AKSI */}
-                      <td className="p-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* 1. Tombol Detail */}
-                          <Button
-                            variant="white"
-                            size="sm"
-                            onClick={() => handleOpenDetail(tx.id)}
-                            className="text-[10px] py-1 px-2.5 font-black uppercase whitespace-nowrap"
+                        {/* 3. PRODUK & TARGET */}
+                        <TableCell>
+                          <div className="font-black text-xs text-black truncate max-w-[220px]" title={tx.product?.name || `Produk #${tx.id}`}>
+                            {tx.product?.name || `Produk #${tx.id}`}
+                          </div>
+                          <div
+                            className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate max-w-[220px]"
+                            title={`Target: ${tx.targetAccount}${tx.targetZone ? ` (${tx.targetZone})` : ''}`}
                           >
-                            <Eye className="w-3.5 h-3.5 mr-1" /> DETAIL
-                          </Button>
+                            Target: {tx.targetAccount} {tx.targetZone ? `(${tx.targetZone})` : ''}
+                          </div>
+                        </TableCell>
 
-                          {/* 2. Tombol Buka di Antrean (Khusus PENDING / PROCESS) */}
-                          {isActive && (
+                        {/* 4. PEMBAYARAN */}
+                        <TableCell className="whitespace-nowrap">
+                          {(() => {
+                            const methodName = tx.paymentMethodRel?.name || tx.paymentMethod;
+                            const gatewayName = tx.paymentMethodRel?.gateway?.name;
+                            const subText = gatewayName ? `${methodName} · ${gatewayName}` : methodName;
+
+                            return (
+                              <div className="min-w-0">
+                                <div className="font-black text-xs text-black">
+                                  Rp {(tx.amount || 0).toLocaleString('id-ID')}
+                                </div>
+                                <div
+                                  className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5"
+                                  title={subText}
+                                >
+                                  {subText}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+
+                        {/* 5. STATUS (BAYAR & ORDER GABUNG) */}
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <TransactionStatusBadge type="payment" status={tx.paymentStatus} />
+                            <TransactionStatusBadge type="order" status={tx.orderStatus} />
+                            {tx.refundStatus && tx.refundStatus !== 'NONE' && (
+                              <TransactionStatusBadge type="refund" status={tx.refundStatus} />
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* 6. AKSI */}
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* 1. Tombol Detail */}
                             <Button
-                              variant="yellow"
+                              variant="white"
                               size="sm"
-                              onClick={() => handleOpenInLiveQueue(tx)}
-                              title="Buka transaksi ini di Antrean Pesanan"
-                              className="text-[10px] py-1 px-2.5 font-black uppercase whitespace-nowrap"
+                              onClick={() => handleOpenDetail(tx.id)}
+                              className="text-xs py-1 px-2.5 font-black uppercase shadow-[2px_2px_0px_0px_#000] whitespace-nowrap"
                             >
-                              <ExternalLink className="w-3.5 h-3.5 mr-1" /> ANTREAN
+                              <Eye className="w-3.5 h-3.5 mr-1 stroke-[3]" /> DETAIL
                             </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+
+                            {/* 2. Tombol Buka di Antrean (Khusus PENDING / PROCESS) */}
+                            {isActive && (
+                              <Button
+                                variant="yellow"
+                                size="sm"
+                                onClick={() => handleOpenInLiveQueue(tx)}
+                                title="Buka transaksi ini di Antrean Pesanan"
+                                className="text-xs py-1 px-2.5 font-black uppercase shadow-[2px_2px_0px_0px_#000] whitespace-nowrap"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 mr-1 stroke-[3]" /> ANTREAN
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination Footer Component */}
@@ -409,8 +388,8 @@ export const TransactionsPage: React.FC = () => {
             isFetching={isFetching}
             onPageChange={(newPage) => setPage(newPage)}
           />
-        </Card>
-      )}
+        </CardContent>
+      </Card>
 
       {/* 4. MODAL DETAIL TRANSAKSI & LOG AUDIT */}
       <TransactionDetailModal

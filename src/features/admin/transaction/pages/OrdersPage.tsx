@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Card } from '../../../../components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
+import { Input } from '../../../../components/ui/Input';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { 
@@ -12,7 +14,6 @@ import {
   XCircle, 
   AlertCircle,
   Eye,
-  AlertTriangle,
   RotateCcw,
   X
 } from 'lucide-react';
@@ -201,7 +202,7 @@ export const OrdersPage: React.FC = () => {
     },
   });
 
-  // Modal Handlers
+  // Handlers for modal
   const openStatusModal = (order: OrderItem, action: 'SUCCESS' | 'FAILED') => {
     setSelectedOrder(order);
     setModalAction(action);
@@ -227,277 +228,267 @@ export const OrdersPage: React.FC = () => {
       return;
     }
 
-    setModalError('');
     updateMutation.mutate({
       id: selectedOrder.id,
       data: {
         orderStatus: modalAction,
         reason: manualReason.trim(),
-        sn: manualSn.trim() ? manualSn.trim() : undefined,
+        sn: modalAction === 'SUCCESS' ? manualSn.trim() : undefined,
       },
     });
   };
 
-  // Open Detail Modal
   const handleOpenDetail = (id: number) => {
     setSelectedDetailId(id);
     setDetailModalOpen(true);
   };
 
   return (
-    <div className="space-y-6 max-w-6xl text-left font-sans pb-12">
-      {/* 1. HEADER JUDUL */}
-      <div className="bg-[var(--nb-yellow)] border-[4px] border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="pink" size="sm" className="border-2 font-black uppercase tracking-wider animate-pulse">
-              LIVE QUEUE OPERASIONAL
-            </Badge>
-            <Badge variant="white" size="sm" className="border-2 font-mono">
-              PENDING / PROCESS: {totalCount}
+    <div className="space-y-6 text-left font-sans">
+      <Card variant="white" shadow="xl" borderWidth="4" className="rounded-3xl overflow-hidden">
+        {/* 1. HEADER DENGAN AKSEN NEBRUTALISM */}
+        <CardHeader headerBg="#00F0FF" className="border-b-[4px] border-black flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base text-[var(--nb-text)] font-black uppercase">
+            <Zap className="w-5 h-5 stroke-[3]" />
+            <span>ANTREAN PESANAN AKTIF (ORDERS)</span>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="yellow" size="sm" className="font-black">
+              TOTAL ANTREAN: {totalCount}
             </Badge>
             {isFetching && !isLoading && (
-              <Badge variant="cyan" size="sm" className="border-2 font-mono">
+              <Badge variant="pink" size="sm" className="font-mono animate-pulse">
                 REFRESHING...
               </Badge>
             )}
-          </div>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <Zap className="w-8 h-8 fill-black" />
-            <span>ANTREAN PESANAN (ORDERS)</span>
-          </h1>
-          <p className="text-sm font-bold text-black/80 mt-1">
-            Antrean operasional terdepan untuk memantau & memproses pesanan top-up aktif.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="white"
-            size="md"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="font-black uppercase shadow-[4px_4px_0px_0px_#000]"
-          >
-            <RefreshCw className={`w-4 h-4 stroke-[3] ${isFetching ? 'animate-spin' : ''}`} />
-            <span>REFRESH</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* 2. BAR PENCARIAN ANTREAN */}
-      <div className="flex items-center justify-between gap-4 bg-white border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_#000]">
-        <div className="text-xs font-black uppercase text-neutral-600 flex items-center gap-1.5">
-          <AlertCircle className="w-4 h-4 text-amber-600" />
-          <span>FOKUS ANTREAN AKTIF (PENDING & PROCESS)</span>
-        </div>
-
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari Invoice TRX-... / Target / Produk..."
-            className="w-full bg-white border-[2px] border-black px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)]"
-          />
-          <Search className="w-4 h-4 stroke-[2.5] text-neutral-400 absolute right-2.5 top-2" />
-        </div>
-      </div>
-
-      {/* 3. TABEL ANTREAN PESANAN */}
-      {isLoading ? (
-        <Card variant="white" className="p-12 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <RefreshCw className="w-10 h-10 stroke-[2] mx-auto mb-3 animate-spin text-neutral-400" />
-          <h3 className="text-lg font-black uppercase">MEMUAT ANTREAN PESANAN...</h3>
-          <p className="text-xs font-bold text-neutral-500 mt-1">Mengambil data transaksi aktif dari server.</p>
-        </Card>
-      ) : isError ? (
-        <Card variant="white" className="p-8 text-center border-[4px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <AlertTriangle className="w-12 h-12 stroke-[2] mx-auto mb-3 text-red-500" />
-          <h3 className="text-lg font-black uppercase text-red-600">GAGAL MEMUAT ANTREAN</h3>
-          <p className="text-xs font-bold text-neutral-600 mt-1">
-            {(error as any)?.message || 'Terjadi kesalahan saat terhubung ke server backend.'}
-          </p>
-          <div className="mt-4">
-            <Button variant="yellow" size="sm" onClick={() => refetch()} className="font-black uppercase">
-              <RefreshCw className="w-4 h-4 mr-2" /> COBA LAGI
+            <Button
+              variant="white"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
+            >
+              <RefreshCw className={`w-4 h-4 stroke-[3] ${isFetching ? 'animate-spin' : ''}`} />
+              <span>REFRESH</span>
             </Button>
           </div>
-        </Card>
-      ) : orders.length === 0 ? (
-        <Card variant="white" className="p-8 text-center border-[3px] border-black shadow-[6px_6px_0px_0px_#000]">
-          <CheckCircle2 className="w-12 h-12 stroke-[2] mx-auto mb-3 text-green-500" />
-          <h3 className="text-lg font-black uppercase">
-            {debouncedSearch ? 'TIDAK DITEMUKAN PADA ANTREAN AKTIF' : 'ANTREAN KOSONG / TIDAK ADA PESANAN AKTIF'}
-          </h3>
-          <p className="text-xs font-bold text-neutral-500 mt-1">
-            {debouncedSearch
-              ? `Tidak ada transaksi aktif (PENDING/PROCESS) yang cocok dengan pencarian "${debouncedSearch}". Pesanan mungkin sudah selesai/gagal di Riwayat Transaksi.`
-              : `Semua pesanan saat ini sudah selesai diproses atau belum ada pesanan baru.`}
-          </p>
-        </Card>
-      ) : (
-        <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[1100px] border-collapse text-left">
-              <thead>
-                <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3 min-w-[160px]">Invoice / ID</th>
-                  <th className="p-3 min-w-[220px]">Pengguna</th>
-                  <th className="p-3 min-w-[220px]">Produk &amp; Target</th>
-                  <th className="p-3 min-w-[150px]">Nominal</th>
-                  <th className="p-3 min-w-[130px]">Bayar</th>
-                  <th className="p-3 min-w-[130px]">Status Order</th>
-                  <th className="p-3 min-w-[220px] text-right">Aksi Operasional</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-[2px] divide-black text-sm font-bold">
-                {orders.map((ord) => {
-                  const isChecking = checkingIds.has(ord.id);
-                  const displayInvoice = ord.invoiceId || ord.providerRef || `TRX-${ord.id}`;
+        </CardHeader>
 
-                  return (
-                    <tr key={ord.id} className="hover:bg-yellow-50 transition-colors">
-                      <td className="p-3 font-mono">
-                        <span className="font-black text-black">{displayInvoice}</span>
-                        <div className="text-[10px] text-neutral-500 font-mono whitespace-nowrap mt-0.5">
-                          {new Date(ord.createdAt).toLocaleString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        {(() => {
-                          const level = ord.userLevel || ord.user?.level || (ord.userId ? 'MEMBER' : 'GUEST');
-                          const email = ord.email || ord.user?.email;
-                          const phone = ord.whatsapp || ord.user?.phone;
-                          const primaryContact = email || phone || (ord.userId ? `User #${ord.userId}` : 'Guest');
-                          const showPhoneSub = Boolean(email && phone);
-                          const badgeVariant = level === 'VIP' ? 'purple' : level === 'RESELLER' ? 'orange' : level === 'MEMBER' ? 'cyan' : 'white';
+        <CardContent className="p-6 space-y-5">
+          {/* 2. BAR PENCARIAN & INFO ANTREAN */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="text-xs font-black uppercase text-neutral-600 flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 stroke-[3]" />
+              <span>FOKUS ANTREAN AKTIF (PENDING &amp; PROCESS)</span>
+            </div>
 
-                          return (
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
-                                <Badge
-                                  variant={badgeVariant}
-                                  size="sm"
-                                  className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
-                                >
-                                  {level}
-                                </Badge>
-                                <span className="font-bold text-xs text-black truncate max-w-[180px]" title={primaryContact}>
-                                  {primaryContact}
-                                </span>
-                              </div>
-                              {showPhoneSub && (
-                                <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
-                                  {phone}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="p-3">
-                        <div className="font-black text-black truncate max-w-[200px]" title={ord.product?.name || `Produk #${ord.id}`}>
-                          {ord.product?.name || `Produk #${ord.id}`}
-                        </div>
-                        <div className="text-xs font-mono text-neutral-600 truncate max-w-[200px]" title={`Target: ${ord.targetAccount}${ord.targetZone ? ` (${ord.targetZone})` : ''}`}>
-                          Target: {ord.targetAccount} {ord.targetZone ? `(${ord.targetZone})` : ''}
-                        </div>
-                      </td>
-                      <td className="p-3 font-black text-black whitespace-nowrap">
-                        <div>Rp {(ord.amount || 0).toLocaleString('id-ID')}</div>
-                        {(ord.refundStatus === 'PENDING' || ord.refundStatus === 'REFUNDED') && (
-                          <div className="text-[10px] text-purple-700 font-extrabold font-mono mt-0.5">
-                            Refund: Rp {Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0)).toLocaleString('id-ID')}
+            <div className="relative w-full sm:w-80">
+              <Input
+                placeholder="Cari Invoice TRX-... / Target / Produk..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-white"
+              />
+              <Search className="w-4 h-4 text-black absolute left-3 top-1/2 -translate-y-1/2 stroke-[3]" />
+            </div>
+          </div>
+
+          {/* 3. TABEL ANTREAN PESANAN */}
+          <div className="border-[3px] border-black rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#000]">
+            <Table className="min-w-[1100px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[160px]">Invoice / ID</TableHead>
+                  <TableHead className="min-w-[220px]">Pengguna</TableHead>
+                  <TableHead className="min-w-[220px]">Produk &amp; Target</TableHead>
+                  <TableHead className="min-w-[150px]">Nominal</TableHead>
+                  <TableHead className="min-w-[130px]">Bayar</TableHead>
+                  <TableHead className="min-w-[130px]">Status Order</TableHead>
+                  <TableHead className="min-w-[220px] text-right">Aksi Operasional</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 font-black text-xs uppercase">
+                      Memuat antrean pesanan...
+                    </TableCell>
+                  </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 font-black text-xs text-rose-600 uppercase">
+                      ⚠️ {(error as any)?.message || 'Gagal mengambil antrean'}
+                    </TableCell>
+                  </TableRow>
+                ) : orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 font-black text-xs text-neutral-500 uppercase">
+                      {debouncedSearch
+                        ? `Tidak ada transaksi aktif (PENDING/PROCESS) yang cocok dengan pencarian "${debouncedSearch}".`
+                        : `Semua pesanan saat ini sudah selesai diproses atau belum ada pesanan baru.`}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map((ord) => {
+                    const isChecking = checkingIds.has(ord.id);
+                    const displayInvoice = ord.invoiceId || ord.providerRef || `TRX-${ord.id}`;
+                    const level = ord.userLevel || ord.user?.level || (ord.userId ? 'MEMBER' : 'GUEST');
+                    const email = ord.email || ord.user?.email;
+                    const phone = ord.whatsapp || ord.user?.phone;
+                    const primaryContact = email || phone || (ord.userId ? `User #${ord.userId}` : 'Guest');
+                    const showPhoneSub = Boolean(email && phone);
+                    const badgeVariant = level === 'VIP' ? 'pink' : level === 'RESELLER' ? 'purple' : level === 'MEMBER' ? 'mint' : 'white';
+
+                    return (
+                      <TableRow key={ord.id}>
+                        {/* 1. INVOICE / ID */}
+                        <TableCell className="font-mono">
+                          <span className="font-black text-black">{displayInvoice}</span>
+                          <div className="text-[10px] text-neutral-500 font-mono whitespace-nowrap mt-0.5">
+                            {new Date(ord.createdAt).toLocaleString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </div>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex flex-col gap-1">
-                          <TransactionStatusBadge type="payment" status={ord.paymentStatus} />
-                          {ord.refundStatus && ord.refundStatus !== 'NONE' && (
-                            <TransactionStatusBadge type="refund" status={ord.refundStatus} />
+                        </TableCell>
+
+                        {/* 2. PENGGUNA */}
+                        <TableCell>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+                              <Badge
+                                variant={badgeVariant}
+                                size="sm"
+                                className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
+                              >
+                                {level}
+                              </Badge>
+                              <span className="font-bold text-xs text-black truncate max-w-[180px]" title={primaryContact}>
+                                {primaryContact}
+                              </span>
+                            </div>
+                            {showPhoneSub && (
+                              <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
+                                {phone}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* 3. PRODUK & TARGET */}
+                        <TableCell>
+                          <div className="font-black text-black truncate max-w-[200px]" title={ord.product?.name || `Produk #${ord.id}`}>
+                            {ord.product?.name || `Produk #${ord.id}`}
+                          </div>
+                          <div className="text-xs font-mono text-neutral-600 truncate max-w-[200px]" title={`Target: ${ord.targetAccount}${ord.targetZone ? ` (${ord.targetZone})` : ''}`}>
+                            Target: {ord.targetAccount} {ord.targetZone ? `(${ord.targetZone})` : ''}
+                          </div>
+                        </TableCell>
+
+                        {/* 4. NOMINAL */}
+                        <TableCell className="font-black text-black whitespace-nowrap font-mono text-xs">
+                          <div>Rp {(ord.amount || 0).toLocaleString('id-ID')}</div>
+                          {(ord.refundStatus === 'PENDING' || ord.refundStatus === 'REFUNDED') && (
+                            <div className="text-[10px] text-purple-700 font-extrabold font-mono mt-0.5">
+                              Refund: Rp {Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0)).toLocaleString('id-ID')}
+                            </div>
                           )}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <TransactionStatusBadge type="order" status={ord.orderStatus} />
-                      </td>
-                      <td className="p-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* 1. Tombol Detail */}
-                          <Button
-                            variant="white"
-                            size="sm"
-                            onClick={() => handleOpenDetail(ord.id)}
-                            title="Lihat Detail & Log Audit"
-                            className="text-[10px] py-1 px-2"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
+                        </TableCell>
 
-                          {/* 2. Tombol Cek Provider */}
-                          <Button
-                            variant="cyan"
-                            size="sm"
-                            onClick={() => checkMutation.mutate(ord.id)}
-                            disabled={isChecking}
-                            title="Cek Status Provider Digiflazz"
-                            className="text-[10px] py-1 px-2 font-black"
-                          >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin' : ''}`} />
-                          </Button>
+                        {/* 5. BAYAR */}
+                        <TableCell>
+                          <div className="flex flex-col gap-1 items-start">
+                            <TransactionStatusBadge type="payment" status={ord.paymentStatus} />
+                            {ord.refundStatus && ord.refundStatus !== 'NONE' && (
+                              <TransactionStatusBadge type="refund" status={ord.refundStatus} />
+                            )}
+                          </div>
+                        </TableCell>
 
-                          {/* 3. Tombol Tandai Sukses */}
-                          <Button
-                            variant="mint"
-                            size="sm"
-                            onClick={() => openStatusModal(ord, 'SUCCESS')}
-                            className="text-[10px] py-1 px-2 font-black"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> SUKSES
-                          </Button>
+                        {/* 6. STATUS ORDER */}
+                        <TableCell>
+                          <TransactionStatusBadge type="order" status={ord.orderStatus} />
+                        </TableCell>
 
-                          {/* 4. Tombol Tandai Gagal */}
-                          <Button
-                            variant="pink"
-                            size="sm"
-                            onClick={() => openStatusModal(ord, 'FAILED')}
-                            className="text-[10px] py-1 px-2 font-black"
-                          >
-                            <XCircle className="w-3.5 h-3.5 mr-1" /> GAGAL
-                          </Button>
-
-                          {/* 5. Tombol Tandai Sudah Refund (Guest PENDING) */}
-                          {(!ord.user?.username || ord.user.username === 'GUEST') && ord.orderStatus === 'FAILED' && ord.refundStatus === 'PENDING' && (
+                        {/* 7. AKSI OPERASIONAL */}
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            {/* 1. Tombol Detail */}
                             <Button
-                              variant="purple"
+                              variant="white"
                               size="sm"
-                              onClick={() => {
-                                const refundAmt = Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0));
-                                if (window.confirm(`Konfirmasi: Tandai transaksi #${ord.id} sudah direfund manual ke Guest sebesar Rp ${refundAmt.toLocaleString('id-ID')}? (Biaya admin Rp ${(ord.feeAmount || 0).toLocaleString('id-ID')} tidak termasuk refund)`)) {
-                                  markRefundedMutation.mutate(ord.id);
-                                }
-                              }}
-                              disabled={markRefundedMutation.isPending}
-                              title={`Tandai Sudah Direfund Manual ke Guest: Rp ${Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0)).toLocaleString('id-ID')}`}
-                              className="text-[10px] py-1 px-2 font-black"
+                              onClick={() => handleOpenDetail(ord.id)}
+                              title="Lihat Detail & Log Audit"
+                              className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
                             >
-                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> REFUND GUEST
+                              <Eye className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                              <span>DETAIL</span>
                             </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+
+                            {/* 2. Tombol Cek Provider */}
+                            <Button
+                              variant="cyan"
+                              size="sm"
+                              onClick={() => checkMutation.mutate(ord.id)}
+                              disabled={isChecking}
+                              title="Cek Status Provider Digiflazz"
+                              className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 mr-1 stroke-[3] ${isChecking ? 'animate-spin' : ''}`} />
+                              <span>CEK</span>
+                            </Button>
+
+                            {/* 3. Tombol Tandai Sukses */}
+                            <Button
+                              variant="mint"
+                              size="sm"
+                              onClick={() => openStatusModal(ord, 'SUCCESS')}
+                              className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                              <span>SUKSES</span>
+                            </Button>
+
+                            {/* 4. Tombol Tandai Gagal */}
+                            <Button
+                              variant="pink"
+                              size="sm"
+                              onClick={() => openStatusModal(ord, 'FAILED')}
+                              className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                            >
+                              <XCircle className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                              <span>GAGAL</span>
+                            </Button>
+
+                            {/* 5. Tombol Tandai Sudah Refund (Guest PENDING) */}
+                            {(!ord.user?.username || ord.user.username === 'GUEST') && ord.orderStatus === 'FAILED' && ord.refundStatus === 'PENDING' && (
+                              <Button
+                                variant="purple"
+                                size="sm"
+                                onClick={() => {
+                                  const refundAmt = Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0));
+                                  if (window.confirm(`Konfirmasi: Tandai transaksi #${ord.id} sudah direfund manual ke Guest sebesar Rp ${refundAmt.toLocaleString('id-ID')}? (Biaya admin Rp ${(ord.feeAmount || 0).toLocaleString('id-ID')} tidak termasuk refund)`)) {
+                                    markRefundedMutation.mutate(ord.id);
+                                  }
+                                }}
+                                disabled={markRefundedMutation.isPending}
+                                title={`Tandai Sudah Direfund Manual ke Guest: Rp ${Math.max(0, (ord.amount || 0) - (ord.feeAmount || 0)).toLocaleString('id-ID')}`}
+                                className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                                <span>REFUND GUEST</span>
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination Footer Component */}
@@ -509,8 +500,8 @@ export const OrdersPage: React.FC = () => {
             isFetching={isFetching}
             onPageChange={(newPage) => setPage(newPage)}
           />
-        </Card>
-      )}
+        </CardContent>
+      </Card>
 
       {/* 4. MODAL KONFIRMASI PERUBAHAN STATUS MANUAL (REASON & SN) */}
       {selectedOrder && modalAction && (
