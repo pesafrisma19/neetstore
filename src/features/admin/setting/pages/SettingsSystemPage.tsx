@@ -298,17 +298,17 @@ export const SettingsSystemPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* CARD 3: SYNC ORDERS DIGIFLAZZ */}
+        {/* CARD 3: CEK STATUS PESANAN */}
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-xl">⚡</span>
-                <h3 className="text-base font-black uppercase">3. Sync Orders Digiflazz</h3>
+                <h3 className="text-base font-black uppercase">3. Cek Status Pesanan</h3>
                 {renderStatusBadge('orders', ordersEnabled)}
               </div>
               <p className="text-xs font-bold text-neutral-600">
-                Polling status transaksi status PROCESS ke Digiflazz & otomatis mengembalikan saldo (Refund) jika transaksi gagal.
+                Memeriksa status pesanan yang masih diproses ke provider produk dan menangani penyelesaian atau refund secara otomatis.
               </p>
             </div>
 
@@ -344,17 +344,17 @@ export const SettingsSystemPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* CARD 4: SYNC DEPOSITS */}
+        {/* CARD 4: CEK STATUS PEMBAYARAN */}
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1 max-w-md">
               <div className="flex items-center gap-2">
                 <span className="text-xl">💰</span>
-                <h3 className="text-base font-black uppercase">4. Sync Deposits</h3>
+                <h3 className="text-base font-black uppercase">4. Cek Status Pembayaran</h3>
                 {renderStatusBadge('deposits', depositsEnabled)}
               </div>
               <p className="text-xs font-bold text-neutral-600">
-                Polling verifikasi status deposit QRIS/Gateway TokoPay & penanganan kedaluwarsa (Expiry) deposit transfer manual.
+                Memeriksa pembayaran yang masih menunggu dari seluruh payment gateway serta menangani pembayaran kedaluwarsa secara otomatis.
               </p>
             </div>
 
