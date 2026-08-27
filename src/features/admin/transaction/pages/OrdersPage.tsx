@@ -49,11 +49,13 @@ export interface OrderItem {
     name: string;
     sku?: string;
   };
+  userLevel?: string | null;
   user?: {
     id?: number;
     username?: string;
     email?: string;
     phone?: string | null;
+    level?: string | null;
   };
 }
 
@@ -336,17 +338,17 @@ export const OrdersPage: React.FC = () => {
         </Card>
       ) : (
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[1100px] border-collapse text-left">
               <thead>
                 <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3">Invoice / ID</th>
-                  <th className="p-3">Pengguna</th>
-                  <th className="p-3">Produk & Target</th>
-                  <th className="p-3">Nominal</th>
-                  <th className="p-3">Bayar</th>
-                  <th className="p-3">Status Order</th>
-                  <th className="p-3 text-right">Aksi Operasional</th>
+                  <th className="p-3 min-w-[160px]">Invoice / ID</th>
+                  <th className="p-3 min-w-[220px]">Pengguna</th>
+                  <th className="p-3 min-w-[220px]">Produk &amp; Target</th>
+                  <th className="p-3 min-w-[150px]">Nominal</th>
+                  <th className="p-3 min-w-[130px]">Bayar</th>
+                  <th className="p-3 min-w-[130px]">Status Order</th>
+                  <th className="p-3 min-w-[220px] text-right">Aksi Operasional</th>
                 </tr>
               </thead>
               <tbody className="divide-y-[2px] divide-black text-sm font-bold">
@@ -358,39 +360,40 @@ export const OrdersPage: React.FC = () => {
                     <tr key={ord.id} className="hover:bg-yellow-50 transition-colors">
                       <td className="p-3 font-mono">
                         <span className="font-black text-black">{displayInvoice}</span>
-                        <div className="text-[10px] text-neutral-500 font-mono">
+                        <div className="text-[10px] text-neutral-500 font-mono whitespace-nowrap mt-0.5">
                           {new Date(ord.createdAt).toLocaleString('id-ID', {
-                            hour: '2-digit',
-                            minute: '2-digit',
                             day: '2-digit',
                             month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
                           })}
                         </div>
                       </td>
                       <td className="p-3">
                         {(() => {
-                          const isMember = Boolean(ord.userId);
+                          const level = ord.userLevel || ord.user?.level || (ord.userId ? 'MEMBER' : 'GUEST');
                           const email = ord.email || ord.user?.email;
                           const phone = ord.whatsapp || ord.user?.phone;
-                          const primaryContact = email || phone || (isMember ? `User #${ord.userId}` : 'Guest');
+                          const primaryContact = email || phone || (ord.userId ? `User #${ord.userId}` : 'Guest');
                           const showPhoneSub = Boolean(email && phone);
+                          const badgeVariant = level === 'VIP' ? 'purple' : level === 'RESELLER' ? 'orange' : level === 'MEMBER' ? 'cyan' : 'white';
 
                           return (
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
                                 <Badge
-                                  variant={isMember ? 'cyan' : 'white'}
+                                  variant={badgeVariant}
                                   size="sm"
                                   className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
                                 >
-                                  {isMember ? 'MEMBER' : 'GUEST'}
+                                  {level}
                                 </Badge>
-                                <span className="font-bold text-xs text-black truncate" title={primaryContact}>
+                                <span className="font-bold text-xs text-black truncate max-w-[180px]" title={primaryContact}>
                                   {primaryContact}
                                 </span>
                               </div>
                               {showPhoneSub && (
-                                <div className="text-[11px] font-mono text-neutral-500 truncate" title={phone!}>
+                                <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
                                   {phone}
                                 </div>
                               )}
@@ -399,14 +402,14 @@ export const OrdersPage: React.FC = () => {
                         })()}
                       </td>
                       <td className="p-3">
-                        <div className="font-black text-black">
+                        <div className="font-black text-black truncate max-w-[200px]" title={ord.product?.name || `Produk #${ord.id}`}>
                           {ord.product?.name || `Produk #${ord.id}`}
                         </div>
-                        <div className="text-xs font-mono text-neutral-600">
+                        <div className="text-xs font-mono text-neutral-600 truncate max-w-[200px]" title={`Target: ${ord.targetAccount}${ord.targetZone ? ` (${ord.targetZone})` : ''}`}>
                           Target: {ord.targetAccount} {ord.targetZone ? `(${ord.targetZone})` : ''}
                         </div>
                       </td>
-                      <td className="p-3 font-black text-black">
+                      <td className="p-3 font-black text-black whitespace-nowrap">
                         <div>Rp {(ord.amount || 0).toLocaleString('id-ID')}</div>
                         {(ord.refundStatus === 'PENDING' || ord.refundStatus === 'REFUNDED') && (
                           <div className="text-[10px] text-purple-700 font-extrabold font-mono mt-0.5">
@@ -425,7 +428,7 @@ export const OrdersPage: React.FC = () => {
                       <td className="p-3">
                         <TransactionStatusBadge type="order" status={ord.orderStatus} />
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* 1. Tombol Detail */}
                           <Button

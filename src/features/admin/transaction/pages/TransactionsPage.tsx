@@ -41,11 +41,13 @@ export interface TransactionHistoryItem {
     name: string;
     sku?: string;
   };
+  userLevel?: string | null;
   user?: {
     id?: number;
     username?: string;
     email?: string;
     phone?: string | null;
+    level?: string | null;
   };
   paymentMethodRel?: {
     id?: number;
@@ -254,36 +256,37 @@ export const TransactionsPage: React.FC = () => {
         </Card>
       ) : (
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[1100px] border-collapse text-left">
               <thead>
                 <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3 w-[16%]">Transaksi</th>
-                  <th className="p-3 w-[20%]">Pengguna</th>
-                  <th className="p-3 w-[22%]">Produk &amp; Target</th>
-                  <th className="p-3 w-[16%]">Pembayaran</th>
-                  <th className="p-3 w-[16%]">Status</th>
-                  <th className="p-3 w-[10%] text-right">Aksi</th>
+                  <th className="p-3 min-w-[170px]">Transaksi</th>
+                  <th className="p-3 min-w-[230px]">Pengguna</th>
+                  <th className="p-3 min-w-[240px]">Produk &amp; Target</th>
+                  <th className="p-3 min-w-[170px]">Pembayaran</th>
+                  <th className="p-3 min-w-[160px]">Status</th>
+                  <th className="p-3 min-w-[150px] text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y-[2px] divide-black text-sm font-bold">
                 {transactions.map((tx) => {
                   const displayInvoice = tx.invoiceId || tx.providerRef || `TRX-${tx.id}`;
                   const isActive = tx.orderStatus === 'PENDING' || tx.orderStatus === 'PROCESS';
-                  const isMember = Boolean(tx.userId);
+                  const level = tx.userLevel || tx.user?.level || (tx.userId ? 'MEMBER' : 'GUEST');
                   const email = tx.email || tx.user?.email;
                   const phone = tx.whatsapp || tx.user?.phone;
-                  const primaryContact = email || phone || (isMember ? `User #${tx.userId}` : 'Guest');
+                  const primaryContact = email || phone || (tx.userId ? `User #${tx.userId}` : 'Guest');
                   const showPhoneSub = Boolean(email && phone);
+                  const badgeVariant = level === 'VIP' ? 'purple' : level === 'RESELLER' ? 'orange' : level === 'MEMBER' ? 'cyan' : 'white';
 
                   return (
                     <tr key={tx.id} className="hover:bg-yellow-50 transition-colors">
                       {/* 1. TRANSAKSI */}
                       <td className="p-3 font-mono">
-                        <div className="font-black text-xs text-black truncate" title={displayInvoice}>
+                        <div className="font-black text-xs text-black" title={displayInvoice}>
                           {displayInvoice}
                         </div>
-                        <div className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5">
+                        <div className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5 whitespace-nowrap">
                           {new Date(tx.createdAt).toLocaleString('id-ID', {
                             day: '2-digit',
                             month: 'short',
@@ -298,18 +301,18 @@ export const TransactionsPage: React.FC = () => {
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
                             <Badge
-                              variant={isMember ? 'cyan' : 'white'}
+                              variant={badgeVariant}
                               size="sm"
                               className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
                             >
-                              {isMember ? 'MEMBER' : 'GUEST'}
+                              {level}
                             </Badge>
-                            <span className="font-bold text-xs text-black truncate" title={primaryContact}>
+                            <span className="font-bold text-xs text-black truncate max-w-[180px]" title={primaryContact}>
                               {primaryContact}
                             </span>
                           </div>
                           {showPhoneSub && (
-                            <div className="text-[11px] font-mono text-neutral-500 truncate" title={phone!}>
+                            <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
                               {phone}
                             </div>
                           )}
@@ -318,11 +321,11 @@ export const TransactionsPage: React.FC = () => {
 
                       {/* 3. PRODUK & TARGET */}
                       <td className="p-3">
-                        <div className="font-black text-xs text-black truncate" title={tx.product?.name || `Produk #${tx.id}`}>
+                        <div className="font-black text-xs text-black truncate max-w-[220px]" title={tx.product?.name || `Produk #${tx.id}`}>
                           {tx.product?.name || `Produk #${tx.id}`}
                         </div>
                         <div
-                          className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate"
+                          className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate max-w-[220px]"
                           title={`Target: ${tx.targetAccount}${tx.targetZone ? ` (${tx.targetZone})` : ''}`}
                         >
                           Target: {tx.targetAccount} {tx.targetZone ? `(${tx.targetZone})` : ''}
@@ -330,7 +333,7 @@ export const TransactionsPage: React.FC = () => {
                       </td>
 
                       {/* 4. PEMBAYARAN */}
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">
                         {(() => {
                           const methodName = tx.paymentMethodRel?.name || tx.paymentMethod;
                           const gatewayName = tx.paymentMethodRel?.gateway?.name;
@@ -342,7 +345,7 @@ export const TransactionsPage: React.FC = () => {
                                 Rp {(tx.amount || 0).toLocaleString('id-ID')}
                               </div>
                               <div
-                                className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate"
+                                className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5"
                                 title={subText}
                               >
                                 {subText}
@@ -354,7 +357,7 @@ export const TransactionsPage: React.FC = () => {
 
                       {/* 5. STATUS (BAYAR & ORDER GABUNG) */}
                       <td className="p-3">
-                        <div className="flex flex-wrap items-center gap-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <TransactionStatusBadge type="payment" status={tx.paymentStatus} />
                           <TransactionStatusBadge type="order" status={tx.orderStatus} />
                           {tx.refundStatus && tx.refundStatus !== 'NONE' && (
@@ -364,16 +367,16 @@ export const TransactionsPage: React.FC = () => {
                       </td>
 
                       {/* 6. AKSI */}
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="p-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           {/* 1. Tombol Detail */}
                           <Button
                             variant="white"
                             size="sm"
                             onClick={() => handleOpenDetail(tx.id)}
-                            className="text-[10px] py-1 px-2 font-black uppercase"
+                            className="text-[10px] py-1 px-2.5 font-black uppercase whitespace-nowrap"
                           >
-                            <Eye className="w-3 h-3 mr-1" /> DETAIL
+                            <Eye className="w-3.5 h-3.5 mr-1" /> DETAIL
                           </Button>
 
                           {/* 2. Tombol Buka di Antrean (Khusus PENDING / PROCESS) */}
@@ -383,9 +386,9 @@ export const TransactionsPage: React.FC = () => {
                               size="sm"
                               onClick={() => handleOpenInLiveQueue(tx)}
                               title="Buka transaksi ini di Antrean Pesanan"
-                              className="text-[10px] py-1 px-2 font-black uppercase"
+                              className="text-[10px] py-1 px-2.5 font-black uppercase whitespace-nowrap"
                             >
-                              <ExternalLink className="w-3 h-3 mr-1" /> ANTREAN
+                              <ExternalLink className="w-3.5 h-3.5 mr-1" /> ANTREAN
                             </Button>
                           )}
                         </div>

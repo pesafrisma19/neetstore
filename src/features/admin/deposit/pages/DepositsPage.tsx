@@ -38,6 +38,7 @@ export interface DepositItem {
     username?: string;
     email?: string;
     phone?: string | null;
+    level?: string | null;
   };
   paymentMethodRel?: {
     id?: number;
@@ -238,16 +239,16 @@ export const DepositsPage: React.FC = () => {
         </Card>
       ) : (
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[1050px] border-collapse text-left">
               <thead>
                 <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3 w-[20%]">Transaksi</th>
-                  <th className="p-3 w-[22%]">Pengguna</th>
-                  <th className="p-3 w-[18%]">Pembayaran</th>
-                  <th className="p-3 w-[18%]">Nominal</th>
-                  <th className="p-3 w-[12%]">Status</th>
-                  <th className="p-3 w-[10%] text-right">Aksi</th>
+                  <th className="p-3 min-w-[180px]">Transaksi</th>
+                  <th className="p-3 min-w-[220px]">Pengguna</th>
+                  <th className="p-3 min-w-[170px]">Pembayaran</th>
+                  <th className="p-3 min-w-[200px]">Nominal</th>
+                  <th className="p-3 min-w-[140px]">Status</th>
+                  <th className="p-3 min-w-[160px] text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y-[2px] divide-black text-sm font-bold">
@@ -255,10 +256,10 @@ export const DepositsPage: React.FC = () => {
                     <tr key={d.id} className="hover:bg-yellow-50 transition-colors">
                       {/* 1. TRANSAKSI */}
                       <td className="p-3 font-mono">
-                        <div className="font-black text-xs text-black truncate" title={d.paymentRef}>
+                        <div className="font-black text-xs text-black" title={d.paymentRef}>
                           {d.paymentRef}
                         </div>
-                        <div className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5">
+                        <div className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5 whitespace-nowrap">
                           {new Date(d.createdAt).toLocaleString('id-ID', {
                             day: '2-digit',
                             month: 'short',
@@ -271,31 +272,32 @@ export const DepositsPage: React.FC = () => {
                       {/* 2. PENGGUNA */}
                       <td className="p-3">
                         {(() => {
-                          const isMember = Boolean(d.userId);
+                          const level = d.user?.level || (d.userId ? 'MEMBER' : 'GUEST');
                           const email = d.user?.email;
                           const phone = d.user?.phone;
-                          const primaryContact = email || phone || (isMember ? `User #${d.userId}` : '-');
+                          const primaryContact = email || phone || (d.userId ? `User #${d.userId}` : '-');
                           const showPhoneSub = Boolean(email && phone);
+                          const badgeVariant = level === 'VIP' ? 'purple' : level === 'RESELLER' ? 'orange' : level === 'MEMBER' ? 'cyan' : 'white';
 
                           return (
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
                                 <Badge
-                                  variant={isMember ? 'cyan' : 'white'}
+                                  variant={badgeVariant}
                                   size="sm"
                                   className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
                                 >
-                                  {isMember ? 'MEMBER' : 'GUEST'}
+                                  {level}
                                 </Badge>
                                 <span
-                                  className="font-bold text-xs text-black truncate"
+                                  className="font-bold text-xs text-black truncate max-w-[180px]"
                                   title={primaryContact}
                                 >
                                   {primaryContact}
                                 </span>
                               </div>
                               {showPhoneSub && (
-                                <div className="text-[11px] font-mono text-neutral-500 truncate" title={phone!}>
+                                <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap select-text" title={phone!}>
                                   {phone}
                                 </div>
                               )}
@@ -312,11 +314,11 @@ export const DepositsPage: React.FC = () => {
 
                           return (
                             <div className="min-w-0">
-                              <div className="font-black text-xs text-black truncate" title={methodName}>
+                              <div className="font-black text-xs text-black" title={methodName}>
                                 {methodName}
                               </div>
                               <div
-                                className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate"
+                                className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 whitespace-nowrap"
                                 title={gatewayName || '-'}
                               >
                                 {gatewayName || '-'}
@@ -327,12 +329,12 @@ export const DepositsPage: React.FC = () => {
                       </td>
 
                       {/* 4. NOMINAL */}
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">
                         <div className="font-black text-xs text-green-700">
                           Saldo: Rp {d.amount.toLocaleString('id-ID')}
                         </div>
                         <div
-                          className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate"
+                          className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5"
                           title={`Bayar: Rp ${d.totalAmount.toLocaleString('id-ID')}${d.fee > 0 ? ` (Fee: Rp ${d.fee.toLocaleString('id-ID')})` : ''}${d.uniqueCode > 0 ? ` +${d.uniqueCode}` : ''}`}
                         >
                           Bayar: <span className="font-bold text-black">Rp {d.totalAmount.toLocaleString('id-ID')}</span>
@@ -343,33 +345,35 @@ export const DepositsPage: React.FC = () => {
 
                       {/* 5. STATUS */}
                       <td className="p-3">
-                        <Badge
-                          variant={d.status === 'SUCCESS' ? 'mint' : d.status === 'PENDING' ? 'yellow' : 'pink'}
-                          size="sm"
-                          className="font-black uppercase text-[10px] whitespace-nowrap"
-                        >
-                          {d.status === 'SUCCESS' && <CheckCircle className="w-3 h-3 inline mr-1" />}
-                          {d.status === 'PENDING' && <Clock className="w-3 h-3 inline mr-1" />}
-                          {d.status === 'FAILED' && <XCircle className="w-3 h-3 inline mr-1" />}
-                          {d.status}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge
+                            variant={d.status === 'SUCCESS' ? 'mint' : d.status === 'PENDING' ? 'yellow' : 'pink'}
+                            size="sm"
+                            className="font-black uppercase text-[10px] whitespace-nowrap"
+                          >
+                            {d.status === 'SUCCESS' && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                            {d.status === 'PENDING' && <Clock className="w-3 h-3 inline mr-1" />}
+                            {d.status === 'FAILED' && <XCircle className="w-3 h-3 inline mr-1" />}
+                            {d.status}
+                          </Badge>
+                        </div>
                         {d.failureReason && (
-                          <div className="text-[10px] font-mono text-red-600 mt-0.5 truncate" title={d.failureReason}>
+                          <div className="text-[10px] font-mono text-red-600 mt-0.5" title={d.failureReason}>
                             {d.failureReason}
                           </div>
                         )}
                       </td>
 
                       {/* 6. AKSI */}
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right whitespace-nowrap">
                         {d.status === 'PENDING' ? (
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Button
                               variant="mint"
                               size="sm"
                               onClick={() => handleConfirm(d.id)}
                               disabled={processingId === d.id}
-                              className="text-[10px] py-1 px-2 font-black uppercase"
+                              className="text-[10px] py-1 px-2.5 font-black uppercase whitespace-nowrap"
                             >
                               KONFIRMASI
                             </Button>
@@ -378,7 +382,7 @@ export const DepositsPage: React.FC = () => {
                               size="sm"
                               onClick={() => handleReject(d.id)}
                               disabled={processingId === d.id}
-                              className="text-[10px] py-1 px-2 font-black uppercase"
+                              className="text-[10px] py-1 px-2.5 font-black uppercase whitespace-nowrap"
                             >
                               TOLAK
                             </Button>
