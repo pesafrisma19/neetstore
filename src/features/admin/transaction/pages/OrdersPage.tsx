@@ -30,6 +30,9 @@ import { TransactionDetailModal } from '../components/TransactionDetailModal';
 
 export interface OrderItem {
   id: number;
+  userId?: number | null;
+  email?: string | null;
+  whatsapp?: string | null;
   invoiceId?: string;
   providerRef?: string;
   targetAccount: string;
@@ -47,7 +50,10 @@ export interface OrderItem {
     sku?: string;
   };
   user?: {
-    username: string;
+    id?: number;
+    username?: string;
+    email?: string;
+    phone?: string | null;
   };
 }
 
@@ -362,9 +368,35 @@ export const OrdersPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3">
-                        <div className="font-black text-black">
-                          {ord.user?.username || 'GUEST'}
-                        </div>
+                        {(() => {
+                          const isMember = Boolean(ord.userId);
+                          const email = ord.email || ord.user?.email;
+                          const phone = ord.whatsapp || ord.user?.phone;
+                          const primaryContact = email || phone || (isMember ? `User #${ord.userId}` : 'Guest');
+                          const showPhoneSub = Boolean(email && phone);
+
+                          return (
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+                                <Badge
+                                  variant={isMember ? 'cyan' : 'white'}
+                                  size="sm"
+                                  className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
+                                >
+                                  {isMember ? 'MEMBER' : 'GUEST'}
+                                </Badge>
+                                <span className="font-bold text-xs text-black truncate" title={primaryContact}>
+                                  {primaryContact}
+                                </span>
+                              </div>
+                              {showPhoneSub && (
+                                <div className="text-[11px] font-mono text-neutral-500 truncate" title={phone!}>
+                                  {phone}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="p-3">
                         <div className="font-black text-black">

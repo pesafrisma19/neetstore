@@ -34,9 +34,22 @@ export interface DepositItem {
   paidAt: string | null;
   createdAt: string;
   user?: {
-    username: string;
-    email: string;
+    id?: number;
+    username?: string;
+    email?: string;
+    phone?: string | null;
   };
+  paymentMethodRel?: {
+    id?: number;
+    name?: string;
+    code?: string;
+    type?: string;
+    gateway?: {
+      id?: number;
+      name?: string;
+      code?: string;
+    } | null;
+  } | null;
 }
 
 export const DepositsPage: React.FC = () => {
@@ -118,7 +131,7 @@ export const DepositsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl text-left font-sans pb-12">
+    <div className="space-y-6 w-full text-left font-sans pb-12">
       {/* 1. HEADER JUDUL & STATS */}
       <div className="bg-[var(--nb-yellow)] border-[4px] border-black p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -197,7 +210,7 @@ export const DepositsPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari Ref / Username / Email..."
+            placeholder="Cari Ref / Email..."
             className="w-full bg-white border-[2px] border-black px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[var(--nb-yellow)]"
           />
           <Search className="w-4 h-4 stroke-[2.5] text-neutral-400 absolute right-2.5 top-2" />
@@ -226,96 +239,163 @@ export const DepositsPage: React.FC = () => {
       ) : (
         <Card variant="white" className="border-[4px] border-black shadow-[6px_6px_0px_0px_#000] overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+            <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="bg-neutral-900 text-white border-b-[3px] border-black text-left text-xs font-black uppercase">
-                  <th className="p-3">Reference ID</th>
-                  <th className="p-3">Pengguna</th>
-                  <th className="p-3">Metode</th>
-                  <th className="p-3">Nominal Saldo</th>
-                  <th className="p-3">Admin Fee &amp; Unik</th>
-                  <th className="p-3">Total Bayar</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Aksi / Waktu</th>
+                  <th className="p-3 w-[20%]">Transaksi</th>
+                  <th className="p-3 w-[22%]">Pengguna</th>
+                  <th className="p-3 w-[18%]">Pembayaran</th>
+                  <th className="p-3 w-[18%]">Nominal</th>
+                  <th className="p-3 w-[12%]">Status</th>
+                  <th className="p-3 w-[10%] text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y-[2px] divide-black text-sm font-bold">
                 {deposits.map((d) => (
-                  <tr key={d.id} className="hover:bg-yellow-50 transition-colors">
-                    <td className="p-3 font-mono font-black text-xs">{d.paymentRef}</td>
-                    <td className="p-3">
-                      <div className="font-black text-black">
-                        {d.user?.username || (d.userId ? `User #${d.userId}` : 'User Dihapus')}
-                      </div>
-                      <div className="text-xs font-mono text-neutral-500">
-                        {d.user?.email || '-'}
-                      </div>
-                    </td>
-                    <td className="p-3 text-xs">
-                      <Badge variant="purple" size="sm" className="font-bold">
-                        {d.paymentMethod}
-                      </Badge>
-                    </td>
-                    <td className="p-3 font-black text-green-700">
-                      Rp {d.amount.toLocaleString('id-ID')}
-                    </td>
-                    <td className="p-3 text-xs font-mono text-neutral-600">
-                      <div>Fee: Rp {d.fee.toLocaleString('id-ID')}</div>
-                      {d.uniqueCode > 0 && <div className="text-purple-700">Kode Unik: +{d.uniqueCode}</div>}
-                    </td>
-                    <td className="p-3 font-black text-blue-700">
-                      Rp {d.totalAmount.toLocaleString('id-ID')}
-                    </td>
-                    <td className="p-3">
-                      <Badge 
-                        variant={d.status === 'SUCCESS' ? 'mint' : d.status === 'PENDING' ? 'yellow' : 'pink'}
-                        size="sm"
-                        className="font-black uppercase text-[10px]"
-                      >
-                        {d.status === 'SUCCESS' && <CheckCircle className="w-3 h-3 inline mr-1" />}
-                        {d.status === 'PENDING' && <Clock className="w-3 h-3 inline mr-1" />}
-                        {d.status === 'FAILED' && <XCircle className="w-3 h-3 inline mr-1" />}
-                        {d.status}
-                      </Badge>
-                      {d.failureReason && (
-                        <div className="text-[10px] font-mono text-red-600 mt-0.5">{d.failureReason}</div>
-                      )}
-                    </td>
-                    <td className="p-3 text-right">
-                      {d.status === 'PENDING' ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="mint"
-                            size="sm"
-                            onClick={() => handleConfirm(d.id)}
-                            disabled={processingId === d.id}
-                            className="font-black text-xs"
-                          >
-                            KONFIRMASI
-                          </Button>
-                          <Button
-                            variant="pink"
-                            size="sm"
-                            onClick={() => handleReject(d.id)}
-                            disabled={processingId === d.id}
-                            className="font-black text-xs"
-                          >
-                            TOLAK
-                          </Button>
+                    <tr key={d.id} className="hover:bg-yellow-50 transition-colors">
+                      {/* 1. TRANSAKSI */}
+                      <td className="p-3 font-mono">
+                        <div className="font-black text-xs text-black truncate" title={d.paymentRef}>
+                          {d.paymentRef}
                         </div>
-                      ) : (
-                        <div className="text-[11px] font-mono text-neutral-500">
-                          {new Date(d.paidAt || d.createdAt).toLocaleString('id-ID', {
+                        <div className="text-[11px] font-mono text-neutral-500 leading-tight mt-0.5">
+                          {new Date(d.createdAt).toLocaleString('id-ID', {
                             day: '2-digit',
                             month: 'short',
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* 2. PENGGUNA */}
+                      <td className="p-3">
+                        {(() => {
+                          const isMember = Boolean(d.userId);
+                          const email = d.user?.email;
+                          const phone = d.user?.phone;
+                          const primaryContact = email || phone || (isMember ? `User #${d.userId}` : '-');
+                          const showPhoneSub = Boolean(email && phone);
+
+                          return (
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+                                <Badge
+                                  variant={isMember ? 'cyan' : 'white'}
+                                  size="sm"
+                                  className="text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0"
+                                >
+                                  {isMember ? 'MEMBER' : 'GUEST'}
+                                </Badge>
+                                <span
+                                  className="font-bold text-xs text-black truncate"
+                                  title={primaryContact}
+                                >
+                                  {primaryContact}
+                                </span>
+                              </div>
+                              {showPhoneSub && (
+                                <div className="text-[11px] font-mono text-neutral-500 truncate" title={phone!}>
+                                  {phone}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
+
+                      {/* 3. PEMBAYARAN */}
+                      <td className="p-3">
+                        {(() => {
+                          const methodName = d.paymentMethodRel?.name || d.paymentMethod;
+                          const gatewayName = d.paymentMethodRel?.gateway?.name;
+
+                          return (
+                            <div className="min-w-0">
+                              <div className="font-black text-xs text-black truncate" title={methodName}>
+                                {methodName}
+                              </div>
+                              <div
+                                className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate"
+                                title={gatewayName || '-'}
+                              >
+                                {gatewayName || '-'}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+
+                      {/* 4. NOMINAL */}
+                      <td className="p-3">
+                        <div className="font-black text-xs text-green-700">
+                          Saldo: Rp {d.amount.toLocaleString('id-ID')}
+                        </div>
+                        <div
+                          className="text-[11px] font-mono text-neutral-600 leading-tight mt-0.5 truncate"
+                          title={`Bayar: Rp ${d.totalAmount.toLocaleString('id-ID')}${d.fee > 0 ? ` (Fee: Rp ${d.fee.toLocaleString('id-ID')})` : ''}${d.uniqueCode > 0 ? ` +${d.uniqueCode}` : ''}`}
+                        >
+                          Bayar: <span className="font-bold text-black">Rp {d.totalAmount.toLocaleString('id-ID')}</span>
+                          {d.fee > 0 && <span className="text-neutral-500"> (Fee {d.fee.toLocaleString('id-ID')})</span>}
+                          {d.uniqueCode > 0 && <span className="text-purple-700 font-bold"> +{d.uniqueCode}</span>}
+                        </div>
+                      </td>
+
+                      {/* 5. STATUS */}
+                      <td className="p-3">
+                        <Badge
+                          variant={d.status === 'SUCCESS' ? 'mint' : d.status === 'PENDING' ? 'yellow' : 'pink'}
+                          size="sm"
+                          className="font-black uppercase text-[10px] whitespace-nowrap"
+                        >
+                          {d.status === 'SUCCESS' && <CheckCircle className="w-3 h-3 inline mr-1" />}
+                          {d.status === 'PENDING' && <Clock className="w-3 h-3 inline mr-1" />}
+                          {d.status === 'FAILED' && <XCircle className="w-3 h-3 inline mr-1" />}
+                          {d.status}
+                        </Badge>
+                        {d.failureReason && (
+                          <div className="text-[10px] font-mono text-red-600 mt-0.5 truncate" title={d.failureReason}>
+                            {d.failureReason}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 6. AKSI */}
+                      <td className="p-3 text-right">
+                        {d.status === 'PENDING' ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="mint"
+                              size="sm"
+                              onClick={() => handleConfirm(d.id)}
+                              disabled={processingId === d.id}
+                              className="text-[10px] py-1 px-2 font-black uppercase"
+                            >
+                              KONFIRMASI
+                            </Button>
+                            <Button
+                              variant="pink"
+                              size="sm"
+                              onClick={() => handleReject(d.id)}
+                              disabled={processingId === d.id}
+                              className="text-[10px] py-1 px-2 font-black uppercase"
+                            >
+                              TOLAK
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] font-mono text-neutral-500 whitespace-nowrap">
+                            {new Date(d.paidAt || d.createdAt).toLocaleString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
