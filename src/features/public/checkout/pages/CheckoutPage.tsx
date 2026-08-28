@@ -22,7 +22,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
-import { calculateCheckoutBreakdown, type DiscountType } from '../../../../utils/checkoutCalculator';
+import { calculateCheckoutBreakdown, calculateRewardPoints, type DiscountType } from '../../../../utils/checkoutCalculator';
 import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 
@@ -1861,6 +1861,7 @@ export const CheckoutPage: React.FC = () => {
                         filteredProducts.map((item) => {
                           const isSelected = selectedItem?.id === item.id;
                           const priceVal = item.price || item.priceUser || 0;
+                          const itemPoints = calculateRewardPoints(priceVal);
                           const itemTheme = productThemes[item.id] || 'yellow';
                           const shadowColor = `var(--nb-shadow-${itemTheme})`;
 
@@ -1927,15 +1928,22 @@ export const CheckoutPage: React.FC = () => {
                                 </span>
                               </div>
 
-                              <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between">
-                                <span className={`text-xs font-black ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
+                              <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between gap-1.5">
+                                <span className={`text-xs font-black truncate ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
                                   Rp {priceVal.toLocaleString('id-ID')}
                                 </span>
-                                {effectivelySelected && (
-                                  <div className="w-5 h-5 bg-black text-white border-[1.5px] border-[var(--nb-border)] rounded-full flex items-center justify-center shadow-[1px_1px_0px_0px_var(--nb-shadow)] shrink-0">
-                                    <Check className="w-3 h-3 stroke-[3.5]" />
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {itemPoints > 0 && (
+                                    <span className={`text-[10px] font-black tracking-tight ${effectivelySelected ? 'text-[var(--nb-text-on-accent)] opacity-90' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                                      +{itemPoints.toLocaleString('id-ID')} Poin
+                                    </span>
+                                  )}
+                                  {effectivelySelected && (
+                                    <div className="w-5 h-5 bg-black text-white border-[1.5px] border-[var(--nb-border)] rounded-full flex items-center justify-center shadow-[1px_1px_0px_0px_var(--nb-shadow)] shrink-0">
+                                      <Check className="w-3 h-3 stroke-[3.5]" />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </Card>
                           );
@@ -2222,6 +2230,24 @@ export const CheckoutPage: React.FC = () => {
                     <span className="uppercase">BIAYA LAYANAN:</span>
                     <span>{getCheckoutBreakdown().adminFee > 0 ? '+ Sesuai Metode Pembayaran' : 'GRATIS'}</span>
                   </div>
+
+                  {(() => {
+                    const summaryPoints = calculateRewardPoints(selectedItem?.price);
+                    return (
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-[var(--nb-text-muted)] uppercase">POIN REWARD:</span>
+                        {user ? (
+                          <span className={`font-black ${summaryPoints > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-[var(--nb-text)]'}`}>
+                            {summaryPoints > 0 ? `+${summaryPoints.toLocaleString('id-ID')} POIN` : '0 POIN'}
+                          </span>
+                        ) : (
+                          <span className={`font-black ${summaryPoints > 0 ? 'text-purple-700 dark:text-purple-400 text-[11px]' : 'text-[var(--nb-text-muted)]'}`}>
+                            {summaryPoints > 0 ? `LOGIN UNTUK +${summaryPoints.toLocaleString('id-ID')} POIN` : '-'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Total Payment Box */}

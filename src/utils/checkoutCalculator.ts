@@ -57,3 +57,25 @@ export function calculateCheckoutBreakdown(params: CheckoutBreakdownParams): Che
     grandTotal: grandTotal > 0 ? grandTotal : 0,
   };
 }
+
+/**
+ * Menghitung estimasi perolehan poin reward dari nominal harga produk.
+ * Aturan Bisnis: Setiap kelipatan Rp1.000 = 1 poin (floor).
+ *
+ * Contoh:
+ * - 999     -> 0
+ * - 1000    -> 1
+ * - 1999    -> 1
+ * - 2000    -> 2
+ * - 30344   -> 30
+ * - 31276   -> 31
+ * - 62392   -> 62
+ * - 93425   -> 93
+ * - 1495597 -> 1495
+ */
+export function calculateRewardPoints(amount?: number | null): number {
+  if (typeof amount !== 'number' || isNaN(amount) || amount < 1000) {
+    return 0;
+  }
+  return Math.floor(amount / 1000);
+}

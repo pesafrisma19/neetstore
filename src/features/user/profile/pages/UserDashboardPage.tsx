@@ -98,6 +98,13 @@ export const UserDashboardPage: React.FC = () => {
     }
   }, [authUser]);
 
+  const handleCopyReferral = () => {
+    if (!user.referralCode) return;
+    navigator.clipboard.writeText(user.referralCode);
+    setCopiedReff(true);
+    setTimeout(() => setCopiedReff(false), 2000);
+  };
+
   const userId = authUser?.id;
 
   const user: UserProfile = authUser || {
@@ -467,15 +474,57 @@ export const UserDashboardPage: React.FC = () => {
             variant="white"
           />
 
-          <Stat
-            label="KODE REFERRAL"
-            value={user.referralCode || '-'}
-            subtext="Bagikan kode referral ke teman"
-            badge="KODE"
-            badgeTone="pink"
-            icon={<Share2 className="w-5 h-5 text-black stroke-[3]" />}
-            variant="white"
-          />
+          <Card variant="white" className="p-4 md:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs font-black uppercase tracking-wider text-[var(--nb-text)]/70">KODE REFERRAL</span>
+              <div
+                className="p-1.5 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] rounded-[var(--nb-radius-badge)]"
+                style={{
+                  boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+                }}
+              >
+                <Share2 className="w-5 h-5 text-black stroke-[3]" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <span className="text-xl md:text-2xl font-black font-mono text-[var(--nb-text)] tracking-wider truncate select-text">
+                  {user.referralCode || '-'}
+                </span>
+                <span
+                  className="text-[10px] font-black uppercase px-2 py-0.5 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)] shrink-0"
+                  style={{
+                    boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
+                  }}
+                >
+                  KODE
+                </span>
+              </div>
+              {user.referralCode && (
+                <Button
+                  type="button"
+                  variant={copiedReff ? 'mint' : 'white'}
+                  size="sm"
+                  onClick={handleCopyReferral}
+                  className="py-1 px-2.5 text-[11px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_#000] shrink-0"
+                  title="Salin Kode Referral"
+                >
+                  {copiedReff ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                      <span>DISALIN</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 mr-1 stroke-[3]" />
+                      <span>SALIN</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            <span className="text-xs font-bold text-[var(--nb-text-muted)] mt-2">Bagikan kode referral ke teman</span>
+          </Card>
         </div>
 
         {/* Dashboard Tabs & Content */}
