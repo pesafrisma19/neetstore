@@ -1684,16 +1684,16 @@ export const CheckoutPage: React.FC = () => {
 
             <Tabs defaultValue="topup" value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full justify-start mb-4 !bg-[var(--nb-surface)]">
-                <TabsTrigger value="topup" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-6">
-                  <Zap className="w-4 h-4 stroke-[3] inline mr-2" />
-                  FORM TOP UP
+                <TabsTrigger value="topup" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-5">
+                  <Zap className="w-4 h-4 stroke-[3] inline mr-1.5" />
+                  TOP UP
                 </TabsTrigger>
-                <TabsTrigger value="information" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-6">
-                  <Info className="w-4 h-4 stroke-[3] inline mr-2" />
-                  INFORMASI GAME
+                <TabsTrigger value="information" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-5">
+                  <Info className="w-4 h-4 stroke-[3] inline mr-1.5" />
+                  INFO
                 </TabsTrigger>
-                <TabsTrigger value="reviews" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-6">
-                  <Star className="w-4 h-4 stroke-[3] inline mr-2 fill-current" />
+                <TabsTrigger value="reviews" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-5">
+                  <Star className="w-4 h-4 stroke-[3] inline mr-1.5 fill-current" />
                   ULASAN
                 </TabsTrigger>
               </TabsList>

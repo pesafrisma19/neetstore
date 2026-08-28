@@ -97,7 +97,7 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
                 <span className="text-sm font-bold text-[var(--nb-text-muted)]">/ 5.0</span>
               </div>
               <div className="text-xs font-bold text-[var(--nb-text-muted)]">
-                Berdasarkan <b>{summary.totalReviews}</b> ulasan pembeli terverifikasi
+                Berdasarkan <b>{summary.totalReviews}</b> ulasan
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {reviews.map((review) => {
             const sat = getSatisfactionLabel(review.satisfaction);
             const isLiked = review.viewerHasLiked;
@@ -163,65 +163,67 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
                 key={review.id}
                 variant="white"
                 shadow="md"
-                className="border-[2.5px] border-black rounded-2xl p-3.5 flex flex-col justify-between gap-3 text-left transition-all hover:translate-y-[-1px]"
+                className="border-[2.5px] border-black rounded-xl p-3 flex flex-col gap-2 text-left transition-all hover:translate-y-[-1px]"
               >
-                <div className="space-y-2">
-                  
-                  {/* Row 1: Anonymous Avatar + Masked Email + Date */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      {/* Default Anonymous Avatar — Always uniform for privacy */}
-                      <div className="w-7 h-7 rounded-lg bg-neutral-200 border-[1.5px] border-black flex items-center justify-center shrink-0 font-black text-xs shadow-[1.5px_1.5px_0px_0px_#000]">
-                        👤
-                      </div>
-                      <span className="font-black text-xs text-[var(--nb-text)] font-mono truncate">
-                        {review.reviewerEmail}
-                      </span>
+                {/* Row 1: Avatar + Masked Email (left) | Date (right) */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {/* Default Anonymous Avatar */}
+                    <div className="w-6 h-6 rounded-md bg-neutral-200 border-[1.5px] border-black flex items-center justify-center shrink-0 font-black text-[11px] shadow-[1px_1px_0px_0px_#000]">
+                      👤
                     </div>
-
-                    <span className="text-[10px] font-bold font-mono text-[var(--nb-text-muted)] shrink-0">
-                      {formatReviewDate(review.createdAt)}
+                    <span className="font-black text-xs text-[var(--nb-text)] font-mono truncate">
+                      {review.reviewerEmail}
                     </span>
                   </div>
 
-                  {/* Row 2: Item Name (e.g. 86 Diamonds) */}
-                  <div className="text-[11px] font-black uppercase text-indigo-700 dark:text-indigo-400 truncate pl-9">
-                    {review.product.name}
-                  </div>
-
-                  {/* Row 3: Rating Stars + Satisfaction Badge */}
-                  <div className="flex items-center gap-2 pl-9">
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          className={`w-3.5 h-3.5 stroke-[2.5] ${
-                            s <= review.rating ? 'fill-black text-black' : 'text-neutral-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <Badge variant={sat.tone} size="sm" className="font-black text-[9px] uppercase px-1.5 py-0.5">
-                      {sat.text}
-                    </Badge>
-                  </div>
-
-                  {/* Row 4: Optional Comment */}
-                  {review.comment && (
-                    <p className="text-xs font-bold text-[var(--nb-text)] pl-9 pt-0.5 leading-relaxed break-words m-0">
-                      "{review.comment}"
-                    </p>
-                  )}
-
+                  <span className="text-[10px] font-bold font-mono text-[var(--nb-text-muted)] shrink-0">
+                    {formatReviewDate(review.createdAt)}
+                  </span>
                 </div>
 
-                {/* Footer: Like Action Button */}
-                <div className="flex items-center justify-end pt-2 border-t-[1.5px] border-dashed border-neutral-200 pl-9">
+                {/* Row 2: Item Name (e.g. 86 Diamonds) */}
+                <div className="text-[11px] font-black uppercase text-indigo-700 dark:text-indigo-400 truncate">
+                  {review.product.name}
+                </div>
+
+                {/* Row 3: Rating Stars + Satisfaction Badge */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-3.5 h-3.5 stroke-[2.5] ${
+                          s <= review.rating ? 'fill-black text-black' : 'text-neutral-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <Badge variant={sat.tone} size="sm" className="font-black text-[9px] uppercase px-1.5 py-0.5">
+                    {sat.text}
+                  </Badge>
+                </div>
+
+                {/* Row 4: Komentar (kiri) + Like (kanan) */}
+                <div className="flex items-end justify-between gap-2 pt-1 border-t border-dashed border-neutral-200">
+                  <div className="min-w-0 flex-1">
+                    {review.comment ? (
+                      <p className="text-xs font-bold text-[var(--nb-text)] leading-relaxed break-words m-0">
+                        "{review.comment}"
+                      </p>
+                    ) : (
+                      <span className="text-[11px] font-bold text-[var(--nb-text-muted)] italic">
+                        Tanpa komentar
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Like Button */}
                   <button
                     type="button"
                     onClick={() => handleLikeClick(review)}
                     disabled={likeMutation.isPending}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 border-[1.5px] border-black rounded-lg text-xs font-black transition-all cursor-pointer shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 border-[1.5px] border-black rounded-md text-xs font-black transition-all cursor-pointer shadow-[1px_1px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] shrink-0 ${
                       isLiked
                         ? 'bg-rose-100 text-rose-700 border-rose-600'
                         : 'bg-white hover:bg-neutral-50 text-neutral-700'
@@ -229,7 +231,7 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
                     aria-label={`Sukai ulasan (${review.likeCount} suka)`}
                   >
                     <Heart
-                      className={`w-3.5 h-3.5 stroke-[2.5] ${
+                      className={`w-3 h-3 stroke-[2.5] ${
                         isLiked ? 'fill-rose-600 text-rose-600' : 'text-neutral-500'
                       }`}
                     />
