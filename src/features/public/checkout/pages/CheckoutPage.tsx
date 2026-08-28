@@ -1952,22 +1952,22 @@ export const CheckoutPage: React.FC = () => {
                                 </span>
                               </div>
 
-                              <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-center justify-between gap-1.5">
-                                <span className={`text-xs font-black truncate ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
-                                  Rp {priceVal.toLocaleString('id-ID')}
-                                </span>
-                                <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="relative z-20 mt-3 pt-2 border-t-[1.5px] border-[var(--nb-border)]/40 flex items-end justify-between gap-1.5">
+                                <div className="flex flex-col min-w-0 flex-1">
+                                  <span className={`text-xs sm:text-[13px] font-black leading-tight break-words ${effectivelySelected ? 'text-[var(--nb-text-on-accent)]' : (isCardDisabled ? 'text-neutral-500' : 'text-[var(--nb-text)]')}`}>
+                                    Rp {priceVal.toLocaleString('id-ID')}
+                                  </span>
                                   {itemPoints > 0 && (
-                                    <span className={`text-[10px] font-black tracking-tight ${effectivelySelected ? 'text-[var(--nb-text-on-accent)] opacity-90' : 'text-emerald-700 dark:text-emerald-400'}`}>
-                                      +{itemPoints.toLocaleString('id-ID')} Poin
+                                    <span className={`text-[10px] font-black tracking-tight mt-0.5 ${effectivelySelected ? 'text-[var(--nb-text-on-accent)] opacity-90' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                                      Dapat +{itemPoints.toLocaleString('id-ID')} Poin
                                     </span>
                                   )}
-                                  {effectivelySelected && (
-                                    <div className="w-5 h-5 bg-black text-white border-[1.5px] border-[var(--nb-border)] rounded-full flex items-center justify-center shadow-[1px_1px_0px_0px_var(--nb-shadow)] shrink-0">
-                                      <Check className="w-3 h-3 stroke-[3.5]" />
-                                    </div>
-                                  )}
                                 </div>
+                                {effectivelySelected && (
+                                  <div className="w-5 h-5 bg-black text-white border-[1.5px] border-[var(--nb-border)] rounded-full flex items-center justify-center shadow-[1px_1px_0px_0px_var(--nb-shadow)] shrink-0 mb-0.5">
+                                    <Check className="w-3 h-3 stroke-[3.5]" />
+                                  </div>
+                                )}
                               </div>
                             </Card>
                           );
@@ -2338,13 +2338,15 @@ export const CheckoutPage: React.FC = () => {
                   className="!py-3 !px-3.5 shadow-[3px_3px_0px_0px_var(--nb-shadow)] hover:translate-x-[-1px] hover:translate-y-[-1px] active:translate-x-[2px] active:translate-y-[2px]"
                 >
                   <div className="flex items-center justify-between w-full gap-2 text-left">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-black text-xs sm:text-sm uppercase tracking-wide truncate">KONFIRMASI PESANAN</span>
+                    <span className="font-black text-xs sm:text-sm uppercase tracking-wider shrink-0">
+                      KONFIRMASI
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="font-black text-xs sm:text-sm whitespace-nowrap bg-black/15 dark:bg-white/20 px-2.5 py-1 rounded border border-black/20 text-[var(--nb-text)]">
+                        Rp {calculateTotal().toLocaleString('id-ID')}
+                      </span>
                       <ArrowRight className="w-4 h-4 stroke-[3] shrink-0" />
                     </div>
-                    <span className="font-black text-sm sm:text-base whitespace-nowrap bg-black/15 dark:bg-white/20 px-2.5 py-1 rounded border border-black/20 text-[var(--nb-text)] shrink-0">
-                      Rp {calculateTotal().toLocaleString('id-ID')}
-                    </span>
                   </div>
                 </Button>
 
