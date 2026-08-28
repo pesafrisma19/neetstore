@@ -449,7 +449,7 @@ export const UserDashboardPage: React.FC = () => {
         <div id="user-dashboard-tabs">
           <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
             {/* Horizontal Scrollable Tabs on Mobile (Single Line, No Wrap) */}
-            <div className="overflow-x-auto no-scrollbar pb-1">
+            <div className="overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <TabsList className="flex flex-nowrap min-w-max h-auto gap-2 p-2 bg-neutral-900 border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000]">
                 <TabsTrigger value="overview" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
                   RINGKASAN
@@ -457,7 +457,7 @@ export const UserDashboardPage: React.FC = () => {
                 <TabsTrigger value="transactions" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
                   TRANSAKSI ({totalTransactions})
                 </TabsTrigger>
-                <TabsTrigger value="points" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap text-amber-300">
+                <TabsTrigger value="points" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
                   RIWAYAT POIN ({totalPointMutations})
                 </TabsTrigger>
                 <TabsTrigger value="mutations" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
