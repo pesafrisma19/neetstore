@@ -871,14 +871,13 @@ export const CheckoutPage: React.FC = () => {
     return map;
   }, [availableRegions]);
 
-  // Generate warna acak untuk kotak Ringkasan Pesanan (Promo button, Total Pembayaran box, Submit button)
-  const { promoButtonTheme, totalBoxTheme, submitButtonTheme } = React.useMemo(() => {
+  // Generate warna acak untuk tombol Ringkasan Pesanan (Promo button & Submit button)
+  const { promoButtonTheme, submitButtonTheme } = React.useMemo(() => {
     const themes = ['yellow', 'pink', 'mint', 'purple', 'cyan'] as const;
     const shuffled = [...themes].sort(() => Math.random() - 0.5);
     return {
       promoButtonTheme: shuffled[0],
-      totalBoxTheme: shuffled[1],
-      submitButtonTheme: shuffled[2],
+      submitButtonTheme: shuffled[1],
     };
   }, []);
 
@@ -2168,10 +2167,10 @@ export const CheckoutPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
 
-              <CardContent className="flex flex-col gap-4">
+              <CardContent className="flex flex-col gap-3">
 
                 {/* Promo Code Input */}
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Kode Promo (NEON30)"
@@ -2202,9 +2201,9 @@ export const CheckoutPage: React.FC = () => {
                 </div>
 
                 {appliedDiscount > 0 && (
-                  <div className="bg-[var(--nb-mint)] text-[var(--nb-text)] p-2.5 border-[2px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex items-center justify-between font-bold text-sm">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-5 h-5 stroke-[3]" />
+                  <div className="bg-[var(--nb-mint)] text-[var(--nb-text)] p-2 border-[2px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex items-center justify-between font-bold text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 stroke-[3]" />
                       <span className="uppercase">PROMO {appliedVoucherCode || promoCode} DITERAPKAN!</span>
                     </div>
                     <button type="button" onClick={handleRemovePromo} className="text-xs text-red-600 underline font-black">
@@ -2214,7 +2213,7 @@ export const CheckoutPage: React.FC = () => {
                 )}
 
                 {/* 🪙 TUKAR POIN REWARD SECTION */}
-                <div className="bg-[var(--nb-surface)] p-3 border-[2px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex flex-col gap-2">
+                <div className="bg-[var(--nb-surface)] p-2.5 border-[2px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-black text-xs uppercase text-[var(--nb-text)]">
                       <Coins className="w-4 h-4 text-amber-500" />
@@ -2234,7 +2233,7 @@ export const CheckoutPage: React.FC = () => {
                   {user && (
                     <div className="pt-1.5 border-t border-black/10">
                       {userPoints > 0 ? (
-                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={usePoints}
@@ -2253,7 +2252,7 @@ export const CheckoutPage: React.FC = () => {
                           </div>
                         </label>
                       ) : (
-                        <span className="text-[11px] font-bold text-[var(--nb-text-muted)]">
+                        <span className="text-[10px] font-bold text-[var(--nb-text-muted)]">
                           Saldo poin Anda 0. Kumpulkan poin dari setiap transaksi sukses!
                         </span>
                       )}
@@ -2261,7 +2260,7 @@ export const CheckoutPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="border-t-[2px] border-b-[2px] border-[var(--nb-border)] py-3 flex flex-col gap-2 text-xs font-bold">
+                <div className="border-t-[2px] border-b-[2px] border-[var(--nb-border)] py-2.5 flex flex-col gap-1.5 text-xs font-bold">
                   <div className="flex justify-between">
                     <span className="text-[var(--nb-text-muted)] uppercase">GAME:</span>
                     <span className="font-black text-[var(--nb-text)]">{gameTitle}</span>
@@ -2293,20 +2292,20 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                   
                   {appliedDiscount > 0 && (
-                    <div className="flex justify-between items-center text-sm font-bold text-[#FF4D79]">
+                    <div className="flex justify-between items-center text-xs font-bold text-[#FF4D79]">
                       <span className="uppercase">POTONGAN PROMO:</span>
                       <span>- Rp {getCheckoutBreakdown().discountAmount.toLocaleString('id-ID')}</span>
                     </div>
                   )}
 
                   {getCheckoutBreakdown().pointsUsed > 0 && (
-                    <div className="flex justify-between items-center text-sm font-bold text-amber-600 dark:text-amber-400">
+                    <div className="flex justify-between items-center text-xs font-bold text-amber-600 dark:text-amber-400">
                       <span className="uppercase">POTONGAN POIN:</span>
                       <span>- Rp {getCheckoutBreakdown().pointsUsed.toLocaleString('id-ID')}</span>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center text-sm font-bold text-[var(--nb-text-muted)]">
+                  <div className="flex justify-between items-center text-xs font-bold text-[var(--nb-text-muted)]">
                     <span className="uppercase">BIAYA LAYANAN:</span>
                     <span>{getCheckoutBreakdown().adminFee > 0 ? '+ Sesuai Metode Pembayaran' : 'GRATIS'}</span>
                   </div>
@@ -2330,21 +2329,26 @@ export const CheckoutPage: React.FC = () => {
                   })()}
                 </div>
 
-                {/* Total Payment Box */}
-                <Card variant={totalBoxTheme} shadow="sm" className="flex flex-col gap-1 p-3 !rounded-none border-[3px]">
-                  <span className="text-[10px] font-black uppercase text-[#000000]">TOTAL PEMBAYARAN:</span>
-                  <span className="text-2xl font-black text-[#000000]">
-                    Rp {calculateTotal().toLocaleString('id-ID')}
-                  </span>
-                </Card>
-
-                {/* Submit CTA */}
-                <Button type="submit" variant={submitButtonTheme} size="lg" fullWidth>
-                  <span>KONFIRMASI PESANAN</span>
-                  <ArrowRight className="w-5 h-5 stroke-[3]" />
+                {/* Submit CTA with Combined Total Payment */}
+                <Button
+                  type="submit"
+                  variant={submitButtonTheme}
+                  size="lg"
+                  fullWidth
+                  className="!py-3 !px-3.5 shadow-[3px_3px_0px_0px_var(--nb-shadow)] hover:translate-x-[-1px] hover:translate-y-[-1px] active:translate-x-[2px] active:translate-y-[2px]"
+                >
+                  <div className="flex items-center justify-between w-full gap-2 text-left">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-black text-xs sm:text-sm uppercase tracking-wide truncate">KONFIRMASI PESANAN</span>
+                      <ArrowRight className="w-4 h-4 stroke-[3] shrink-0" />
+                    </div>
+                    <span className="font-black text-sm sm:text-base whitespace-nowrap bg-black/15 dark:bg-white/20 px-2.5 py-1 rounded border border-black/20 text-[var(--nb-text)] shrink-0">
+                      Rp {calculateTotal().toLocaleString('id-ID')}
+                    </span>
+                  </div>
                 </Button>
 
-                <p className="text-[10px] font-bold text-center text-[var(--nb-text-muted)]">
+                <p className="text-[10px] font-bold text-center text-[var(--nb-text-muted)] m-0">
                   Periksa kembali User ID akun Anda sebelum melakukan konfirmasi pembayaran.
                 </p>
 
