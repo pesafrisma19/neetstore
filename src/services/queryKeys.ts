@@ -27,6 +27,10 @@ export const queryKeys = {
       all: ['user', 'mutations'] as const,
       byUser: (userId: number | string) => ['user', userId, 'mutations'] as const,
     },
+    pointMutations: {
+      all: ['user', 'point-mutations'] as const,
+      byUser: (userId: number | string, page?: number) => ['user', userId, 'point-mutations', page] as const,
+    },
     deposits: {
       all: ['user', 'deposits'] as const,
       history: (userId: number | string) => ['user', userId, 'deposits'] as const,

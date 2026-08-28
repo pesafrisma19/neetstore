@@ -3,21 +3,16 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
-import { Stat } from '../../../../components/ui/Stat';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
-import { Avatar } from '../../../../components/ui/Avatar';
 import { Callout } from '../../../../components/ui/Callout';
 import { Dialog } from '../../../../components/ui/Dialog';
 import {
-  Wallet,
   History,
   ShieldCheck,
-  Zap,
-  RefreshCw,
   PlusCircle,
   Copy,
   Check,
@@ -26,14 +21,10 @@ import {
   Key,
   Award,
   AlertCircle,
-  Share2,
-  Edit3,
   Trash2,
   Radio,
   Eye,
   EyeOff,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -41,6 +32,7 @@ import {
   updateUserProfile,
   getUserTransactions,
   getUserMutations,
+  getUserPointMutations,
   requestUserApiKey,
   getUserLevelUpgradeInfo,
   upgradeUserLevel,
@@ -52,9 +44,18 @@ import {
   deleteUserWebhookConfig,
   testUserWebhookConfig,
   type UserTransactionItem,
+  type UserPointMutationItem,
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { queryClient } from '../../../../services/queryClient';
+
+// Modular Child Components
+import { UserDashboardHeader } from '../components/UserDashboardHeader';
+import { UserWalletOverview } from '../components/UserWalletOverview';
+import { UserAccountSummary } from '../components/UserAccountSummary';
+import { UserTransactionsTab } from '../components/UserTransactionsTab';
+import { UserPointMutationsTab } from '../components/UserPointMutationsTab';
+import { UserBalanceMutationsTab } from '../components/UserBalanceMutationsTab';
 import { UserDepositSection } from '../components/UserDepositSection';
 
 export const UserDashboardPage: React.FC = () => {
@@ -68,6 +69,9 @@ export const UserDashboardPage: React.FC = () => {
   // Pagination States for Tabs
   const [txPage, setTxPage] = useState(1);
   const txPageSize = 15;
+
+  const [pointPage, setPointPage] = useState(1);
+  const pointPageSize = 15;
 
   const [mutationPage, setMutationPage] = useState(1);
   const mutationPageSize = 15;
@@ -111,15 +115,14 @@ export const UserDashboardPage: React.FC = () => {
     id: 0,
     username: '',
     balance: 0,
+    points: 0,
     role: 'USER',
     level: 'MEMBER',
     apiStatus: 'NONE',
   };
 
-  // 1b. Overview Latest Transactions Query (5 items, fixed & independent from txPage)
-  const {
-    data: overviewTxData,
-  } = useQuery<any>({
+  // 1. Overview Latest Transactions Query (5 items, fixed & independent from txPage)
+  const { data: overviewTxData } = useQuery<any>({
     queryKey: ['user', 'overview-transactions', userId],
     queryFn: () => getUserTransactions({ page: 1, limit: 5 }),
     enabled: Boolean(userId),
@@ -136,7 +139,7 @@ export const UserDashboardPage: React.FC = () => {
     isLoading: isFetchingTx,
     refetch: refetchTx,
   } = useQuery<any>({
-    queryKey: ['user', 'transactions', userId, txPage],
+    queryKey: queryKeys.user.transactions.byUser(userId || 0),
     queryFn: () => getUserTransactions({ page: txPage, limit: txPageSize }),
     enabled: Boolean(userId),
     staleTime: 30 * 1000,
@@ -158,10 +161,37 @@ export const UserDashboardPage: React.FC = () => {
     ? (transactionsData as any)._meta.totalPages
     : Math.max(1, Math.ceil(totalTransactions / txPageSize));
 
-  const startTxItem = totalTransactions === 0 ? 0 : (txPage - 1) * txPageSize + 1;
-  const endTxItem = Math.min(txPage * txPageSize, totalTransactions);
+  // 3. Fetch Paginated Point Mutations for Tab 3 (NEW: RIWAYAT POIN)
+  const {
+    data: pointMutationsData,
+    isLoading: isFetchingPoints,
+    refetch: refetchPoints,
+  } = useQuery<any>({
+    queryKey: queryKeys.user.pointMutations.byUser(userId || 0, pointPage),
+    queryFn: () => getUserPointMutations({ page: pointPage, limit: pointPageSize }),
+    enabled: Boolean(userId),
+    staleTime: 30 * 1000,
+  });
 
-  // 3. Fetch Paginated Balance Mutations for Tab 3
+  const pointMutations: UserPointMutationItem[] = Array.isArray(pointMutationsData?.data)
+    ? pointMutationsData.data
+    : Array.isArray(pointMutationsData)
+    ? pointMutationsData
+    : [];
+
+  const totalPointMutations = typeof pointMutationsData?.total === 'number'
+    ? pointMutationsData.total
+    : typeof pointMutationsData?._meta?.totalCount === 'number'
+    ? pointMutationsData._meta.totalCount
+    : pointMutations.length;
+
+  const totalPointPages = typeof pointMutationsData?.totalPages === 'number'
+    ? pointMutationsData.totalPages
+    : typeof pointMutationsData?._meta?.totalPages === 'number'
+    ? pointMutationsData._meta.totalPages
+    : Math.max(1, Math.ceil(totalPointMutations / pointPageSize));
+
+  // 4. Fetch Paginated Balance Mutations for Tab 4
   const {
     data: mutationsData,
     isLoading: isFetchingMutations,
@@ -186,9 +216,6 @@ export const UserDashboardPage: React.FC = () => {
   const totalMutationPages = typeof (mutationsData as any)?._meta?.totalPages === 'number'
     ? (mutationsData as any)._meta.totalPages
     : Math.max(1, Math.ceil(totalMutations / mutationPageSize));
-
-  const startMutItem = totalMutations === 0 ? 0 : (mutationPage - 1) * mutationPageSize + 1;
-  const endMutItem = Math.min(mutationPage * mutationPageSize, totalMutations);
 
   // Mutation Update Profile
   const updateProfileMutation = useMutation({
@@ -225,7 +252,6 @@ export const UserDashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.levelUpgradeInfo });
     },
     onError: (err: any) => {
-      // Modal TETAP TERBUKA untuk menampilkan pesan error ke user
       setModalError(err.message || 'Gagal melakukan upgrade level');
     },
   });
@@ -279,9 +305,7 @@ export const UserDashboardPage: React.FC = () => {
     },
   });
 
-  // ==========================================
-  // OUTBOUND WEBHOOK STATE & MUTATIONS
-  // ==========================================
+  // Outbound Webhook State & Mutations
   const [webhookUrlInput, setWebhookUrlInput] = useState('');
   const [webhookMsg, setWebhookMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
@@ -361,7 +385,7 @@ export const UserDashboardPage: React.FC = () => {
   }
 
   const formatRupiah = (val: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
   };
 
   const formatDate = (dateStr: string) => {
@@ -394,205 +418,67 @@ export const UserDashboardPage: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)] font-sans">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left">
-        {/* User Profile Header Box */}
-        <Card variant="yellow" shadow="xl" className="p-6 md:p-8 mb-8 border-[4px] rounded-3xl">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <Avatar
-                fallback={user.username.substring(0, 2).toUpperCase()}
-                variant="pink"
-                size="lg"
-                className="border-[3px] border-black shadow-[3px_3px_0px_0px_#000]"
-              />
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-black uppercase text-black m-0">{user.username}</h1>
-                  <Badge variant={user.level === 'VIP' ? 'pink' : user.level === 'RESELLER' ? 'purple' : 'mint'} size="sm">
-                    {user.level} MEMBER
-                  </Badge>
-                  {user.verified && (
-                    <Badge variant="mint" size="sm" className="flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 stroke-[3]" /> VERIFIED
-                    </Badge>
-                  )}
-                  {user.role === 'ADMIN' && (
-                    <Badge variant="yellow" size="sm">ADMIN</Badge>
-                  )}
-                </div>
-                <p className="text-xs font-bold text-black/80 font-mono">
-                  {user.fullname ? `${user.fullname} • ` : ''}
-                  {user.email || user.phone || 'Belum Melengkapi Kontak'} • Member ID: #{user.id}
-                </p>
-              </div>
-            </div>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 text-left">
+        {/* 1. Profile Header (Compact & Responsive) */}
+        <UserDashboardHeader user={user} />
 
-            <div className="flex items-center gap-3">
-              <Button variant="pink" size="md" onClick={handleOpenDepositTab} className="font-black text-xs shadow-[3px_3px_0px_0px_#000]">
-                <PlusCircle className="w-4 h-4 stroke-[3]" />
-                DEPOSIT SALDO
-              </Button>
-              <Link to="/">
-                <Button variant="white" size="md" className="font-black text-xs shadow-[3px_3px_0px_0px_#000]">
-                  <Zap className="w-4 h-4 fill-black stroke-[2]" />
-                  TOP UP BARU
-                </Button>
-              </Link>
-            </div>
+        {/* 2. Wallet Hero + Secondary Summary Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 items-stretch">
+          {/* Left 8 Cols: Wallet Hero Card */}
+          <div className="lg:col-span-8">
+            <UserWalletOverview
+              balance={user.balance || 0}
+              points={user.points || 0}
+              onOpenDeposit={handleOpenDepositTab}
+            />
           </div>
-        </Card>
 
-        {/* 4 Metric Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Stat
-            label="SALDO NETSTORE"
-            value={formatRupiah(user.balance || 0)}
-            subtext="Tersedia untuk transaksi instan"
-            badge="SALDO"
-            badgeTone="yellow"
-            icon={<Wallet className="w-5 h-5 text-black stroke-[3]" />}
-            variant="white"
-          />
-
-          <Stat
-            label="POIN REWARD"
-            value={`${(user.points || 0).toLocaleString('id-ID')} Pts`}
-            subtext="Dapat dikumpulkan dari transaksi"
-            badge="POIN"
-            badgeTone="mint"
-            icon={<Award className="w-5 h-5 text-black stroke-[3]" />}
-            variant="white"
-          />
-
-          <Stat
-            label="TOTAL PESANAN"
-            value={`${totalTransactions} Transaction`}
-            subtext={`${transactions.filter((t) => t.orderStatus === 'SUCCESS').length} Berhasil • ${transactions.filter((t) => t.orderStatus === 'PENDING').length} Pending`}
-            badge="HISTORI"
-            badgeTone="purple"
-            icon={<History className="w-5 h-5 text-black stroke-[3]" />}
-            variant="white"
-          />
-
-          <Card variant="white" className="p-4 md:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-black uppercase tracking-wider text-[var(--nb-text)]/70">KODE REFERRAL</span>
-              <div
-                className="p-1.5 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] bg-[var(--nb-surface-alt)] rounded-[var(--nb-radius-badge)]"
-                style={{
-                  boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
-                }}
-              >
-                <Share2 className="w-5 h-5 text-black stroke-[3]" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-baseline gap-2 min-w-0">
-                <span className="text-xl md:text-2xl font-black font-mono text-[var(--nb-text)] tracking-wider truncate select-text">
-                  {user.referralCode || '-'}
-                </span>
-                <span
-                  className="text-[10px] font-black uppercase px-2 py-0.5 border-[length:var(--nb-border-width-sm)] border-[var(--nb-border)] rounded-[var(--nb-radius-badge)] bg-[var(--nb-pink)] text-[var(--nb-text-on-accent)] shrink-0"
-                  style={{
-                    boxShadow: `var(--nb-shadow-sm-x) var(--nb-shadow-sm-y) var(--nb-shadow-blur) var(--nb-shadow-spread) var(--nb-shadow)`,
-                  }}
-                >
-                  KODE
-                </span>
-              </div>
-              {user.referralCode && (
-                <Button
-                  type="button"
-                  variant={copiedReff ? 'mint' : 'white'}
-                  size="sm"
-                  onClick={handleCopyReferral}
-                  className="py-1 px-2.5 text-[11px] font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_#000] shrink-0"
-                  title="Salin Kode Referral"
-                >
-                  {copiedReff ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 mr-1 stroke-[3]" />
-                      <span>DISALIN</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 mr-1 stroke-[3]" />
-                      <span>SALIN</span>
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-            <span className="text-xs font-bold text-[var(--nb-text-muted)] mt-2">Bagikan kode referral ke teman</span>
-          </Card>
+          {/* Right 4 Cols: Account Summary (Transactions & Referral) */}
+          <div className="lg:col-span-4">
+            <UserAccountSummary
+              totalTransactions={totalTransactions}
+              referralCode={user.referralCode}
+              copiedReff={copiedReff}
+              onCopyReferral={handleCopyReferral}
+              onViewTransactions={() => setActiveTab('transactions')}
+            />
+          </div>
         </div>
 
-        {/* Dashboard Tabs & Content */}
+        {/* 3. Dashboard Tabs & Content */}
         <div id="user-dashboard-tabs">
           <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="flex-wrap h-auto gap-2 p-2 bg-neutral-900 border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000]">
-              <TabsTrigger value="overview" className="font-black text-xs uppercase cursor-pointer">RINGKASAN</TabsTrigger>
-              <TabsTrigger value="transactions" className="font-black text-xs uppercase cursor-pointer">TRANSAKSI ({totalTransactions})</TabsTrigger>
-              <TabsTrigger value="mutations" className="font-black text-xs uppercase cursor-pointer">MUTASI SALDO ({mutations.length})</TabsTrigger>
-              <TabsTrigger value="deposit" className="font-black text-xs uppercase cursor-pointer">ISI SALDO & HISTORI</TabsTrigger>
-              <TabsTrigger value="api" className="font-black text-xs uppercase cursor-pointer">DEVELOPER API</TabsTrigger>
-              <TabsTrigger value="settings" className="font-black text-xs uppercase cursor-pointer">PENGATURAN PROFIL</TabsTrigger>
-            </TabsList>
+            {/* Horizontal Scrollable Tabs on Mobile (Single Line, No Wrap) */}
+            <div className="overflow-x-auto no-scrollbar pb-1">
+              <TabsList className="flex flex-nowrap min-w-max h-auto gap-2 p-2 bg-neutral-900 border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000]">
+                <TabsTrigger value="overview" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
+                  RINGKASAN
+                </TabsTrigger>
+                <TabsTrigger value="transactions" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
+                  TRANSAKSI ({totalTransactions})
+                </TabsTrigger>
+                <TabsTrigger value="points" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap text-amber-300">
+                  RIWAYAT POIN ({totalPointMutations})
+                </TabsTrigger>
+                <TabsTrigger value="mutations" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
+                  MUTASI SALDO ({totalMutations})
+                </TabsTrigger>
+                <TabsTrigger value="deposit" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
+                  ISI SALDO & HISTORI
+                </TabsTrigger>
+                <TabsTrigger value="api" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
+                  DEVELOPER API
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="font-black text-xs uppercase cursor-pointer whitespace-nowrap">
+                  PENGATURAN PROFIL
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* TAB 1: OVERVIEW */}
             <TabsContent value="overview">
               <div className="space-y-6 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* RINGKASAN PROFIL */}
-                  <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl overflow-hidden">
-                    <CardHeader headerBg="#00F0FF" className="border-b-[3px] border-black flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
-                        <User className="w-4 h-4 stroke-[3]" />
-                        INFORMASI AKUN PENGGUNA
-                      </CardTitle>
-                      <Button variant="white" size="sm" onClick={() => setActiveTab('settings')} className="text-[10px] font-black py-1 px-2">
-                        <Edit3 className="w-3 h-3 mr-1" /> EDIT PROFIL
-                      </Button>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-5 space-y-3 text-xs">
-                      <div className="flex justify-between py-1.5 border-b border-neutral-200">
-                        <span className="font-bold text-neutral-500 uppercase">Username:</span>
-                        <span className="font-black font-mono text-black">{user.username}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 border-b border-neutral-200">
-                        <span className="font-bold text-neutral-500 uppercase">Nama Lengkap:</span>
-                        <span className="font-black text-black">{user.fullname || 'Belum diisi'}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 border-b border-neutral-200">
-                        <span className="font-bold text-neutral-500 uppercase">Email:</span>
-                        <span className="font-bold font-mono text-black">{user.email || 'Belum diisi'}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 border-b border-neutral-200">
-                        <span className="font-bold text-neutral-500 uppercase">No. WhatsApp:</span>
-                        <span className="font-bold font-mono text-black">{user.phone || 'Belum diisi'}</span>
-                      </div>
-                      <div className="flex justify-between py-1.5 border-b border-neutral-200">
-                        <span className="font-bold text-neutral-500 uppercase">Kode Referral:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black font-mono text-black">{user.referralCode || '-'}</span>
-                          {user.referralCode && (
-                            <button
-                              onClick={() => handleCopy(user.referralCode!, 'reff')}
-                              className="p-1 hover:bg-neutral-200 rounded transition-colors"
-                              title="Salin Kode Referral"
-                            >
-                              {copiedReff ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5 text-black stroke-[2.5]" />}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex justify-between py-1.5">
-                        <span className="font-bold text-neutral-500 uppercase">Tanggal Terdaftar:</span>
-                        <span className="font-mono text-black">{formatDate(user.createdAt || '')}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   {/* CARD UPGRADE LEVEL MEMBERSHIP */}
                   <Card variant="white" shadow="lg" borderWidth="3" className="rounded-2xl overflow-hidden">
                     <CardHeader headerBg="var(--nb-mint)" className="flex items-center justify-between">
@@ -763,222 +649,54 @@ export const UserDashboardPage: React.FC = () => {
 
             {/* TAB 2: RIWAYAT TRANSAKSI */}
             <TabsContent value="transactions">
-              <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl overflow-hidden">
-                <CardHeader headerBg="#6EE7B7" className="border-b-[3px] border-black flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
-                    <History className="w-4 h-4 stroke-[3]" />
-                    RIWAYAT PEMBELIAN & TOP UP PESANAN
-                  </CardTitle>
-                  <RefreshCw
-                    className="w-4 h-4 stroke-[3] cursor-pointer hover:rotate-180 transition-transform text-black"
-                    onClick={() => refetchTx()}
-                  />
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>INVOICE ID</TableHead>
-                        <TableHead>PRODUK</TableHead>
-                        <TableHead>TANGGAL</TableHead>
-                        <TableHead>TOTAL</TableHead>
-                        <TableHead>PEMBAYARAN</TableHead>
-                        <TableHead>STATUS PESANAN</TableHead>
-                        <TableHead className="text-right">STRUK</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isFetchingTx ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 font-black text-xs uppercase">
-                            Memuat data transaksi dari server...
-                          </TableCell>
-                        </TableRow>
-                      ) : transactions.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 font-black text-xs text-neutral-500 uppercase">
-                            Belum ada riwayat transaksi.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        transactions.map((tx: UserTransactionItem) => (
-                          <TableRow key={tx.id}>
-                            <TableCell className="font-mono font-black text-xs text-black">
-                              {tx.providerRef || `TRX-${tx.id}`}
-                            </TableCell>
-                            <TableCell className="font-bold text-xs uppercase">
-                              {tx.product?.name || `Produk #${tx.productId}`}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs text-neutral-600">{formatDate(tx.createdAt)}</TableCell>
-                            <TableCell className="font-mono font-black text-xs text-black">{formatRupiah(tx.amount)}</TableCell>
-                            <TableCell className="font-mono text-xs uppercase font-bold text-neutral-700">{tx.paymentMethod}</TableCell>
-                            <TableCell>
-                              <Badge variant={tx.orderStatus === 'SUCCESS' ? 'mint' : tx.orderStatus === 'PROCESS' ? 'yellow' : 'pink'} size="sm">
-                                {tx.orderStatus}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Link to={`/invoice/${tx.providerRef || tx.id}`}>
-                                <Button variant="yellow" size="sm" className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]">
-                                  STRUK
-                                </Button>
-                              </Link>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-
-                  {/* Pagination Footer Tab 2 */}
-                  {totalTransactions > 0 && (
-                    <div className="bg-neutral-50 border-t-[3px] border-black p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
-                      <div className="text-neutral-600">
-                        Menampilkan <span className="text-black font-black">{startTxItem}–{endTxItem}</span> dari <span className="text-black font-black">{totalTransactions}</span> transaksi {totalTxPages > 1 ? `(Halaman ${txPage} dari ${totalTxPages})` : ''}
-                      </div>
-                      {totalTxPages > 1 && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="white"
-                            size="sm"
-                            disabled={txPage <= 1 || isFetchingTx}
-                            onClick={() => setTxPage((p) => Math.max(1, p - 1))}
-                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
-                          >
-                            <ChevronLeft className="w-4 h-4 stroke-[3]" />
-                            <span>PREV</span>
-                          </Button>
-                          <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
-                            {txPage} / {totalTxPages}
-                          </span>
-                          <Button
-                            variant="white"
-                            size="sm"
-                            disabled={txPage >= totalTxPages || isFetchingTx}
-                            onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
-                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
-                          >
-                            <span>NEXT</span>
-                            <ChevronRight className="w-4 h-4 stroke-[3]" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <UserTransactionsTab
+                transactions={transactions}
+                totalTransactions={totalTransactions}
+                totalPages={totalTxPages}
+                currentPage={txPage}
+                pageSize={txPageSize}
+                isLoading={isFetchingTx}
+                onPageChange={setTxPage}
+                onRefetch={refetchTx}
+              />
             </TabsContent>
 
-            {/* TAB 3: MUTASI SALDO */}
+            {/* TAB 3: RIWAYAT POIN REWARD (NEW) */}
+            <TabsContent value="points">
+              <UserPointMutationsTab
+                pointMutations={pointMutations}
+                totalMutations={totalPointMutations}
+                totalPages={totalPointPages}
+                currentPage={pointPage}
+                pageSize={pointPageSize}
+                isLoading={isFetchingPoints}
+                onPageChange={setPointPage}
+                onRefetch={refetchPoints}
+              />
+            </TabsContent>
+
+            {/* TAB 4: MUTASI SALDO */}
             <TabsContent value="mutations">
-              <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl overflow-hidden">
-                <CardHeader headerBg="#00F0FF" className="border-b-[3px] border-black flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-xs font-black uppercase text-black">
-                    <Wallet className="w-4 h-4 stroke-[3]" />
-                    RIWAYAT MUTASI SALDO AKUN
-                  </CardTitle>
-                  <RefreshCw
-                    className="w-4 h-4 stroke-[3] cursor-pointer hover:rotate-180 transition-transform text-black"
-                    onClick={() => refetchMutations()}
-                  />
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>TANGGAL</TableHead>
-                        <TableHead>TIPE</TableHead>
-                        <TableHead>SALDO AWAL</TableHead>
-                        <TableHead>NOMINAL</TableHead>
-                        <TableHead>SALDO AKHIR</TableHead>
-                        <TableHead>KETERANGAN</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isFetchingMutations ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 font-black text-xs uppercase">
-                            Memuat riwayat mutasi saldo...
-                          </TableCell>
-                        </TableRow>
-                      ) : mutations.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 font-black text-xs text-neutral-500 uppercase">
-                            Belum ada riwayat mutasi saldo.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        mutations.map((m: any) => (
-                          <TableRow key={m.id}>
-                            <TableCell className="font-mono text-xs font-bold text-neutral-600">{formatDate(m.createdAt)}</TableCell>
-                            <TableCell>
-                              <Badge variant={m.type === 'IN' ? 'mint' : 'pink'} size="sm">
-                                {m.type === 'IN' ? '+ MASUK' : '- KELUAR'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-mono text-xs font-bold text-neutral-700">
-                              {formatRupiah(m.startingBalance || 0)}
-                            </TableCell>
-                            <TableCell className={`font-mono font-black text-xs ${m.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                              {m.type === 'IN' ? '+' : '-'} {formatRupiah(m.amount || 0)}
-                            </TableCell>
-                            <TableCell className="font-mono font-black text-xs text-black">
-                              {formatRupiah(m.endingBalance || 0)}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs font-bold text-neutral-800">{m.description}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-
-                  {/* Pagination Footer Tab 3 */}
-                  {totalMutations > 0 && (
-                    <div className="bg-neutral-50 border-t-[3px] border-black p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
-                      <div className="text-neutral-600">
-                        Menampilkan <span className="text-black font-black">{startMutItem}–{endMutItem}</span> dari <span className="text-black font-black">{totalMutations}</span> mutasi {totalMutationPages > 1 ? `(Halaman ${mutationPage} dari ${totalMutationPages})` : ''}
-                      </div>
-                      {totalMutationPages > 1 && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="white"
-                            size="sm"
-                            disabled={mutationPage <= 1 || isFetchingMutations}
-                            onClick={() => setMutationPage((p) => Math.max(1, p - 1))}
-                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
-                          >
-                            <ChevronLeft className="w-4 h-4 stroke-[3]" />
-                            <span>PREV</span>
-                          </Button>
-                          <span className="px-2.5 py-1 bg-white border-2 border-black font-mono font-black rounded shadow-[2px_2px_0px_0px_#000]">
-                            {mutationPage} / {totalMutationPages}
-                          </span>
-                          <Button
-                            variant="white"
-                            size="sm"
-                            disabled={mutationPage >= totalMutationPages || isFetchingMutations}
-                            onClick={() => setMutationPage((p) => Math.min(totalMutationPages, p + 1))}
-                            className="font-black uppercase shadow-[2px_2px_0px_0px_#000]"
-                          >
-                            <span>NEXT</span>
-                            <ChevronRight className="w-4 h-4 stroke-[3]" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <UserBalanceMutationsTab
+                mutations={mutations}
+                totalMutations={totalMutations}
+                totalPages={totalMutationPages}
+                currentPage={mutationPage}
+                pageSize={mutationPageSize}
+                isLoading={isFetchingMutations}
+                onPageChange={setMutationPage}
+                onRefetch={refetchMutations}
+              />
             </TabsContent>
 
-            {/* TAB 4: DEPOSIT SALDO */}
+            {/* TAB 5: DEPOSIT SALDO */}
             <TabsContent value="deposit">
               <div className="mt-4">
                 <UserDepositSection />
               </div>
             </TabsContent>
 
-            {/* TAB 5: DEVELOPER API */}
+            {/* TAB 6: DEVELOPER API */}
             <TabsContent value="api">
               <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl overflow-hidden">
                 <CardHeader headerBg="#C4B5FD" className="border-b-[3px] border-black">
@@ -1339,7 +1057,7 @@ export const UserDashboardPage: React.FC = () => {
               </Card>
             </TabsContent>
 
-            {/* TAB 6: PENGATURAN PROFIL */}
+            {/* TAB 7: PENGATURAN PROFIL */}
             <TabsContent value="settings">
               <Card variant="white" shadow="lg" borderWidth="3" className="mt-4 rounded-2xl overflow-hidden">
                 <CardHeader headerBg="#C4B5FD" className="border-b-[3px] border-black">

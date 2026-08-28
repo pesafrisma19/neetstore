@@ -965,6 +965,32 @@ export const getUserMutations = (params?: { page?: number; limit?: number }) => 
   return apiFetch<any>(`/user/mutations${qStr ? `?${qStr}` : ''}`);
 };
 
+export interface UserPointMutationItem {
+  id: number;
+  userId: number | null;
+  transactionId: number | null;
+  type: 'EARN' | 'REDEEM' | 'REFUND' | 'ADJUSTMENT';
+  amount: number;
+  balanceAfter: number;
+  description?: string | null;
+  createdAt: string;
+  transaction?: {
+    id: number;
+    transactionRef: string;
+    productName?: string | null;
+    basePrice?: number | null;
+    orderStatus?: string | null;
+  } | null;
+}
+
+export const getUserPointMutations = (params?: { page?: number; limit?: number }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  const qStr = query.toString();
+  return apiFetch<any>(`/user/point-mutations${qStr ? `?${qStr}` : ''}`);
+};
+
 export const requestUserApiKey = () => {
   return apiFetch<{ message: string }>('/user/apikey/request', {
     method: 'POST',
