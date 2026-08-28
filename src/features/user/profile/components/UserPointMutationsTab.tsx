@@ -154,12 +154,8 @@ export const UserPointMutationsTab: React.FC<UserPointMutationsTabProps> = ({
                         {item.description || (item.type === 'EARN' ? 'Poin reward dari transaksi sukses' : item.type === 'REDEEM' ? 'Potongan harga transaksi' : 'Pengembalian poin reward')}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-[var(--nb-text-muted)] pt-0.5">
+                      <div className="text-[11px] font-mono text-[var(--nb-text-muted)] pt-0.5">
                         <span>{formatDate(item.createdAt)}</span>
-                        <span>•</span>
-                        <span className="font-bold text-[var(--nb-text)]">
-                          Saldo Akhir: {(item.balanceAfter || 0).toLocaleString('id-ID')} Pts
-                        </span>
                       </div>
                     </div>
                   </div>

@@ -49,6 +49,7 @@ import { VerifyOtpPage } from '../features/public/auth/pages/VerifyOtpPage';
 import { CompletePhonePage } from '../features/public/auth/pages/CompletePhonePage';
 import { ForgotPasswordPage } from '../features/public/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../features/public/auth/pages/ResetPasswordPage';
+import { DepositInvoicePage } from '../features/user/deposit/pages/DepositInvoicePage';
 
 export const AppRoutes = () => {
   return (
@@ -72,6 +73,7 @@ export const AppRoutes = () => {
       
       {/* USER ROUTES */}
       <Route path="/dashboard" element={<UserDashboardPage />} />
+      <Route path="/deposit/:reference" element={<DepositInvoicePage />} />
       <Route path="/riwayat-transaksi" element={<TransactionHistoryPage />} />
       <Route path="/invoice-check" element={<TransactionHistoryPage />} />
 

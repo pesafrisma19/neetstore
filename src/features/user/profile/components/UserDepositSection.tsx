@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { Callout } from '../../../../components/ui/Callout';
 import { 
   Wallet, 
   CreditCard, 
-  Copy, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
   RefreshCw, 
   ArrowRight,
   ChevronLeft,
@@ -20,14 +16,10 @@ import {
   getDepositPaymentMethods, 
   getPublicSettings, 
   createUserDeposit, 
-  getUserDepositHistory,
-  getUserDepositDetail
+  getUserDepositHistory
 } from '../../../../utils/api';
-import { PaymentDetails } from '../../../../components/shared/PaymentDetails';
 import { type PaymentMethodData } from '../../../admin/types';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { queryKeys } from '../../../../services/queryKeys';
-import { queryClient } from '../../../../services/queryClient';
 
 export interface UserDepositInvoice {
   id: number;
@@ -68,13 +60,12 @@ export interface UserDepositInvoice {
 
 export const UserDepositSection: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Input States
   const [amountInput, setAmountInput] = useState<string>('50000');
   const [selectedMethodCode, setSelectedMethodCode] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [activeInvoice, setActiveInvoice] = useState<UserDepositInvoice | null>(null);
-  const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   // Pagination State for Deposit History
   const [depositPage, setDepositPage] = useState<number>(1);
@@ -134,31 +125,6 @@ export const UserDepositSection: React.FC = () => {
   const startDepositItem = totalDeposits === 0 ? 0 : (depositPage - 1) * depositPageSize + 1;
   const endDepositItem = Math.min(depositPage * depositPageSize, totalDeposits);
 
-  // 4. Polling Status Active Invoice jika PENDING
-  const activeRef = activeInvoice?.paymentRef;
-  const isPending = activeInvoice?.status === 'PENDING';
-
-  useQuery({
-    queryKey: ['depositStatusPoll', activeRef],
-    queryFn: async () => {
-      if (!activeRef) return null;
-      const res = await getUserDepositHistory({ page: 1, limit: 5 });
-      const items: UserDepositInvoice[] = res?.data || [];
-      const updated = items.find(d => d.paymentRef === activeRef);
-
-      if (updated) {
-        setActiveInvoice((prev) => prev ? { ...prev, ...updated } : updated);
-        if (updated.status === 'SUCCESS') {
-          queryClient.invalidateQueries({ queryKey: queryKeys.user.profile });
-          refetchHistory();
-        }
-      }
-      return updated;
-    },
-    enabled: Boolean(activeRef && isPending),
-    refetchInterval: isPending ? 3000 : false, // Poll every 3 seconds while PENDING
-  });
-
   // Calculation Estimates
   const requestedAmount = Number(amountInput) || 0;
   const selectedMethod = paymentMethods.find((m: PaymentMethodData) => m.code === selectedMethodCode);
@@ -169,12 +135,6 @@ export const UserDepositSection: React.FC = () => {
     ? Math.round((selectedMethod.feeFlat || 0) + (requestedAmount * (selectedMethod.feePercent || 0)) / 100)
     : 0;
   const estimatedTotal = requestedAmount + estimatedFee;
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopySuccess(label);
-    setTimeout(() => setCopySuccess(null), 2000);
-  };
 
   const handleCreateDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,19 +160,8 @@ export const UserDepositSection: React.FC = () => {
 
       if (res.success && res.data) {
         const createdDeposit = res.data.deposit || res.data;
-        setActiveInvoice({
-          ...createdDeposit,
-          instructions: res.data.instructions,
-          tokopayData: res.data.tokopayData,
-        });
         resetIntentKey();
-        setTimeout(() => {
-          const el = document.getElementById('active-deposit-invoice-card');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 100);
-        refetchHistory();
+        navigate(`/deposit/${createdDeposit.paymentRef}`);
       }
     } catch (err: any) {
       alert(err?.message || 'Gagal membuat deposit.');
@@ -221,148 +170,13 @@ export const UserDepositSection: React.FC = () => {
     }
   };
 
-  const handleViewInvoiceDetail = async (item: UserDepositInvoice) => {
-    try {
-      const res = await getUserDepositDetail(item.paymentRef);
-      if (res.success && res.data) {
-        setActiveInvoice(res.data);
-      } else {
-        setActiveInvoice(item);
-      }
-    } catch {
-      setActiveInvoice(item);
-    }
-    setTimeout(() => {
-      const el = document.getElementById('active-deposit-invoice-card');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
+  const handleViewInvoiceDetail = (item: UserDepositInvoice) => {
+    navigate(`/deposit/${item.paymentRef}`);
   };
 
   return (
     <div className="space-y-6 text-left font-sans">
       
-      {/* INVOICE TIKET DEPOSIT AKTIF / TERAKHIR */}
-      {activeInvoice && (
-        <Card id="active-deposit-invoice-card" variant="white" shadow="xl" className="border-[4px] border-black overflow-hidden">
-          <CardHeader 
-            headerBg={
-              activeInvoice.status === 'SUCCESS' ? '#6EE7B7' : 
-              activeInvoice.status === 'FAILED' ? '#FCA5A5' : '#FFDC00'
-            }
-            className="flex items-center justify-between"
-          >
-            <CardTitle className="text-base text-black flex items-center gap-2">
-              <CreditCard className="w-5 h-5 stroke-[3]" />
-              <span>INVOICE DEPOSIT #{activeInvoice.paymentRef}</span>
-            </CardTitle>
-            <Badge 
-              variant={activeInvoice.status === 'SUCCESS' ? 'mint' : activeInvoice.status === 'FAILED' ? 'pink' : 'yellow'} 
-              size="sm"
-              className="font-black uppercase"
-            >
-              {activeInvoice.status === 'SUCCESS' && <CheckCircle className="w-3.5 h-3.5 inline mr-1" />}
-              {activeInvoice.status === 'PENDING' && <Clock className="w-3.5 h-3.5 inline mr-1 animate-spin" />}
-              {activeInvoice.status === 'FAILED' && <XCircle className="w-3.5 h-3.5 inline mr-1" />}
-              {activeInvoice.status}
-            </Badge>
-          </CardHeader>
-
-          <CardContent className="p-6 space-y-6">
-            {/* Alert Status Banner */}
-            {activeInvoice.status === 'SUCCESS' && (
-              <Callout tone="mint" title="🎉 DEPOSIT SALDO BERHASIL!">
-                Saldo sebesar <b>Rp {activeInvoice.amount.toLocaleString('id-ID')}</b> telah ditambahkan ke akun Anda!
-              </Callout>
-            )}
-
-            {activeInvoice.status === 'FAILED' && (
-              <Callout tone="pink" title="❌ DEPOSIT GAGAL / KADALUARSA">
-                Alasan: <b>{activeInvoice.failureReason || 'Waktu pembayaran berakhir atau ditolak Admin.'}</b>
-              </Callout>
-            )}
-
-            {activeInvoice.status === 'PENDING' && (
-              <Callout tone="yellow" title="⏳ MENUNGGU PEMBAYARAN">
-                Silakan lakukan pembayaran sesuai petunjuk di bawah sebelum waktu habis. Status akan diperbarui secara otomatis.
-              </Callout>
-            )}
-
-            {/* Total Payment Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-neutral-50 p-4 border-[3px] border-black shadow-[4px_4px_0px_0px_#000]">
-              <div>
-                <div className="text-xs font-bold text-neutral-500 uppercase">Nominal Saldo Diterima</div>
-                <div className="text-xl font-black text-green-700">Rp {activeInvoice.amount.toLocaleString('id-ID')}</div>
-              </div>
-
-              <div>
-                <div className="text-xs font-bold text-neutral-500 uppercase">Total Harus Dibayar</div>
-                <div className="text-xl font-black text-blue-700 flex items-center gap-2">
-                  <span>Rp {activeInvoice.totalAmount.toLocaleString('id-ID')}</span>
-                  <Button 
-                    variant="white" 
-                    size="sm" 
-                    onClick={() => handleCopy(String(activeInvoice.totalAmount), 'TOTAL')}
-                    className="text-[10px] p-1 h-auto"
-                  >
-                    <Copy className="w-3 h-3 mr-1" />
-                    {copySuccess === 'TOTAL' ? 'COPIED!' : 'SALIN'}
-                  </Button>
-                </div>
-              </div>
-
-              {activeInvoice.fee > 0 && (
-                <div className="text-xs font-bold text-neutral-600">
-                  Biaya Admin: Rp {activeInvoice.fee.toLocaleString('id-ID')}
-                </div>
-              )}
-
-              {activeInvoice.uniqueCode > 0 && (
-                <div className="text-xs font-mono font-black text-purple-700">
-                  Kode Unik: +{activeInvoice.uniqueCode.toString().padStart(2, '0')} (Membantu Verifikasi Serupa)
-                </div>
-              )}
-            </div>
-
-            {activeInvoice.status === 'PENDING' && (
-              <div className="pt-2 border-t-[2px] border-dashed border-neutral-300">
-                <PaymentDetails
-                  methodName={activeInvoice.paymentMethod}
-                  gatewayCode={activeInvoice.paymentMethodRel?.gateway?.code}
-                  paymentType={activeInvoice.paymentMethodRel?.type}
-                  totalAmount={activeInvoice.totalAmount}
-                  uniqueCode={activeInvoice.uniqueCode}
-                  bankName={activeInvoice.paymentMethodRel?.bankName}
-                  accountNumber={activeInvoice.paymentMethodRel?.accountNumber}
-                  accountHolder={activeInvoice.paymentMethodRel?.accountHolder}
-                  qrString={activeInvoice.qrString || activeInvoice.paymentMethodRel?.qrString}
-                  qrImageUrl={activeInvoice.qrImageUrl}
-                  checkoutUrl={activeInvoice.checkoutUrl}
-                  paymentUrl={activeInvoice.paymentUrl}
-                  instructions={activeInvoice.paymentInstructions || activeInvoice.instructions}
-                />
-              </div>
-            )}
-
-            <div className="flex justify-between items-center text-xs font-bold text-neutral-500 pt-2">
-              <div>Metode: <b>{activeInvoice.paymentMethod}</b></div>
-              <Button 
-                variant="white" 
-                size="sm" 
-                onClick={() => {
-                  setActiveInvoice(null);
-                  resetIntentKey();
-                }}
-                className="font-black uppercase text-xs"
-              >
-                TUTUP INVOICE
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* FORM BUAT DEPOSIT BARU */}
       <Card variant="white" shadow="lg" className="border-[4px] border-black">
         <CardHeader headerBg="#FFDC00">

@@ -55,7 +55,7 @@ export const UserWalletOverview: React.FC<UserWalletOverviewProps> = ({
         {/* Dominant: Saldo Uang */}
         <div className="p-3.5 bg-[var(--nb-surface-alt)] border-[2.5px] border-[var(--nb-border)] rounded-2xl flex flex-col justify-between">
           <span className="text-[11px] font-black uppercase text-[var(--nb-text-muted)] tracking-wider">
-            SALDO KAS
+            SALDO AKUN
           </span>
           <div className="mt-1">
             <span className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--nb-text)] font-sans break-words block leading-tight">
