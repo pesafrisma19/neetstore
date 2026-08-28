@@ -48,4 +48,14 @@ export interface PublicInvoiceResponse {
   createdAt: string;
 
   sn?: string;
+
+  transactionId?: number;
+  isOwner?: boolean;
+  canReview?: boolean;
+  hasReviewed?: boolean;
+  review?: {
+    id: number;
+    rating: number;
+    satisfaction: string;
+  } | null;
 }

@@ -276,6 +276,8 @@ export interface UserTransactionItem {
   paymentStatus: TransactionPaymentStatus;
   orderStatus: TransactionOrderStatus;
   createdAt: string;
+  hasReviewed?: boolean;
+  transactionRef?: string | null;
   product: {
     name: string;
     sku: string;
@@ -1069,5 +1071,62 @@ export const testUserWebhookConfig = () =>
 export const getNeetPayPaymentChannelsAdmin = () =>
   apiFetch<{ success: boolean; data: Array<{ id: string; name: string; method: string; provider: string }> }>('/neetpay/channels');
 
+// Review System Types & API Functions
+export type ReviewSatisfactionType = 'KURANG_PUAS' | 'PUAS' | 'SANGAT_PUAS';
 
+export interface SubmitReviewPayload {
+  transactionId: number | string;
+  rating: number;
+  satisfaction: ReviewSatisfactionType;
+  comment?: string | null;
+}
 
+export interface PublicReviewItem {
+  id: number;
+  rating: number;
+  satisfaction: ReviewSatisfactionType;
+  comment: string | null;
+  createdAt: string;
+  product: {
+    name: string;
+  };
+  reviewerEmail: string;
+  likeCount: number;
+  viewerHasLiked: boolean;
+}
+
+export interface BrandReviewsResponse {
+  success: boolean;
+  summary: {
+    averageRating: number;
+    totalReviews: number;
+  };
+  data: PublicReviewItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalReviews: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
+export const submitUserReview = (payload: SubmitReviewPayload) =>
+  apiFetch<{ success: boolean; message: string; data: any }>('/user/reviews', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const toggleReviewLike = (reviewId: number) =>
+  apiFetch<{ success: boolean; data: { liked: boolean; likeCount: number } }>(`/user/reviews/${reviewId}/like`, {
+    method: 'POST',
+  });
+
+export const getBrandReviews = (brandSlug: string, params?: { page?: number; limit?: number; sort?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.sort) query.append('sort', params.sort);
+  const qStr = query.toString();
+  return apiFetch<BrandReviewsResponse>(`/reviews/brand/${encodeURIComponent(brandSlug)}${qStr ? `?${qStr}` : ''}`);
+};

@@ -17,6 +17,7 @@ import { Button } from '../../../../components/ui/Button';
 import { checkoutApi } from '../services/checkout.api';
 import type { PublicInvoiceResponse } from '../types/invoice.types';
 import { PaymentDetails } from '../../../../components/shared/PaymentDetails';
+import { ReviewModal } from '../../review/components/ReviewModal';
 
 export const InvoicePage: React.FC = () => {
   const { orderId } = useParams();
@@ -24,6 +25,8 @@ export const InvoicePage: React.FC = () => {
 
   const [copied, setCopied] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
+  const [sessionDismissed, setSessionDismissed] = useState<boolean>(false);
 
   // --- Auto Polling React Query ---
   const { data: transaction, isLoading, isError, error, refetch } = useQuery<PublicInvoiceResponse>({
@@ -73,6 +76,13 @@ export const InvoicePage: React.FC = () => {
     const timer = setInterval(calculateTimeLeft, 1000);
     return () => clearInterval(timer);
   }, [transaction, refetch]);
+
+  // --- Auto-trigger Review Modal on SUCCESS for Owner (Once per session view) ---
+  useEffect(() => {
+    if (transaction?.canReview && !sessionDismissed) {
+      setIsReviewModalOpen(true);
+    }
+  }, [transaction?.canReview, sessionDismissed]);
 
   const handleCopy = (text: string, copyId: string) => {
     if (!text) return;
@@ -290,18 +300,44 @@ export const InvoicePage: React.FC = () => {
             )}
 
             {isSuccess && (
-              <div className="flex items-center gap-4 p-4 sm:p-5">
-                <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                  <CheckCircle className="w-7 h-7 text-emerald-600 stroke-[3] animate-bounce" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-2xl bg-white border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                    <CheckCircle className="w-7 h-7 text-emerald-600 stroke-[3] animate-bounce" />
+                  </div>
+                  <div>
+                    <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
+                      Topup Berhasil! 🎉
+                    </h1>
+                    <p className="text-xs font-bold text-black/70 mt-0.5 m-0">
+                      Produk / Item sudah berhasil dikirim ke akun Anda. Terima kasih atas kepercayaan Anda!
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-base sm:text-xl font-black uppercase tracking-tight text-black m-0 leading-tight">
-                    Topup Berhasil! 🎉
-                  </h1>
-                  <p className="text-xs font-bold text-black/70 mt-0.5 m-0">
-                    Produk / Item sudah berhasil dikirim ke akun Anda. Terima kasih atas kepercayaan Anda!
-                  </p>
-                </div>
+
+                {transaction?.canReview && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="yellow"
+                      size="sm"
+                      onClick={() => setIsReviewModalOpen(true)}
+                      className="font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:bg-yellow-300"
+                    >
+                      <Star className="w-3.5 h-3.5 inline mr-1 fill-black stroke-[2]" />
+                      BERI ULASAN
+                    </Button>
+                  </div>
+                )}
+
+                {transaction?.isOwner && transaction?.hasReviewed && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    <Badge variant="mint" size="md" className="font-black text-xs uppercase px-3 py-1.5 border-[2px] border-black shadow-[2px_2px_0px_0px_#000]">
+                      <Check className="w-3.5 h-3.5 inline mr-1 stroke-[3]" />
+                      SUDAH DIULAS
+                    </Badge>
+                  </div>
+                )}
               </div>
             )}
 
@@ -614,6 +650,22 @@ export const InvoicePage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* 🌟 MODAL ULASAN PESANAN SUCCESS */}
+        {transaction?.isOwner && (
+          <ReviewModal
+            isOpen={isReviewModalOpen}
+            onClose={() => {
+              setIsReviewModalOpen(false);
+              setSessionDismissed(true);
+            }}
+            transactionId={transaction.transactionId || transaction.invoiceId || invoiceNumber}
+            productName={transaction.product?.cleanName || transaction.product?.name || 'Item Top Up'}
+            onSuccess={() => {
+              refetch();
+            }}
+          />
+        )}
 
       </main>
       <Footer />

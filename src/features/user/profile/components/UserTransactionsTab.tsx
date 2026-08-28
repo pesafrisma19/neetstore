@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
 import { Badge } from '../../../../components/ui/Badge';
 import { Button } from '../../../../components/ui/Button';
-import { History, RefreshCw, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { History, RefreshCw, ChevronLeft, ChevronRight, FileText, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { UserTransactionItem } from '../../../../utils/api';
+import { ReviewModal } from '../../../public/review/components/ReviewModal';
 
 interface UserTransactionsTabProps {
   transactions: UserTransactionItem[];
@@ -28,6 +29,7 @@ export const UserTransactionsTab: React.FC<UserTransactionsTabProps> = ({
   onPageChange,
   onRefetch,
 }) => {
+  const [selectedReviewTx, setSelectedReviewTx] = useState<UserTransactionItem | null>(null);
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -122,15 +124,35 @@ export const UserTransactionsTab: React.FC<UserTransactionsTabProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link to={`/invoice/${tx.providerRef || tx.id}`}>
-                        <Button
-                          variant="yellow"
-                          size="sm"
-                          className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]"
-                        >
-                          STRUK
-                        </Button>
-                      </Link>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {tx.orderStatus === 'SUCCESS' && (
+                          tx.hasReviewed ? (
+                            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-400 rounded">
+                              DIULAS
+                            </span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="yellow"
+                              size="sm"
+                              onClick={() => setSelectedReviewTx(tx)}
+                              className="font-black text-[10px] py-1 px-2 shadow-[1.5px_1.5px_0px_0px_#000]"
+                            >
+                              <Star className="w-3 h-3 mr-1 fill-black stroke-[2]" />
+                              ULAS
+                            </Button>
+                          )
+                        )}
+                        <Link to={`/invoice/${tx.providerRef || tx.id}`}>
+                          <Button
+                            variant="white"
+                            size="sm"
+                            className="font-black text-xs py-1 px-2.5 shadow-[1.5px_1.5px_0px_0px_#000]"
+                          >
+                            STRUK
+                          </Button>
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -181,16 +203,30 @@ export const UserTransactionsTab: React.FC<UserTransactionsTabProps> = ({
                   <span className="font-mono font-black text-xs text-[var(--nb-text)]">
                     {formatRupiah(tx.amount)}
                   </span>
-                  <Link to={`/invoice/${tx.providerRef || tx.id}`}>
-                    <Button
-                      variant="yellow"
-                      size="sm"
-                      className="font-black text-[10px] py-1 px-2.5 shadow-[1.5px_1.5px_0px_0px_#000]"
-                    >
-                      <FileText className="w-3 h-3 mr-1 stroke-[2.5]" />
-                      <span>STRUK</span>
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    {tx.orderStatus === 'SUCCESS' && !tx.hasReviewed && (
+                      <Button
+                        type="button"
+                        variant="yellow"
+                        size="sm"
+                        onClick={() => setSelectedReviewTx(tx)}
+                        className="font-black text-[10px] py-1 px-2 shadow-[1.5px_1.5px_0px_0px_#000]"
+                      >
+                        <Star className="w-3 h-3 mr-1 fill-black stroke-[2]" />
+                        ULAS
+                      </Button>
+                    )}
+                    <Link to={`/invoice/${tx.providerRef || tx.id}`}>
+                      <Button
+                        variant="white"
+                        size="sm"
+                        className="font-black text-[10px] py-1 px-2.5 shadow-[1.5px_1.5px_0px_0px_#000]"
+                      >
+                        <FileText className="w-3 h-3 mr-1 stroke-[2.5]" />
+                        <span>STRUK</span>
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))
@@ -238,6 +274,19 @@ export const UserTransactionsTab: React.FC<UserTransactionsTabProps> = ({
           </div>
         )}
       </CardContent>
+
+      {/* 🌟 REVIEW MODAL FOR COMPLETED TRANSACTIONS */}
+      {selectedReviewTx && (
+        <ReviewModal
+          isOpen={Boolean(selectedReviewTx)}
+          onClose={() => setSelectedReviewTx(null)}
+          transactionId={selectedReviewTx.id}
+          productName={selectedReviewTx.product?.name || 'Item Pesanan'}
+          onSuccess={() => {
+            onRefetch();
+          }}
+        />
+      )}
     </Card>
   );
 };

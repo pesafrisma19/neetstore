@@ -17,13 +17,14 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins, Star } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
 import { calculateCheckoutBreakdown, calculateRewardPoints, calculateMaxRedeemablePoints, type DiscountType } from '../../../../utils/checkoutCalculator';
 import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
+import { BrandReviewsTab } from '../../review/components/BrandReviewsTab';
 import { queryKeys } from '../../../../services/queryKeys';
 
 const optimizeGoogleBanner = (url: string) => {
@@ -1691,6 +1692,10 @@ export const CheckoutPage: React.FC = () => {
                   <Info className="w-4 h-4 stroke-[3] inline mr-2" />
                   INFORMASI GAME
                 </TabsTrigger>
+                <TabsTrigger value="reviews" className="flex-1 sm:flex-initial text-sm font-black py-2.5 px-6">
+                  <Star className="w-4 h-4 stroke-[3] inline mr-2 fill-current" />
+                  ULASAN
+                </TabsTrigger>
               </TabsList>
 
               {/* ⚡ TAB 1: FORM TOP UP */}
@@ -2152,6 +2157,11 @@ export const CheckoutPage: React.FC = () => {
                   </Card>
                 )}
 
+              </TabsContent>
+
+              {/* ⭐ TAB 3: ULASAN BRAND */}
+              <TabsContent value="reviews" className="pt-2">
+                <BrandReviewsTab brandSlug={brandData?.slug || gameId || ''} />
               </TabsContent>
             </Tabs>
 
