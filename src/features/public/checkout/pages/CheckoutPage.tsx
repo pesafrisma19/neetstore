@@ -17,12 +17,12 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
-import { calculateCheckoutBreakdown, calculateRewardPoints, type DiscountType } from '../../../../utils/checkoutCalculator';
+import { calculateCheckoutBreakdown, calculateRewardPoints, calculateMaxRedeemablePoints, type DiscountType } from '../../../../utils/checkoutCalculator';
 import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 
@@ -440,6 +440,7 @@ async function computePayloadFingerprintHash(payload: CheckoutPayload): Promise<
     m: String(payload.paymentMethod),
     v: (payload.voucherCode || '').trim().toUpperCase(),
     w: (payload.whatsapp || '').trim(),
+    u: Boolean(payload.usePoints),
   });
 
   if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
@@ -504,6 +505,7 @@ export const CheckoutPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [usePoints, setUsePoints] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
   // Autofill whatsapp & email dari profile user jika login
@@ -1171,17 +1173,38 @@ export const CheckoutPage: React.FC = () => {
     };
   };
 
-  const getCheckoutBreakdown = React.useCallback(() => {
+  const userPoints = user?.points || 0;
+
+  // Hitung estimasi poin yang akan dipakai (Auto-Max Redeem)
+  const estimatedPointsToUse = React.useMemo(() => {
+    if (!usePoints || !user || userPoints <= 0) return 0;
     const { feeFlat, feePercent, feeMinimumAmount } = getPaymentDetails(selectedPayment);
-    return calculateCheckoutBreakdown({
+    const selected = paymentMethodsList.find(p => p.id === selectedPayment);
+    const minAmount = selected?.minAmount !== undefined && selected?.minAmount !== null ? selected.minAmount : null;
+    return calculateMaxRedeemablePoints({
+      userPoints,
       basePrice: selectedItem?.price || 0,
       appliedDiscount,
       appliedDiscountType,
       feeFlat,
       feePercent,
       feeMinimumAmount,
+      minAmount,
     });
-  }, [selectedItem, appliedDiscount, appliedDiscountType, selectedPayment, paymentMethodsList]);
+  }, [usePoints, user, userPoints, selectedItem, appliedDiscount, appliedDiscountType, selectedPayment, paymentMethodsList]);
+
+  const getCheckoutBreakdown = React.useCallback(() => {
+    const { feeFlat, feePercent, feeMinimumAmount } = getPaymentDetails(selectedPayment);
+    return calculateCheckoutBreakdown({
+      basePrice: selectedItem?.price || 0,
+      appliedDiscount,
+      appliedDiscountType,
+      pointsUsed: estimatedPointsToUse,
+      feeFlat,
+      feePercent,
+      feeMinimumAmount,
+    });
+  }, [selectedItem, appliedDiscount, appliedDiscountType, estimatedPointsToUse, selectedPayment, paymentMethodsList]);
 
   const currentDiscountedPrice = React.useMemo(() => {
     const basePrice = selectedItem?.price || 0;
@@ -1359,6 +1382,7 @@ export const CheckoutPage: React.FC = () => {
       paymentMethod: selectedPayment,
       voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
       whatsapp: whatsapp.trim() || undefined,
+      usePoints: Boolean(usePoints && user && userPoints > 0),
     };
 
     resolveCheckoutAttemptKey(draftPayload).catch(() => { });
@@ -1425,6 +1449,7 @@ export const CheckoutPage: React.FC = () => {
       voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
       whatsapp: trimmedWa || undefined,
       email: trimmedEmail || undefined,
+      usePoints: Boolean(usePoints && user && userPoints > 0),
     };
 
     let activeKey = '';
@@ -2188,6 +2213,54 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 )}
 
+                {/* 🪙 TUKAR POIN REWARD SECTION */}
+                <div className="bg-[var(--nb-surface)] p-3 border-[2px] border-[var(--nb-border)] shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-black text-xs uppercase text-[var(--nb-text)]">
+                      <Coins className="w-4 h-4 text-amber-500" />
+                      <span>POIN REWARD</span>
+                    </div>
+                    {user ? (
+                      <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                        {userPoints.toLocaleString('id-ID')} POIN
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold text-purple-700 dark:text-purple-400">
+                        LOGIN UNTUK TUKAR POIN
+                      </span>
+                    )}
+                  </div>
+
+                  {user && (
+                    <div className="pt-1.5 border-t border-black/10">
+                      {userPoints > 0 ? (
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={usePoints}
+                            onChange={(e) => setUsePoints(e.target.checked)}
+                            className="w-4 h-4 rounded border-2 border-black accent-amber-500 cursor-pointer shrink-0"
+                          />
+                          <div className="flex flex-col text-left">
+                            <span className="text-xs font-black uppercase text-[var(--nb-text)]">
+                              GUNAKAN POIN SAYA
+                            </span>
+                            <span className="text-[10px] font-bold text-[var(--nb-text-muted)]">
+                              {usePoints
+                                ? `Hemat Rp ${getCheckoutBreakdown().pointsUsed.toLocaleString('id-ID')} (${getCheckoutBreakdown().pointsUsed.toLocaleString('id-ID')} Poin)`
+                                : `Tersedia potongan s/d Rp ${userPoints.toLocaleString('id-ID')}`}
+                            </span>
+                          </div>
+                        </label>
+                      ) : (
+                        <span className="text-[11px] font-bold text-[var(--nb-text-muted)]">
+                          Saldo poin Anda 0. Kumpulkan poin dari setiap transaksi sukses!
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="border-t-[2px] border-b-[2px] border-[var(--nb-border)] py-3 flex flex-col gap-2 text-xs font-bold">
                   <div className="flex justify-between">
                     <span className="text-[var(--nb-text-muted)] uppercase">GAME:</span>
@@ -2223,6 +2296,13 @@ export const CheckoutPage: React.FC = () => {
                     <div className="flex justify-between items-center text-sm font-bold text-[#FF4D79]">
                       <span className="uppercase">POTONGAN PROMO:</span>
                       <span>- Rp {getCheckoutBreakdown().discountAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
+
+                  {getCheckoutBreakdown().pointsUsed > 0 && (
+                    <div className="flex justify-between items-center text-sm font-bold text-amber-600 dark:text-amber-400">
+                      <span className="uppercase">POTONGAN POIN:</span>
+                      <span>- Rp {getCheckoutBreakdown().pointsUsed.toLocaleString('id-ID')}</span>
                     </div>
                   )}
 
@@ -2305,6 +2385,18 @@ export const CheckoutPage: React.FC = () => {
                 <span className="text-[var(--nb-text-muted)] uppercase">METODE BAYAR:</span>
                 <span className="font-black text-[var(--nb-text)]">{paymentMethodsList.find(p => p.id === selectedPayment)?.name || '-'}</span>
               </div>
+              {appliedDiscount > 0 && (
+                <div className="p-2.5 flex justify-between text-[#FF4D79]">
+                  <span className="uppercase">POTONGAN PROMO:</span>
+                  <span className="font-black">- Rp {getCheckoutBreakdown().discountAmount.toLocaleString('id-ID')}</span>
+                </div>
+              )}
+              {getCheckoutBreakdown().pointsUsed > 0 && (
+                <div className="p-2.5 flex justify-between text-amber-600 dark:text-amber-400">
+                  <span className="uppercase">POTONGAN POIN:</span>
+                  <span className="font-black">- Rp {getCheckoutBreakdown().pointsUsed.toLocaleString('id-ID')}</span>
+                </div>
+              )}
               <div className="p-2.5 flex justify-between bg-[var(--nb-yellow)] font-black text-sm">
                 <span className="uppercase text-[var(--nb-text)]">TOTAL BAYAR:</span>
                 <span className="text-[var(--nb-text)]">Rp {calculateTotal().toLocaleString('id-ID')}</span>

@@ -214,6 +214,7 @@ export interface CheckoutPayload {
   voucherCode?: string;
   whatsapp?: string;
   email?: string;
+  usePoints?: boolean;
 }
 
 export interface CheckoutSuccessResponse {
@@ -222,6 +223,7 @@ export interface CheckoutSuccessResponse {
   invoiceId: string;
   paymentStatus: TransactionPaymentStatus;
   orderStatus: TransactionOrderStatus;
+  pointsUsed?: number;
   isIdempotentReplay?: boolean;
 }
 
