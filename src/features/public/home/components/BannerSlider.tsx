@@ -55,35 +55,37 @@ export const BannerSlider: React.FC = () => {
   if (banners.length === 1) {
     const singleBanner = banners[0];
     return (
-      <div
-        className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)] select-none"
-        style={{
-          boxShadow: `4px 4px 0px 0px var(--nb-shadow-${shadowTone})`,
-        }}
-      >
-        <a
-          href={singleBanner.linkUrl || '#'}
-          className="block w-full h-full overflow-hidden"
-          aria-label={singleBanner.title || 'Promo Banner'}
+      <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none py-1.5">
+        <div
+          className="w-full h-full rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)]"
+          style={{
+            boxShadow: `4px 4px 0px 0px var(--nb-shadow-${shadowTone})`,
+          }}
         >
-          <img
-            src={singleBanner.imageUrl}
-            alt={singleBanner.title || 'Promo Banner'}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover"
-          />
-        </a>
-        {singleBanner.title && (
-          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 pointer-events-none">
-            <Badge
-              variant={shadowTone as any}
-              size="sm"
-              className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_var(--nb-shadow)]"
-            >
-              {singleBanner.title}
-            </Badge>
-          </div>
-        )}
+          <a
+            href={singleBanner.linkUrl || '#'}
+            className="block w-full h-full overflow-hidden"
+            aria-label={singleBanner.title || 'Promo Banner'}
+          >
+            <img
+              src={singleBanner.imageUrl}
+              alt={singleBanner.title || 'Promo Banner'}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+          </a>
+          {singleBanner.title && (
+            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 pointer-events-none">
+              <Badge
+                variant={shadowTone as any}
+                size="sm"
+                className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_var(--nb-shadow)]"
+              >
+                {singleBanner.title}
+              </Badge>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -97,12 +99,7 @@ export const BannerSlider: React.FC = () => {
   const nextBanner = banners[nextIndex];
 
   return (
-    <div
-      className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)] lg:border-none lg:bg-transparent lg:rounded-none lg:py-1.5"
-      style={{
-        boxShadow: `4px 4px 0px 0px var(--nb-shadow-${shadowTone})`,
-      }}
-    >
+    <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none overflow-hidden py-1.5">
 
       {/* ⬅️ PREVIOUS SLIDE (HANYA MUNCUL PEEK ~8-10% DI DESKTOP >= lg) */}
       <div
@@ -134,7 +131,7 @@ export const BannerSlider: React.FC = () => {
 
       {/* 👑 ACTIVE CENTER BANNER (Mobile: 100% full container, Desktop: 80% center width, height gives room for 4px shadow) */}
       <div
-        className="w-full h-full relative lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[80%] lg:h-[calc(100%-8px)] lg:rounded-2xl lg:overflow-hidden lg:border-[3px] lg:border-black lg:bg-[var(--nb-surface)] z-20 transition-all duration-500"
+        className="w-full h-full relative rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)] lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[80%] lg:h-[calc(100%-8px)] z-20 transition-all duration-500"
         style={{
           boxShadow: `4px 4px 0px 0px var(--nb-shadow-${shadowTone})`,
         }}
