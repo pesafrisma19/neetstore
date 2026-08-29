@@ -11,12 +11,12 @@ import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Display } from '../../../../components/ui/Display';
 import { Pagination } from '../../../../components/ui/Pagination';
-import { Avatar, AvatarGroup } from '../../../../components/ui/Avatar';
 import { Button } from '../../../../components/ui/Button';
 import { Gamepad2, HelpCircle, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Input } from '../../../../components/ui/Input';
 import { apiFetch, type PublicBrand } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
+import { HomeInfoBar } from '../components/HomeInfoBar';
 
 // =====================================================
 // Skeleton Card — ditampilkan saat loading
@@ -106,45 +106,33 @@ export const Home: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-black overflow-x-hidden">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
 
-        {/* Promo Banner Slider dalam frame Brutalist */}
+        {/* 🌟 1. Info Bar Komunitas & Streaming (Non-Sticky Normal Flow) */}
+        <HomeInfoBar />
+
+        {/* 🌟 2. Promo Banner Slider Single Clean */}
         <PromoBanner />
 
-        {/* Flashsale Section Promosi Tampilan */}
+        {/* 🌟 3. Flashsale Section (Jika Aktif) */}
         <FlashsaleSection />
 
-        {/* Catalog Section Header */}
-        <div className="my-6 sm:my-8 text-left flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="min-w-0 max-w-full">
-            <div className="flex items-center gap-2 mb-1 py-1.5 px-1 overflow-visible">
-              <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-black shrink-0" />
-              <Display size="sm" highlight={catalogHighlight} className="text-xs sm:text-2xl md:text-3xl whitespace-nowrap">
-                KATALOG GAME &amp; VOUCHER
-              </Display>
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-gray-700 truncate">
-              Pilih game favoritmu dan nikmati harga terjangkau dengan proses otomatis 24 jam
-            </p>
+        {/* 🌟 4. Catalog Section Header (Compact & Clean) */}
+        <div className="my-4 sm:my-6 text-left">
+          <div className="flex items-center gap-2 mb-1 py-1 overflow-visible">
+            <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-black shrink-0" />
+            <Display size="sm" highlight={catalogHighlight} className="text-sm sm:text-2xl md:text-3xl whitespace-nowrap">
+              KATALOG GAME &amp; VOUCHER
+            </Display>
           </div>
-
-          <div className="flex items-center gap-3 p-3 bg-white border-[3px] border-black shadow-[3px_3px_0px_0px_#000]">
-            <AvatarGroup>
-              <Avatar fallback="ML" variant="yellow" size="sm" />
-              <Avatar fallback="FF" variant="pink" size="sm" />
-              <Avatar fallback="VAL" variant="mint" size="sm" />
-              <Avatar fallback="GI" variant="purple" size="sm" />
-            </AvatarGroup>
-            <div className="flex flex-col text-left leading-none">
-              <span className="text-xs font-black text-black">TOP UP GAME MUDAH</span>
-              <span className="text-[10px] font-bold text-gray-600">PROSES OTOMATIS SETELAH PEMBAYARAN</span>
-            </div>
-          </div>
+          <p className="text-xs sm:text-sm font-bold text-gray-700">
+            Pilih game favoritmu dan nikmati harga terjangkau dengan proses otomatis 24 jam
+          </p>
         </div>
 
-        {/* Filter Controls & Search */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8">
-          <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto">
+        {/* 🌟 5. Filter Controls & Search */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-6">
+          <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto overflow-x-auto pb-1">
             <TabsList>
               {uniqueCategories.map((cat) => (
                 <TabsTrigger key={cat} value={cat}>
@@ -159,7 +147,7 @@ export const Home: React.FC = () => {
             </TabsList>
           </Tabs>
 
-          <div className="w-full md:w-72">
+          <div className="w-full md:w-72 shrink-0">
             <Input
               placeholder="Cari game..."
               value={search}
