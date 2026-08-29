@@ -79,11 +79,11 @@ export const BannerSlider: React.FC = () => {
 
       {/* 🌟 2. BADGE JUDUL BANNER (JIKA ADA) */}
       {activeBanner.title && (
-        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 pointer-events-none">
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 pointer-events-none">
           <Badge
             variant={shadowTone as any}
             size="sm"
-            className="border-[2px] border-black font-black text-[10px] sm:text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
+            className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]"
           >
             {activeBanner.title}
           </Badge>
