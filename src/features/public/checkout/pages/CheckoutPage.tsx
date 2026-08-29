@@ -23,7 +23,7 @@ import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
 import { checkoutApi } from '../services/checkout.api';
 import { calculateCheckoutBreakdown, calculateRewardPoints, calculateMaxRedeemablePoints, type DiscountType } from '../../../../utils/checkoutCalculator';
-import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse } from '../../../../utils/api';
+import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse, getBrandReviews } from '../../../../utils/api';
 import { BrandReviewsTab } from '../../review/components/BrandReviewsTab';
 import { queryKeys } from '../../../../services/queryKeys';
 
@@ -687,6 +687,20 @@ export const CheckoutPage: React.FC = () => {
   const products: PublicBrandProduct[] = React.useMemo(() => {
     return brandData?.products || [];
   }, [brandData]);
+
+  // 🌟 Background Prefetch 5 Review Terbaru untuk Preview Instan di Tab Ulasan
+  useEffect(() => {
+    const targetSlug = brandData?.slug || slug;
+    if (targetSlug) {
+      queryClient.prefetchQuery({
+        queryKey: ['brandReviewsPreview', targetSlug],
+        queryFn: () => getBrandReviews(targetSlug, { page: 1, limit: 5, sort: 'latest' }),
+        staleTime: 60 * 1000,
+      }).catch(() => {
+        // Silently catch background prefetch errors (non-critical, checkout remains 100% unaffected)
+      });
+    }
+  }, [brandData?.slug, slug, queryClient]);
 
   // 2. Query Daftar Metode Pembayaran
   const paymentMethodsQueryResult = useQuery({

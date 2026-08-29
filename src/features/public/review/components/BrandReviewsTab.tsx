@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
-import { Star, Heart, MessageSquare, ArrowRight } from 'lucide-react';
+import { Star, Heart, MessageSquare, ArrowRight, AlertCircle } from 'lucide-react';
 import { 
   getBrandReviews, 
   toggleReviewLike, 
@@ -24,8 +24,13 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug, gam
   const { user: authUser } = useAuth();
   const queryClient = useQueryClient();
 
-  // Query 5 Latest Reviews Preview Only
-  const { data: reviewsResponse, isLoading } = useQuery({
+  // Query 5 Latest Reviews Preview (Reuses the exact background prefetch cache key)
+  const {
+    data: reviewsResponse,
+    isLoading,
+    isError,
+    refetch
+  } = useQuery({
     queryKey: ['brandReviewsPreview', brandSlug],
     queryFn: () => getBrandReviews(brandSlug, { page: 1, limit: 5, sort: 'latest' }),
     staleTime: 60 * 1000,
@@ -76,6 +81,78 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug, gam
 
   const reviewsTargetUrl = `/checkout/game/${encodeURIComponent(gameId || brandSlug)}/reviews`;
 
+  // 1. SKELETON LOADING STATE (Eliminates blank flash & fake 0.0 rating)
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4 text-left font-sans">
+        {/* Skeleton Header Summary */}
+        <Card variant="white" shadow="lg" className="border-[3px] border-black rounded-2xl p-4 animate-pulse">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 bg-neutral-200 border-[2px] border-black/20 rounded-xl" />
+              <div className="space-y-2">
+                <div className="w-24 h-6 bg-neutral-200 rounded" />
+                <div className="w-36 h-3.5 bg-neutral-200 rounded" />
+              </div>
+            </div>
+            <div className="hidden sm:block w-28 h-8 bg-neutral-200 rounded-lg" />
+          </div>
+        </Card>
+
+        {/* Skeleton 2 Compact Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[1, 2].map((i) => (
+            <Card
+              key={i}
+              variant="white"
+              shadow="md"
+              className="border-[2.5px] border-black rounded-xl p-3 flex flex-col gap-2.5 animate-pulse"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-neutral-200" />
+                  <div className="w-28 h-3.5 bg-neutral-200 rounded" />
+                </div>
+                <div className="w-16 h-3 bg-neutral-200 rounded" />
+              </div>
+              <div className="w-24 h-3 bg-neutral-200 rounded" />
+              <div className="w-32 h-4 bg-neutral-200 rounded" />
+              <div className="pt-1.5 border-t border-dashed border-neutral-200 flex items-center justify-between">
+                <div className="w-3/4 h-3.5 bg-neutral-200 rounded" />
+                <div className="w-10 h-5 bg-neutral-200 rounded-md" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 2. ERROR STATE (Friendly fallback with retry, does not break checkout)
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-4 text-left font-sans">
+        <Card variant="white" shadow="md" className="p-6 text-center border-[3px] border-black rounded-2xl space-y-3">
+          <AlertCircle className="w-8 h-8 mx-auto text-amber-500 stroke-[2.5]" />
+          <h3 className="font-black text-sm uppercase text-[var(--nb-text)]">ULASAN BELUM DAPAT DIMUAT</h3>
+          <p className="text-xs font-bold text-[var(--nb-text-muted)] max-w-sm mx-auto">
+            Terjadi kendala saat memuat ulasan produk. Silakan coba beberapa saat lagi.
+          </p>
+          <Button
+            type="button"
+            variant="yellow"
+            size="sm"
+            onClick={() => refetch()}
+            className="font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
+          >
+            COBA LAGI
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // 3. SUCCESS STATE (Instant Render with cached or fetched data)
   return (
     <div className="flex flex-col gap-4 text-left font-sans">
       
@@ -118,13 +195,7 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug, gam
       </Card>
 
       {/* 🌟 5 LATEST REVIEW CARDS (PREVIEW) */}
-      {isLoading ? (
-        <div className="p-6 text-center bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000]">
-          <span className="font-black text-xs uppercase tracking-wider text-neutral-500 animate-pulse">
-            MEMUAT ULASAN TERBARU...
-          </span>
-        </div>
-      ) : reviews.length === 0 ? (
+      {reviews.length === 0 ? (
         <div className="p-6 text-center bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] space-y-2">
           <MessageSquare className="w-7 h-7 mx-auto text-neutral-400 stroke-[2]" />
           <h3 className="font-black text-xs uppercase text-[var(--nb-text)]">BELUM ADA ULASAN</h3>
