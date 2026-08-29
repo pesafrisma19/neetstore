@@ -132,7 +132,7 @@ export const Home: React.FC = () => {
 
         {/* 🌟 5. Filter Controls & Search */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-6">
-          <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto overflow-x-auto pb-1">
+          <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto overflow-x-auto pr-2 pb-2">
             <TabsList>
               {uniqueCategories.map((cat) => (
                 <TabsTrigger key={cat} value={cat}>

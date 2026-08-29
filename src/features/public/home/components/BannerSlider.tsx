@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '../../../../components/ui/Badge';
 
 const BannerSkeleton: React.FC = () => (
-  <div className="w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] bg-neutral-200 animate-pulse rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_0px_#000]" />
+  <div className="w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] bg-neutral-200 animate-pulse rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_0px_var(--nb-shadow)]" />
 );
 
 export const BannerSlider: React.FC = () => {
@@ -78,7 +78,7 @@ export const BannerSlider: React.FC = () => {
             <Badge
               variant={shadowTone as any}
               size="sm"
-              className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]"
+              className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_var(--nb-shadow)]"
             >
               {singleBanner.title}
             </Badge>
@@ -97,12 +97,17 @@ export const BannerSlider: React.FC = () => {
   const nextBanner = banners[nextIndex];
 
   return (
-    <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)] shadow-[4px_4px_0px_0px_#000] lg:border-none lg:shadow-none lg:bg-transparent lg:rounded-none">
+    <div
+      className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)] lg:border-none lg:bg-transparent lg:rounded-none lg:py-1.5"
+      style={{
+        boxShadow: `4px 4px 0px 0px var(--nb-shadow-${shadowTone})`,
+      }}
+    >
 
       {/* ⬅️ PREVIOUS SLIDE (HANYA MUNCUL PEEK ~8-10% DI DESKTOP >= lg) */}
       <div
         onClick={prev}
-        className="hidden lg:block absolute -left-[72%] top-1/2 -translate-y-1/2 w-[80%] h-full z-10 scale-[0.93] opacity-60 hover:opacity-85 transition-all duration-500 cursor-pointer overflow-hidden rounded-2xl border-[2.5px] border-black/80 bg-[var(--nb-surface)]"
+        className="hidden lg:block absolute -left-[72%] top-1/2 -translate-y-1/2 w-[80%] h-[calc(100%-8px)] z-10 scale-[0.93] opacity-60 hover:opacity-85 transition-all duration-500 cursor-pointer overflow-hidden rounded-2xl border-[2.5px] border-black/80 bg-[var(--nb-surface)]"
         title="Lihat banner sebelumnya"
       >
         <img
@@ -116,7 +121,7 @@ export const BannerSlider: React.FC = () => {
       {/* ➡️ NEXT SLIDE (HANYA MUNCUL PEEK ~8-10% DI DESKTOP >= lg) */}
       <div
         onClick={next}
-        className="hidden lg:block absolute -right-[72%] top-1/2 -translate-y-1/2 w-[80%] h-full z-10 scale-[0.93] opacity-60 hover:opacity-85 transition-all duration-500 cursor-pointer overflow-hidden rounded-2xl border-[2.5px] border-black/80 bg-[var(--nb-surface)]"
+        className="hidden lg:block absolute -right-[72%] top-1/2 -translate-y-1/2 w-[80%] h-[calc(100%-8px)] z-10 scale-[0.93] opacity-60 hover:opacity-85 transition-all duration-500 cursor-pointer overflow-hidden rounded-2xl border-[2.5px] border-black/80 bg-[var(--nb-surface)]"
         title="Lihat banner berikutnya"
       >
         <img
@@ -127,9 +132,9 @@ export const BannerSlider: React.FC = () => {
         />
       </div>
 
-      {/* 👑 ACTIVE CENTER BANNER (Mobile: 100% full container, Desktop: 80% center width) */}
+      {/* 👑 ACTIVE CENTER BANNER (Mobile: 100% full container, Desktop: 80% center width, height gives room for 4px shadow) */}
       <div
-        className="w-full h-full relative lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[80%] lg:rounded-2xl lg:overflow-hidden lg:border-[3px] lg:border-black lg:bg-[var(--nb-surface)] z-20 transition-all duration-500"
+        className="w-full h-full relative lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[80%] lg:h-[calc(100%-8px)] lg:rounded-2xl lg:overflow-hidden lg:border-[3px] lg:border-black lg:bg-[var(--nb-surface)] z-20 transition-all duration-500"
         style={{
           boxShadow: `4px 4px 0px 0px var(--nb-shadow-${shadowTone})`,
         }}
@@ -156,7 +161,7 @@ export const BannerSlider: React.FC = () => {
             <Badge
               variant={shadowTone as any}
               size="sm"
-              className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_#000] sm:shadow-[2px_2px_0px_0px_#000]"
+              className="border-[1.5px] sm:border-[2px] border-black font-black text-[8.5px] sm:text-xs uppercase px-1.5 sm:px-2.5 py-0.5 shadow-[1.5px_1.5px_0px_0px_var(--nb-shadow)]"
             >
               {activeBanner.title}
             </Badge>
@@ -170,7 +175,7 @@ export const BannerSlider: React.FC = () => {
         type="button"
         onClick={prev}
         aria-label="Banner sebelumnya"
-        className="absolute left-2 sm:left-3 lg:left-[11.5%] top-1/2 -translate-y-1/2 z-30 w-7 h-7 sm:w-9 sm:h-9 bg-white/90 hover:bg-white border-[2px] border-black shadow-[2px_2px_0px_0px_#000] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
+        className="absolute left-2 sm:left-3 lg:left-[11.5%] top-1/2 -translate-y-1/2 z-30 w-7 h-7 sm:w-9 sm:h-9 bg-white/90 hover:bg-white border-[2px] border-black shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
       >
         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
       </button>
@@ -180,7 +185,7 @@ export const BannerSlider: React.FC = () => {
         type="button"
         onClick={next}
         aria-label="Banner berikutnya"
-        className="absolute right-2 sm:right-3 lg:right-[11.5%] top-1/2 -translate-y-1/2 z-30 w-7 h-7 sm:w-9 sm:h-9 bg-white/90 hover:bg-white border-[2px] border-black shadow-[2px_2px_0px_0px_#000] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
+        className="absolute right-2 sm:right-3 lg:right-[11.5%] top-1/2 -translate-y-1/2 z-30 w-7 h-7 sm:w-9 sm:h-9 bg-white/90 hover:bg-white border-[2px] border-black shadow-[2px_2px_0px_0px_var(--nb-shadow)] flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all cursor-pointer font-black"
       >
         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
       </button>
