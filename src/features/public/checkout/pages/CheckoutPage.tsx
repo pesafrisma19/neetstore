@@ -16,7 +16,7 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins, Star, Loader2 } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, AlertTriangle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins, Star, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -1780,9 +1780,9 @@ export const CheckoutPage: React.FC = () => {
                         {/* 4. Technical Validator Error (VALIDATOR_UNAVAILABLE / VALIDATOR_RATE_LIMITED) */}
                         {!isCheckingId && (validationErrorCode === 'VALIDATOR_UNAVAILABLE' || validationErrorCode === 'VALIDATOR_RATE_LIMITED') && (
                           <div className="p-2.5 bg-[var(--nb-yellow)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-[var(--nb-radius-element)] text-xs font-black text-black flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                              <span>⚠️</span>
-                              <span>Pengecekan akun tidak mendapatkan hasil. Pastikan ID dan Server sudah benar sebelum melanjutkan.</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <AlertTriangle className="w-4 h-4 text-black shrink-0 stroke-[2.5]" />
+                              <span>Pengecekan akun sedang gangguan. Jika ID sudah yakin benar, silakan lanjutkan pesanan.</span>
                             </div>
                             <Button
                               type="button"
