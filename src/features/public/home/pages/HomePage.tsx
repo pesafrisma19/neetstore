@@ -103,7 +103,7 @@ export const Home: React.FC = () => {
   }, [games]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-brutalist-grid text-black overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)] overflow-x-hidden">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
@@ -119,13 +119,13 @@ export const Home: React.FC = () => {
 
         {/* 🌟 4. Catalog Section Header (Compact & Clean) */}
         <div className="my-4 sm:my-6 text-left">
-          <div className="flex items-center gap-2 mb-1 py-1 overflow-visible">
-            <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-black shrink-0" />
-            <Display size="sm" highlight={catalogHighlight} className="text-sm sm:text-2xl md:text-3xl whitespace-nowrap">
+          <div className="flex items-center gap-2.5 mb-1 py-1.5 pr-2 overflow-visible">
+            <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-[var(--nb-text)] shrink-0" />
+            <Display size="sm" highlight={catalogHighlight} className="text-sm sm:text-2xl md:text-3xl whitespace-nowrap pr-2 pb-2 inline-block">
               KATALOG GAME &amp; VOUCHER
             </Display>
           </div>
-          <p className="text-xs sm:text-sm font-bold text-gray-700">
+          <p className="text-xs sm:text-sm font-bold text-[var(--nb-text-muted)]">
             Pilih game favoritmu dan nikmati harga terjangkau dengan proses otomatis 24 jam
           </p>
         </div>
