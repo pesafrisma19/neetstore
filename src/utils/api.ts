@@ -200,6 +200,7 @@ export interface PublicNeetflixValidationResult {
 
 export interface PublicNeetflixValidationResponse {
   success: boolean;
+  code?: 'ACCOUNT_INVALID' | 'VALIDATOR_UNAVAILABLE' | 'VALIDATOR_RATE_LIMITED' | string;
   data?: PublicNeetflixValidationResult;
   error?: string;
   message?: string;

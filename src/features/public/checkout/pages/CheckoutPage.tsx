@@ -8,7 +8,6 @@ import { Select, type SelectOption } from '../../../../components/ui/Select';
 import { Button } from '../../../../components/ui/Button';
 import { Sticker } from '../../../../components/ui/Sticker';
 import { Breadcrumb } from '../../../../components/ui/Breadcrumb';
-import { Progress } from '../../../../components/ui/Progress';
 import { Checkbox } from '../../../../components/ui/Checkbox';
 import { RadioGroup, RadioGroupItem } from '../../../../components/ui/RadioGroup';
 import { Tooltip } from '../../../../components/ui/Tooltip';
@@ -17,7 +16,7 @@ import { Dialog } from '../../../../components/ui/Dialog';
 import { Badge } from '../../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components/ui/Tabs';
 import { Toast, type ToastMessage } from '../../../../components/ui/Toast';
-import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins, Star } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Ticket, Info, Zap, Headphones, ShoppingCart, Download, Award, Calendar, ChevronLeft, ChevronRight, Newspaper, BookOpen, AlertCircle, QrCode, Wallet, Smartphone, Building2, Store, CreditCard, Coins, Star, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useAuth, type UserProfile } from '../../../../contexts/AuthContext';
@@ -489,7 +488,7 @@ export const CheckoutPage: React.FC = () => {
   const [isRegionLocked, setIsRegionLocked] = useState(false);
   const [showAllRegionsOverride, setShowAllRegionsOverride] = useState(false);
   const [validMatchedRegionIds, setValidMatchedRegionIds] = useState<number[]>([]);
-  const [checkIdError, setCheckIdError] = useState('');
+  const [validationErrorCode, setValidationErrorCode] = useState<'ACCOUNT_INVALID' | 'VALIDATOR_UNAVAILABLE' | 'VALIDATOR_RATE_LIMITED' | string | null>(null);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const [isLoginRequiredModalOpen, setIsLoginRequiredModalOpen] = useState(false);
 
@@ -578,7 +577,7 @@ export const CheckoutPage: React.FC = () => {
     setFirstTopupTiers([]);
     setValidatedUserId('');
     setValidatedServerId('');
-    setCheckIdError('');
+    setValidationErrorCode(null);
   }, []);
 
   // Handler onChange dengan proteksi: hanya reset jika nilai BENAR-BENAR BERBEDA
@@ -1009,79 +1008,16 @@ export const CheckoutPage: React.FC = () => {
         params.userId,
         params.zoneId
       );
-      if (!res || typeof res !== 'object' || typeof res.success !== 'boolean') {
+      if (!res || typeof res !== 'object') {
         throw new Error('Response validasi akun dari server tidak valid.');
       }
-
-      if (res.success) {
-        if (!res.data || typeof res.data !== 'object') {
-          throw new Error('Data validasi akun dari server kosong.');
-        }
-        const d = res.data;
-        if (typeof d.nickname !== 'string' || !d.nickname.trim()) {
-          throw new Error('Nickname dari server tidak valid.');
-        }
-        if (d.detectedRegionCode !== undefined && typeof d.detectedRegionCode !== 'string') {
-          throw new Error('Kode region dari server tidak valid.');
-        }
-        if (d.detectedCountry !== undefined && typeof d.detectedCountry !== 'string') {
-          throw new Error('Kode negara dari server tidak valid.');
-        }
-        if (
-          d.recommendedRegionId !== undefined &&
-          d.recommendedRegionId !== null &&
-          (typeof d.recommendedRegionId !== 'number' || !Number.isFinite(d.recommendedRegionId))
-        ) {
-          throw new Error('Recommended region ID dari server tidak valid.');
-        }
-        if (
-          d.matchedRegionId !== undefined &&
-          d.matchedRegionId !== null &&
-          (typeof d.matchedRegionId !== 'number' || !Number.isFinite(d.matchedRegionId))
-        ) {
-          throw new Error('Matched region ID dari server tidak valid.');
-        }
-        if (
-          d.matchedRegionIds !== undefined &&
-          (!Array.isArray(d.matchedRegionIds) ||
-            !d.matchedRegionIds.every((id) => typeof id === 'number' && Number.isFinite(id)))
-        ) {
-          throw new Error('Matched region IDs dari server tidak valid.');
-        }
-        if (d.firstTopupAvailable !== undefined && typeof d.firstTopupAvailable !== 'boolean') {
-          throw new Error('First topup status dari server tidak valid.');
-        }
-        if (
-          d.firstTopupTiers !== undefined &&
-          (!Array.isArray(d.firstTopupTiers) ||
-            !d.firstTopupTiers.every(
-              (tier) =>
-                typeof tier === 'object' &&
-                tier !== null &&
-                (tier.id === undefined || typeof tier.id === 'string' || typeof tier.id === 'number') &&
-                (tier.name === undefined || typeof tier.name === 'string') &&
-                (tier.diamonds === undefined || (typeof tier.diamonds === 'number' && Number.isFinite(tier.diamonds))) &&
-                (tier.available === undefined || typeof tier.available === 'boolean')
-            ))
-        ) {
-          throw new Error('First topup tiers dari server tidak valid.');
-        }
-      } else {
-        if (res.error !== undefined && typeof res.error !== 'string') {
-          throw new Error('Format error dari server tidak valid.');
-        }
-        if (res.message !== undefined && typeof res.message !== 'string') {
-          throw new Error('Format message dari server tidak valid.');
-        }
-      }
-
       return res;
     },
     onMutate: () => {
       setNickname('');
       setDetectedRegionCode('');
       setFirstTopupTiers([]);
-      setCheckIdError('');
+      setValidationErrorCode(null);
     },
     onSuccess: (res, variables) => {
       // Proteksi Stale Response: Pastikan snapshot input saat request dipicu masih persis sama dengan state aktif
@@ -1097,6 +1033,7 @@ export const CheckoutPage: React.FC = () => {
         setNickname(res.data.nickname);
         setValidatedUserId(variables.userId.trim());
         setValidatedServerId((variables.zoneId || '').trim());
+        setValidationErrorCode(null);
 
         const targetRegionId = res.data.recommendedRegionId ?? res.data.matchedRegionId;
         if (targetRegionId) {
@@ -1124,13 +1061,11 @@ export const CheckoutPage: React.FC = () => {
         if (res.data.firstTopupTiers && Array.isArray(res.data.firstTopupTiers)) {
           setFirstTopupTiers(res.data.firstTopupTiers);
         }
-        setToast({ type: 'success', title: 'AKUN DITEMUKAN', message: `Halo, ${res.data.nickname}!` });
       } else {
         setValidatedUserId('');
         setValidatedServerId('');
-        const errMsg = res.error || res.message || 'ID tidak terdeteksi, jika benar silakan lanjut.';
-        setCheckIdError(errMsg);
-        setToast({ type: 'error', title: 'ID TIDAK VALID', message: errMsg });
+        const code = res.code || 'VALIDATOR_UNAVAILABLE';
+        setValidationErrorCode(code);
       }
     },
     onError: (error: unknown, variables) => {
@@ -1145,35 +1080,62 @@ export const CheckoutPage: React.FC = () => {
 
       setValidatedUserId('');
       setValidatedServerId('');
-      let errMsg = 'ID tidak terdeteksi, jika benar silakan lanjut.';
-      if (isAxiosError<ApiErrorResponse>(error)) {
-        errMsg =
-          error.response?.data?.error ||
-          error.response?.data?.message ||
-          error.message ||
-          errMsg;
-      } else if (error instanceof Error) {
-        errMsg = error.message;
+      let code = 'VALIDATOR_UNAVAILABLE';
+
+      if (isAxiosError<ApiErrorResponse & { code?: string }>(error)) {
+        code = error.response?.data?.code || 'VALIDATOR_UNAVAILABLE';
       }
-      setCheckIdError(errMsg);
-      setToast({ type: 'error', title: 'GAGAL CEK ID', message: errMsg });
+      setValidationErrorCode(code);
     },
   });
 
   const isCheckingId = validateAccountMutation.isPending;
 
-  const handleCheckId = () => {
-    if (!userId.trim()) {
-      setToast({ type: 'warning', title: 'USER ID KOSONG', message: 'Silakan isi User ID kamu!' });
+  // Auto-validation Effect: Berjalan otomatis setelah user selesai mengetik ID & Server (debounce 700ms)
+  useEffect(() => {
+    if (!brandData?.validationGameCode || !brandData.id) return;
+
+    const trimmedUser = userId.trim();
+    const trimmedServer = serverId.trim();
+
+    const hasZoneField = (brandData.customFields && brandData.customFields.length > 1);
+    const isInputComplete = hasZoneField
+      ? Boolean(trimmedUser.length > 0 && trimmedServer.length > 0)
+      : Boolean(trimmedUser.length > 0);
+
+    if (!isInputComplete) {
       return;
     }
-    if (!brandData || validateAccountMutation.isPending) return;
 
+    // Jika sudah berhasil divalidasi untuk input saat ini, jangan request ulang
+    if (validatedUserId === trimmedUser && validatedServerId === trimmedServer && nickname) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      validateAccountMutation.mutate({
+        brandId: brandData.id,
+        slug,
+        userId: trimmedUser,
+        zoneId: trimmedServer || undefined,
+      });
+    }, 700);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [userId, serverId, brandData?.validationGameCode, brandData?.id, brandData?.customFields, slug, validatedUserId, validatedServerId, nickname]);
+
+  const handleRetryCheckId = () => {
+    if (!brandData?.id || validateAccountMutation.isPending) return;
+    const trimmedUser = userId.trim();
+    const trimmedServer = serverId.trim();
+    if (!trimmedUser) return;
     validateAccountMutation.mutate({
       brandId: brandData.id,
       slug,
-      userId: userId.trim(),
-      zoneId: serverId.trim() || undefined,
+      userId: trimmedUser,
+      zoneId: trimmedServer || undefined,
     });
   };
 
@@ -1356,27 +1318,40 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
-    // Phase 4 Guard: Jika game mendukung Cek ID (validationGameCode), pastikan ID divalidasi & tidak berubah
+    // Phase 4 Guard: Jika game mendukung Cek ID (validationGameCode)
     if (brandData?.validationGameCode) {
       const currentUserId = userId.trim();
       const currentServerId = serverId.trim();
 
-      if (!validatedUserId) {
+      if (isCheckingId) {
         setToast({
           id: `t_${Date.now()}`,
-          type: 'warning',
-          title: 'CEK ID DIPERLUKAN',
-          message: 'Silakan lakukan Cek ID terlebih dahulu.',
+          type: 'info',
+          title: 'SEDANG MENGECEK AKUN',
+          message: 'Mohon tunggu sebentar, sedang memverifikasi akun game kamu...',
         });
         return;
       }
 
-      if (currentUserId !== validatedUserId || currentServerId !== validatedServerId) {
+      if (validationErrorCode === 'ACCOUNT_INVALID') {
+        setToast({
+          id: `t_${Date.now()}`,
+          type: 'error',
+          title: 'AKUN TIDAK DITEMUKAN',
+          message: 'User ID atau Server tidak valid. Periksa kembali data akun game kamu.',
+        });
+        return;
+      }
+
+      const isTechnicalError = validationErrorCode === 'VALIDATOR_UNAVAILABLE' || validationErrorCode === 'VALIDATOR_RATE_LIMITED';
+      const isValidatedSuccess = Boolean(validatedUserId && validatedUserId === currentUserId && validatedServerId === currentServerId);
+
+      if (!isValidatedSuccess && !isTechnicalError) {
         setToast({
           id: `t_${Date.now()}`,
           type: 'warning',
-          title: 'DATA AKUN BERUBAH',
-          message: 'User ID atau Server telah berubah. Silakan lakukan Cek ID kembali.',
+          title: 'DATA AKUN BELUM LENGKAP',
+          message: 'Silakan lengkapi User ID dan Server akun game kamu.',
         });
         return;
       }
@@ -1392,7 +1367,7 @@ export const CheckoutPage: React.FC = () => {
       productId: selectedItem.id,
       targetAccount: userId.trim(),
       targetZone: serverId.trim() || undefined,
-      nickname: nickname.trim() || undefined,
+      nickname: (nickname && validatedUserId === userId.trim()) ? nickname.trim() : undefined,
       paymentMethod: selectedPayment,
       voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
       whatsapp: whatsapp.trim() || undefined,
@@ -1458,7 +1433,7 @@ export const CheckoutPage: React.FC = () => {
       productId: selectedItem.id,
       targetAccount: userId.trim(),
       targetZone: serverId.trim() || undefined,
-      nickname: nickname.trim() || undefined,
+      nickname: (nickname && validatedUserId === userId.trim()) ? nickname.trim() : undefined,
       paymentMethod: selectedPayment,
       voucherCode: appliedDiscount > 0 ? (appliedVoucherCode || promoCode).trim().toUpperCase() : undefined,
       whatsapp: trimmedWa || undefined,
@@ -1714,10 +1689,6 @@ export const CheckoutPage: React.FC = () => {
 
               {/* ⚡ TAB 1: FORM TOP UP */}
               <TabsContent value="topup" className="pt-2 flex flex-col gap-8">
-                
-                <div className="max-w-xl">
-                  <Progress value={75} label="PROGRESS KELENGKAPAN PESANAN" tone="yellow" />
-                </div>
 
                 {/* Step 1: User ID & Zone ID */}
                 <Card variant="white" shadow="lg">
@@ -1771,24 +1742,21 @@ export const CheckoutPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Phase 4: Tombol Cek ID (Hanya Muncul Jika Game Mendukung Validasi Neetflix) */}
+                    {/* Status Validasi Akun Otomatis (Jika Brand Mendukung Cek ID) */}
                     {brandData?.validationGameCode && (
-                      <div className="flex flex-col gap-2 mt-2">
-                        <Button
-                          type="button"
-                          variant="purple"
-                          size="sm"
-                          onClick={handleCheckId}
-                          disabled={isCheckingId || !userId.trim()}
-                          className="w-full sm:w-auto self-start font-black text-xs uppercase"
-                        >
-                          <ShieldCheck className="w-4 h-4 stroke-[3]" />
-                          {isCheckingId ? 'MEMERIKSA ID...' : 'CEK ID & PROMO'}
-                        </Button>
-                        
-                        {nickname && (
-                          <div className="p-2.5 bg-[var(--nb-cyan)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-2 mt-1">
+                        {/* 1. Loading State */}
+                        {isCheckingId && (
+                          <div className="p-2 bg-[var(--nb-surface-alt)] border-[2px] border-[var(--nb-border)] rounded-[var(--nb-radius-element)] flex items-center gap-2 text-xs font-bold text-[var(--nb-text)]">
+                            <Loader2 className="w-4 h-4 animate-spin text-[var(--nb-text)] shrink-0" />
+                            <span>Mengecek akun...</span>
+                          </div>
+                        )}
+
+                        {/* 2. Success State */}
+                        {!isCheckingId && nickname && validatedUserId === userId.trim() && (
+                          <div className="p-2.5 bg-[var(--nb-cyan)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-[var(--nb-radius-element)] flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 min-w-0">
                               <Check className="w-4 h-4 bg-black text-white p-0.5 rounded-full shrink-0" />
                               <span className="font-black text-xs sm:text-sm uppercase truncate">NICKNAME: {nickname}</span>
                             </div>
@@ -1801,9 +1769,30 @@ export const CheckoutPage: React.FC = () => {
                           </div>
                         )}
 
-                        {checkIdError && (
-                          <div className="p-2.5 bg-[var(--nb-yellow)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase text-black">
-                            ⚠️ {checkIdError}
+                        {/* 3. Account Invalid Error (ACCOUNT_INVALID) */}
+                        {!isCheckingId && validationErrorCode === 'ACCOUNT_INVALID' && (
+                          <div className="p-2.5 bg-red-100 border-[2.5px] border-red-600 shadow-[3px_3px_0px_0px_rgba(220,38,38,1)] rounded-[var(--nb-radius-element)] text-xs font-black text-red-700 flex items-center gap-2">
+                            <span className="text-sm font-black">✕</span>
+                            <span>Akun tidak ditemukan. Periksa kembali ID / Server.</span>
+                          </div>
+                        )}
+
+                        {/* 4. Technical Validator Error (VALIDATOR_UNAVAILABLE / VALIDATOR_RATE_LIMITED) */}
+                        {!isCheckingId && (validationErrorCode === 'VALIDATOR_UNAVAILABLE' || validationErrorCode === 'VALIDATOR_RATE_LIMITED') && (
+                          <div className="p-2.5 bg-[var(--nb-yellow)] border-[2.5px] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-[var(--nb-radius-element)] text-xs font-black text-black flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                              <span>⚠️</span>
+                              <span>Pengecekan akun tidak mendapatkan hasil. Pastikan ID dan Server sudah benar sebelum melanjutkan.</span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="white"
+                              size="sm"
+                              onClick={handleRetryCheckId}
+                              className="text-[10px] font-black uppercase py-1 px-2.5 shrink-0 border-[1.5px] border-black shadow-[1.5px_1.5px_0px_0px_#000]"
+                            >
+                              COBA LAGI
+                            </Button>
                           </div>
                         )}
                       </div>
