@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
-import { Star, Heart, MessageSquare } from 'lucide-react';
+import { Star, Heart, MessageSquare, ArrowRight } from 'lucide-react';
 import { 
   getBrandReviews, 
   toggleReviewLike, 
@@ -16,33 +17,29 @@ import { id } from 'date-fns/locale';
 
 export interface BrandReviewsTabProps {
   brandSlug: string;
+  gameId?: string;
 }
 
-export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) => {
+export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug, gameId }) => {
   const { user: authUser } = useAuth();
   const queryClient = useQueryClient();
 
-  const [sort, setSort] = useState<'latest' | 'liked'>('latest');
-  const [page, setPage] = useState<number>(1);
-  const limit = 10;
-
-  // Query Brand Reviews
+  // Query 5 Latest Reviews Preview Only
   const { data: reviewsResponse, isLoading } = useQuery({
-    queryKey: ['brandReviews', brandSlug, sort, page],
-    queryFn: () => getBrandReviews(brandSlug, { page, limit, sort }),
+    queryKey: ['brandReviewsPreview', brandSlug],
+    queryFn: () => getBrandReviews(brandSlug, { page: 1, limit: 5, sort: 'latest' }),
     staleTime: 60 * 1000,
     enabled: Boolean(brandSlug),
   });
 
   const summary = reviewsResponse?.summary || { averageRating: 0, totalReviews: 0 };
   const reviews: PublicReviewItem[] = reviewsResponse?.data || [];
-  const pagination = reviewsResponse?.pagination || { page: 1, totalPages: 1, totalReviews: 0, hasNextPage: false };
 
   // Like Mutation
   const likeMutation = useMutation({
     mutationFn: (reviewId: number) => toggleReviewLike(reviewId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['brandReviews', brandSlug] });
+      queryClient.invalidateQueries({ queryKey: ['brandReviewsPreview', brandSlug] });
     },
     onError: (err: any) => {
       alert(err?.message || 'Gagal memberikan like.');
@@ -77,24 +74,26 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
     }
   };
 
+  const reviewsTargetUrl = `/checkout/game/${encodeURIComponent(gameId || brandSlug)}/reviews`;
+
   return (
-    <div className="flex flex-col gap-6 text-left font-sans">
+    <div className="flex flex-col gap-4 text-left font-sans">
       
-      {/* 🌟 HEADER SUMMARY REVIEW */}
-      <Card variant="white" shadow="lg" className="border-[3px] border-black rounded-2xl p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* 🌟 HEADER SUMMARY REVIEW (PREVIEW COMPACT) */}
+      <Card variant="white" shadow="lg" className="border-[3px] border-black rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-4">
           
           {/* Average Rating & Total Count */}
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 bg-[var(--nb-yellow)] border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-center shrink-0">
-              <Star className="w-6 h-6 fill-black text-black stroke-[2.5]" />
+            <div className="w-11 h-11 bg-[var(--nb-yellow)] border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-center shrink-0">
+              <Star className="w-5 h-5 fill-black text-black stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-[var(--nb-text)]">
+                <span className="text-2xl font-black text-[var(--nb-text)]">
                   {summary.averageRating.toFixed(1)}
                 </span>
-                <span className="text-sm font-bold text-[var(--nb-text-muted)]">/ 5.0</span>
+                <span className="text-xs font-bold text-[var(--nb-text-muted)]">/ 5.0</span>
               </div>
               <div className="text-xs font-bold text-[var(--nb-text-muted)]">
                 Berdasarkan <b>{summary.totalReviews}</b> ulasan
@@ -102,52 +101,33 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
             </div>
           </div>
 
-          {/* Sort Buttons (V1: TERBARU / PALING DISUKAI) */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setSort('latest');
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 border-[2px] border-black font-black text-xs uppercase transition-all cursor-pointer shadow-[2px_2px_0px_0px_#000] ${
-                sort === 'latest'
-                  ? 'bg-[var(--nb-yellow)] text-black ring-1 ring-black'
-                  : 'bg-white hover:bg-neutral-50 text-neutral-700'
-              }`}
-            >
-              TERBARU
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSort('liked');
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 border-[2px] border-black font-black text-xs uppercase transition-all cursor-pointer shadow-[2px_2px_0px_0px_#000] ${
-                sort === 'liked'
-                  ? 'bg-[var(--nb-yellow)] text-black ring-1 ring-black'
-                  : 'bg-white hover:bg-neutral-50 text-neutral-700'
-              }`}
-            >
-              PALING DISUKAI
-            </button>
-          </div>
+          {summary.totalReviews > 0 && (
+            <Link to={reviewsTargetUrl}>
+              <Button
+                variant="white"
+                size="sm"
+                className="font-black text-xs uppercase hidden sm:inline-flex items-center gap-1 shadow-[2px_2px_0px_0px_#000]"
+              >
+                <span>LIHAT SEMUA</span>
+                <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+              </Button>
+            </Link>
+          )}
 
         </div>
       </Card>
 
-      {/* 🌟 REVIEW CARDS LIST */}
+      {/* 🌟 5 LATEST REVIEW CARDS (PREVIEW) */}
       {isLoading ? (
-        <div className="p-8 text-center bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000]">
+        <div className="p-6 text-center bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000]">
           <span className="font-black text-xs uppercase tracking-wider text-neutral-500 animate-pulse">
-            MEMUAT ULASAN PRODUK...
+            MEMUAT ULASAN TERBARU...
           </span>
         </div>
       ) : reviews.length === 0 ? (
-        <div className="p-8 text-center bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] space-y-2">
-          <MessageSquare className="w-8 h-8 mx-auto text-neutral-400 stroke-[2]" />
-          <h3 className="font-black text-sm uppercase text-[var(--nb-text)]">BELUM ADA ULASAN</h3>
+        <div className="p-6 text-center bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] space-y-2">
+          <MessageSquare className="w-7 h-7 mx-auto text-neutral-400 stroke-[2]" />
+          <h3 className="font-black text-xs uppercase text-[var(--nb-text)]">BELUM ADA ULASAN</h3>
           <p className="text-xs font-bold text-[var(--nb-text-muted)] max-w-sm mx-auto">
             Jadilah yang pertama mengulas setelah melakukan pembelian sukses di brand ini!
           </p>
@@ -245,32 +225,21 @@ export const BrandReviewsTab: React.FC<BrandReviewsTabProps> = ({ brandSlug }) =
         </div>
       )}
 
-      {/* Pagination: Load More / Halaman Berikutnya */}
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          {page > 1 && (
+      {/* 🌟 TOMBOL LIHAT SEMUA ULASAN */}
+      {summary.totalReviews > 0 && (
+        <div className="pt-2">
+          <Link to={reviewsTargetUrl} className="block w-full">
             <Button
-              variant="white"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
+              type="button"
+              variant="yellow"
+              size="md"
+              fullWidth
+              className="font-black text-xs uppercase shadow-[3px_3px_0px_0px_#000] hover:translate-x-[-1px] hover:translate-y-[-1px] flex items-center justify-center gap-2"
             >
-              SEBELUMNYA
+              <span>LIHAT SEMUA ({summary.totalReviews}) ULASAN</span>
+              <ArrowRight className="w-4 h-4 stroke-[3]" />
             </Button>
-          )}
-          <span className="px-3 py-1 bg-white border-[2px] border-black font-mono font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-            {page} / {pagination.totalPages}
-          </span>
-          {pagination.hasNextPage && (
-            <Button
-              variant="white"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              className="font-black text-xs uppercase shadow-[2px_2px_0px_0px_#000]"
-            >
-              LIHAT LEBIH BANYAK
-            </Button>
-          )}
+          </Link>
         </div>
       )}
 

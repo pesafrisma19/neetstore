@@ -1122,11 +1122,12 @@ export const toggleReviewLike = (reviewId: number) =>
     method: 'POST',
   });
 
-export const getBrandReviews = (brandSlug: string, params?: { page?: number; limit?: number; sort?: string }) => {
+export const getBrandReviews = (brandSlug: string, params?: { page?: number; limit?: number; sort?: string; rating?: number }) => {
   const query = new URLSearchParams();
   if (params?.page) query.append('page', String(params.page));
   if (params?.limit) query.append('limit', String(params.limit));
   if (params?.sort) query.append('sort', params.sort);
+  if (params?.rating) query.append('rating', String(params.rating));
   const qStr = query.toString();
   return apiFetch<BrandReviewsResponse>(`/reviews/brand/${encodeURIComponent(brandSlug)}${qStr ? `?${qStr}` : ''}`);
 };

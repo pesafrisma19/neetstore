@@ -2161,7 +2161,10 @@ export const CheckoutPage: React.FC = () => {
 
               {/* ⭐ TAB 3: ULASAN BRAND */}
               <TabsContent value="reviews" className="pt-2">
-                <BrandReviewsTab brandSlug={brandData?.slug || gameId || ''} />
+                <BrandReviewsTab
+                  brandSlug={brandData?.slug || gameId || ''}
+                  gameId={gameId || brandData?.slug || ''}
+                />
               </TabsContent>
             </Tabs>
 

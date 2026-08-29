@@ -50,6 +50,7 @@ import { CompletePhonePage } from '../features/public/auth/pages/CompletePhonePa
 import { ForgotPasswordPage } from '../features/public/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../features/public/auth/pages/ResetPasswordPage';
 import { DepositInvoicePage } from '../features/user/deposit/pages/DepositInvoicePage';
+import { BrandReviewsPage } from '../features/public/review/pages/BrandReviewsPage';
 
 export const AppRoutes = () => {
   return (
@@ -68,6 +69,7 @@ export const AppRoutes = () => {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/category/:categorySlug" element={<Home />} />
       <Route path="/checkout/game/:gameId" element={<CheckoutPage />} />
+      <Route path="/checkout/game/:gameId/reviews" element={<BrandReviewsPage />} />
       <Route path="/invoice" element={<InvoicePage />} />
       <Route path="/invoice/:orderId" element={<InvoicePage />} />
       
