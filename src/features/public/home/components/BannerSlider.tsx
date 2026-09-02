@@ -55,7 +55,7 @@ export const BannerSlider: React.FC = () => {
   if (banners.length === 1) {
     const singleBanner = banners[0];
     return (
-      <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none py-1.5">
+      <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none p-1 sm:p-1.5">
         <div
           className="w-full h-full rounded-2xl overflow-hidden border-[3px] sm:border-[3.5px] border-black bg-[var(--nb-surface)]"
           style={{
@@ -99,7 +99,7 @@ export const BannerSlider: React.FC = () => {
   const nextBanner = banners[nextIndex];
 
   return (
-    <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none overflow-hidden py-1.5">
+    <div className="relative w-full aspect-[16/7] sm:aspect-[20/8] lg:aspect-[16/5.2] select-none lg:overflow-hidden p-1 sm:p-1.5">
 
       {/* ⬅️ PREVIOUS SLIDE (HANYA MUNCUL PEEK ~8-10% DI DESKTOP >= lg) */}
       <div
