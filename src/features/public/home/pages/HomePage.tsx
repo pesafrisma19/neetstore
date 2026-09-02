@@ -22,18 +22,11 @@ import { HomeInfoBar } from '../components/HomeInfoBar';
 // Skeleton Card — ditampilkan saat loading
 // =====================================================
 const GameCardSkeleton: React.FC = () => (
-  <div className="border-[3px] border-black shadow-[4px_4px_0px_0px_#000] bg-[#FAF7EE] p-3 flex flex-col gap-2 animate-pulse">
-    <div className="flex justify-between mb-1">
-      <div className="w-16 h-4 bg-gray-200 rounded" />
-      <div className="w-10 h-4 bg-gray-200 rounded" />
-    </div>
-    <div className="w-full aspect-video bg-gray-200 rounded" />
-    <div className="w-3/4 h-4 bg-gray-200 rounded" />
-    <div className="flex gap-1">
-      <div className="w-16 h-4 bg-gray-200 rounded" />
-      <div className="w-12 h-4 bg-gray-200 rounded" />
-    </div>
-    <div className="w-full h-8 bg-gray-200 rounded mt-1" />
+  <div className="border-[3px] border-black shadow-[4px_4px_0px_0px_#000] bg-[#FAF7EE] p-2 sm:p-3 flex flex-col gap-2 animate-pulse rounded-[var(--nb-radius-card)]">
+    <div className="w-full aspect-square bg-gray-200 rounded-lg" />
+    <div className="w-8 h-1 sm:h-1.5 bg-gray-200 rounded" />
+    <div className="w-3/4 h-3.5 bg-gray-200 rounded" />
+    <div className="w-full h-7 sm:h-8 bg-gray-200 rounded mt-auto" />
   </div>
 );
 
@@ -162,8 +155,8 @@ export const Home: React.FC = () => {
         {/* Game Grid / State Renderer */}
         {loading ? (
           // 1. Loading State (Skeleton)
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
               <GameCardSkeleton key={i} />
             ))}
           </div>
@@ -187,7 +180,7 @@ export const Home: React.FC = () => {
         ) : paginated.length > 0 ? (
           // 4. Success State (Data Loaded)
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-4">
               {paginated.map((game) => (
                 <GameCard key={game.id} game={game} />
               ))}

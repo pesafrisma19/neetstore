@@ -57,40 +57,23 @@ export const GameCard: React.FC<{ game: GameItem }> = ({ game }) => {
         boxShadow: `3px 3px 0px 0px var(--nb-shadow-${cardTheme})`,
       }}
     >
-      {/* Link Pembungkus Utama (Header + Gambar + Judul + Tags) */}
+      {/* Link Pembungkus Utama (Gambar + Judul + Tags) */}
       <Link to={`/checkout/game/${game.id}`} className="flex-1 flex flex-col justify-between group/link cursor-pointer">
         <div>
-          {/* 1. Top Header: Publisher & Sticker Badge */}
-          <div className="flex items-center justify-between gap-1 mb-1.5 sm:mb-2">
-            <div className="flex items-center gap-1 sm:gap-1.5 overflow-hidden">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-[var(--nb-dark-bg)] text-[var(--nb-dark-text)] border-[1.5px] sm:border-[2px] border-[var(--nb-border)] shadow-[1px_1px_0px_0px_#000] flex items-center justify-center font-black text-[8px] sm:text-[10px] shrink-0">
-                {game.publisher.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex flex-col leading-none overflow-hidden">
-                <span className="font-black text-[9px] sm:text-[11px] text-[var(--nb-text)] uppercase truncate">{game.publisher}</span>
-                {game.estYear ? (
-                  <span className="text-[7px] sm:text-[8px] font-bold text-[var(--nb-text-muted)] uppercase mt-0.5 hidden sm:inline">
-                    EST. {game.estYear}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Only show discount badge if discount exists; remove OFFICIAL badge */}
-            {game.discount ? (
-              <Badge variant="mint" size="sm" className="text-[7px] sm:text-[9px] px-1.5 py-0.5 shrink-0 font-black tracking-tight border-[1.5px] border-[var(--nb-border)] shadow-[1.5px_1.5px_0px_0px_#000]">
-                <span>{game.discount}</span>
-              </Badge>
-            ) : null}
-          </div>
-
-          {/* 2. Game Image — dengan fallback inisial kalau gambar kosong/error */}
+          {/* 1. Game Image — dengan fallback inisial kalau gambar kosong/error */}
           <div
-            className="w-full aspect-square rounded-lg sm:rounded-xl border-[2px] sm:border-[2.5px] border-[var(--nb-border)] mb-1.5 sm:mb-2.5 overflow-hidden bg-[var(--nb-surface)] flex items-center justify-center p-1 sm:p-1.5 group-hover/link:scale-[1.02] transition-transform duration-200"
+            className="relative w-full aspect-square rounded-lg sm:rounded-xl border-[2px] sm:border-[2.5px] border-[var(--nb-border)] mb-1.5 sm:mb-2.5 overflow-hidden bg-[var(--nb-surface)] flex items-center justify-center p-1 sm:p-1.5 group-hover/link:scale-[1.02] transition-transform duration-200"
             style={{
               boxShadow: `3px 3px 0px 0px var(--nb-shadow-${photoTheme})`,
             }}
           >
+            {game.discount ? (
+              <div className="absolute top-1 right-1 z-10">
+                <Badge variant="mint" size="sm" className="text-[7px] sm:text-[9px] px-1.5 py-0.5 shrink-0 font-black tracking-tight border-[1.5px] border-[var(--nb-border)] shadow-[1.5px_1.5px_0px_0px_#000]">
+                  <span>{game.discount}</span>
+                </Badge>
+              </div>
+            ) : null}
             {game.image ? (
               <img
                 src={game.image}
