@@ -25,6 +25,7 @@ import { calculateCheckoutBreakdown, calculateRewardPoints, calculateMaxRedeemab
 import { apiFetch, type PublicBrandDetail, type PublicBrandProduct, type PublicPaymentMethod, isPaymentMethodType, isVoucherDiscountType, type PublicVoucherCheckResponse, type ApiErrorResponse, type PublicNeetflixValidationResponse, type FirstTopupTier, type CheckoutPayload, type CheckoutSuccessResponse, isCheckoutSuccessResponse, getBrandReviews } from '../../../../utils/api';
 import { BrandReviewsTab } from '../../review/components/BrandReviewsTab';
 import { queryKeys } from '../../../../services/queryKeys';
+import { addRecentlyViewed } from '../../../../utils/recentlyViewed';
 
 const optimizeGoogleBanner = (url: string) => {
   if (!url || !url.includes('googleusercontent.com')) return url;
@@ -700,6 +701,18 @@ export const CheckoutPage: React.FC = () => {
       });
     }
   }, [brandData?.slug, slug, queryClient]);
+
+  // 🌟 Catat game ke riwayat Terakhir Dilihat (Recently Viewed) di localStorage
+  useEffect(() => {
+    if (brandData?.id && brandData?.slug && brandData?.name) {
+      addRecentlyViewed({
+        id: brandData.id,
+        slug: brandData.slug,
+        name: brandData.name,
+        thumbnail: brandData.thumbnail,
+      });
+    }
+  }, [brandData?.id, brandData?.slug, brandData?.name, brandData?.thumbnail]);
 
   // 2. Query Daftar Metode Pembayaran
   const paymentMethodsQueryResult = useQuery({

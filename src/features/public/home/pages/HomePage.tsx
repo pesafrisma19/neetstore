@@ -17,6 +17,7 @@ import { Input } from '../../../../components/ui/Input';
 import { apiFetch, type PublicBrand } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { HomeInfoBar } from '../components/HomeInfoBar';
+import { RecentlyViewedSection } from '../components/RecentlyViewedSection';
 
 // =====================================================
 // Skeleton Card — ditampilkan saat loading
@@ -117,7 +118,10 @@ export const Home: React.FC = () => {
         {/* 🌟 3. Flashsale Section (Jika Aktif) */}
         <FlashsaleSection />
 
-        {/* 🌟 4. Catalog Section Header (Compact & Clean) */}
+        {/* 🌟 4. Terakhir Dilihat / Recently Viewed (Jika Ada Riwayat) */}
+        <RecentlyViewedSection />
+
+        {/* 🌟 5. Catalog Section Header (Compact & Clean) */}
         <div className="my-4 sm:my-6 text-left">
           <div className="flex items-center gap-2.5 mb-1 py-1.5 pr-2 overflow-visible">
             <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3] text-[var(--nb-text)] shrink-0" />
