@@ -1132,3 +1132,19 @@ export const getBrandReviews = (brandSlug: string, params?: { page?: number; lim
   const qStr = query.toString();
   return apiFetch<BrandReviewsResponse>(`/reviews/brand/${encodeURIComponent(brandSlug)}${qStr ? `?${qStr}` : ''}`);
 };
+
+// === 10 Transaksi Terakhir Publik (Live Stream) ===
+export interface PublicRecentTransactionItem {
+  createdAt: string;
+  gameName: string;
+  gameThumbnail?: string | null;
+  productName: string;
+  amount: number;
+  orderStatus: 'PENDING' | 'PROCESS' | 'SUCCESS' | 'FAILED' | string;
+}
+
+export const getPublicRecentTransactions = async (): Promise<PublicRecentTransactionItem[]> => {
+  const res = await apiFetch<{ success: boolean; data: PublicRecentTransactionItem[] }>('/transactions/public/recent');
+  return res?.data || [];
+};
+
