@@ -139,8 +139,8 @@ export const Home: React.FC = () => {
 
         {/* 🌟 5. Filter Controls & Search */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-6">
-          <Tabs defaultValue="" value={activeCategory} onValueChange={(v) => { setSelectedCategory(v); setCurrentPage(1); }} className="w-full md:w-auto min-w-0 overflow-x-auto pr-2 pb-2">
-            <TabsList className="!flex-nowrap w-max">
+          <Tabs defaultValue="" value={activeCategory} onValueChange={(v) => { setSelectedCategory(v); setCurrentPage(1); }} className="w-full md:w-auto min-w-0">
+            <TabsList className="!flex-nowrap overflow-x-auto w-full md:w-auto max-w-full min-w-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {uniqueCategories.map((cat) => (
                 <TabsTrigger key={cat} value={cat} className="shrink-0 whitespace-nowrap">
                   {cat}
