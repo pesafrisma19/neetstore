@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
@@ -9,15 +9,12 @@ import { Display } from '../../../../components/ui/Display';
 import { Card } from '../../../../components/ui/Card';
 import { Badge } from '../../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui/Table';
-import { Search, FileText, ShieldCheck, ArrowRight, UserCheck, Radio } from 'lucide-react';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { apiFetch, getPublicRecentTransactions, type UserTransactionItem, type PublicRecentTransactionItem } from '../../../../utils/api';
-import { queryKeys } from '../../../../services/queryKeys';
+import { Search, FileText, ShieldCheck, ArrowRight, Radio } from 'lucide-react';
+import { getPublicRecentTransactions, type PublicRecentTransactionItem } from '../../../../utils/api';
 
 export const TransactionHistoryPage: React.FC = () => {
   const [invoiceId, setInvoiceId] = useState('');
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,27 +30,8 @@ export const TransactionHistoryPage: React.FC = () => {
     refetchInterval: 30 * 1000,
   });
 
-  // 2. Fetch real user transactions if user is logged in
-  const { data: transactionsData, isLoading } = useQuery<{ data?: UserTransactionItem[] } | UserTransactionItem[]>({
-    queryKey: queryKeys.user.transactions.byUser(user?.id ?? 0),
-    queryFn: () => apiFetch<any>('/user/transactions'),
-    enabled: Boolean(user?.id),
-    staleTime: 30 * 1000,
-  });
-
-  const transactions: UserTransactionItem[] = Array.isArray(transactionsData)
-    ? transactionsData
-    : transactionsData?.data || [];
-
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '-';
-    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(d);
   };
 
   const formatRelativeTime = (dateStr: string) => {
@@ -123,21 +101,15 @@ export const TransactionHistoryPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* 🌟 10 TRANSAKSI TERAKHIR (PUBLIK & LIVE) */}
-        <div className="mb-10 space-y-3.5">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[var(--nb-mint)] border-[2px] border-black shadow-[1.5px_1.5px_0px_0px_#000] flex items-center justify-center shrink-0">
-                <Radio className="w-3.5 h-3.5 stroke-[3] text-black animate-pulse" />
-              </div>
-              <h3 className="text-sm sm:text-base font-black uppercase tracking-tight text-black m-0">
-                10 TRANSAKSI TERAKHIR
-              </h3>
+        {/* 🌟 10 TRANSAKSI TERAKHIR (PUBLIK) */}
+        <div className="mb-6 space-y-3.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-[var(--nb-mint)] border-[2px] border-black shadow-[1.5px_1.5px_0px_0px_#000] flex items-center justify-center shrink-0">
+              <Radio className="w-3.5 h-3.5 stroke-[3] text-black" />
             </div>
-            <div className="flex items-center gap-1.5 bg-black text-[var(--nb-yellow)] border-[1.5px] border-black shadow-[1.5px_1.5px_0px_0px_#000] px-2 py-0.5 rounded-full text-[10px] font-black uppercase">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-              <span>LIVE STREAM</span>
-            </div>
+            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight text-black m-0">
+              10 TRANSAKSI TERAKHIR
+            </h3>
           </div>
 
           <Card variant="white" shadow="md" borderWidth="3" className="rounded-2xl overflow-hidden">
@@ -218,96 +190,6 @@ export const TransactionHistoryPage: React.FC = () => {
             </div>
           </Card>
         </div>
-
-        {/* Real User Transactions List if Logged In */}
-        {user ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="text-sm sm:text-base font-black uppercase tracking-tight flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-emerald-600 stroke-[3]" />
-                RIWAYAT TRANSAKSI AKUN ANDA ({transactions.length})
-              </h3>
-              <Link to="/dashboard" className="text-xs font-black text-black underline">
-                Buka User Dashboard
-              </Link>
-            </div>
-
-            <Card variant="white" shadow="md" borderWidth="3" className="rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <Table className="min-w-[600px] w-full">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>INVOICE ID</TableHead>
-                      <TableHead>PRODUK</TableHead>
-                      <TableHead>TANGGAL</TableHead>
-                      <TableHead>TOTAL</TableHead>
-                      <TableHead>STATUS</TableHead>
-                      <TableHead className="text-right">AKSI</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 font-bold text-xs">
-                          Memuat data riwayat pesanan...
-                        </TableCell>
-                      </TableRow>
-                    ) : transactions.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 font-bold text-xs text-neutral-500">
-                          Belum ada riwayat transaksi pada akun Anda.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      transactions.map((tx) => (
-                        <TableRow key={tx.id}>
-                          <TableCell className="font-mono font-black text-xs text-black">
-                            {tx.providerRef || `TRX-${tx.id}`}
-                          </TableCell>
-                          <TableCell className="font-bold text-xs uppercase">
-                            {tx.product?.name || `Produk #${tx.productId}`}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-neutral-600 whitespace-nowrap">
-                            {formatDate(tx.createdAt)}
-                          </TableCell>
-                          <TableCell className="font-mono font-black text-xs text-black whitespace-nowrap">
-                            {formatRupiah(tx.amount)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={tx.orderStatus === 'SUCCESS' ? 'mint' : tx.orderStatus === 'PROCESS' ? 'yellow' : 'pink'} size="sm">
-                              {tx.orderStatus}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Link to={`/invoice/${tx.providerRef || tx.id}`}>
-                              <Button variant="yellow" size="sm" className="font-black text-xs py-1 px-2.5 shadow-[2px_2px_0px_0px_#000]">
-                                CEK
-                              </Button>
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          </div>
-        ) : (
-          <Card variant="white" shadow="md" borderWidth="3" className="p-6 text-center space-y-3 rounded-2xl">
-            <div className="text-xs font-black uppercase text-neutral-600">INGIN MENGAKSES SEMUA PESANAN ANDA DENGAN MUDAH?</div>
-            <p className="text-xs text-neutral-500 font-bold max-w-md mx-auto">
-              Silakan login ke akun NETSTORE Anda untuk melihat seluruh histori pesanan, saldo akun, dan status transaksi Anda secara otomatis.
-            </p>
-            <div className="pt-2">
-              <Link to="/login">
-                <Button variant="yellow" size="md" className="font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-                  MASUK KE AKUN USER
-                </Button>
-              </Link>
-            </div>
-          </Card>
-        )}
       </main>
 
       <Footer />
