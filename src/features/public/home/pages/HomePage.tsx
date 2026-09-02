@@ -42,7 +42,7 @@ const GameCardSkeleton: React.FC = () => (
 // =====================================================
 export const Home: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Undi warna highlight neon acak untuk banner judul katalog dari theme index.css existing
@@ -81,6 +81,17 @@ export const Home: React.FC = () => {
     }));
   }, [dbBrands]);
 
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(games.map((g) => g.category)));
+  }, [games]);
+
+  const activeCategory = useMemo(() => {
+    if (selectedCategory && uniqueCategories.includes(selectedCategory)) {
+      return selectedCategory;
+    }
+    return uniqueCategories[0] || '';
+  }, [selectedCategory, uniqueCategories]);
+
   // Filter & Search
   const ITEMS_PER_PAGE = 12;
   const filtered = useMemo(() => {
@@ -88,7 +99,7 @@ export const Home: React.FC = () => {
       const matchSearch =
         g.name.toLowerCase().includes(search.toLowerCase()) ||
         g.publisher.toLowerCase().includes(search.toLowerCase());
-      const matchCat = activeCategory === 'ALL' || g.category === activeCategory;
+      const matchCat = activeCategory ? g.category === activeCategory : true;
       return matchSearch && matchCat;
     });
   }, [games, search, activeCategory]);
@@ -97,10 +108,6 @@ export const Home: React.FC = () => {
   const paginated = useMemo(() => {
     return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   }, [filtered, currentPage, ITEMS_PER_PAGE]);
-
-  const uniqueCategories = useMemo(() => {
-    return ['ALL', ...Array.from(new Set(games.map((g) => g.category)))];
-  }, [games]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brutalist-grid text-[var(--nb-text)] overflow-x-hidden">
@@ -132,16 +139,11 @@ export const Home: React.FC = () => {
 
         {/* 🌟 5. Filter Controls & Search */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-6">
-          <Tabs defaultValue="ALL" value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setCurrentPage(1); }} className="w-full md:w-auto overflow-x-auto pr-2 pb-2">
+          <Tabs defaultValue="" value={activeCategory} onValueChange={(v) => { setSelectedCategory(v); setCurrentPage(1); }} className="w-full md:w-auto overflow-x-auto pr-2 pb-2">
             <TabsList>
               {uniqueCategories.map((cat) => (
                 <TabsTrigger key={cat} value={cat}>
-                  {cat === 'ALL' ? 'SEMUA' : cat}
-                  {cat === 'ALL' && (
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-black text-white text-[10px]">
-                      {games.length}
-                    </span>
-                  )}
+                  {cat}
                 </TabsTrigger>
               ))}
             </TabsList>
