@@ -70,7 +70,7 @@ export const Footer: React.FC = () => {
                   src={settings.logo_url}
                   alt="Logo Footer"
                   onError={() => setLogoError(true)}
-                  className="w-10 h-10 object-contain bg-white p-1 border-[2px] border-white"
+                  className="w-10 h-10 object-contain shrink-0"
                 />
               ) : (
                 <div className="w-10 h-10 bg-[var(--nb-yellow)] text-[var(--nb-text)] border-[3px] border-white shadow-[3px_3px_0px_0px_#fff] flex items-center justify-center font-black text-lg">

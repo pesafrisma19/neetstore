@@ -93,7 +93,7 @@ export const Navbar: React.FC = () => {
                   src={settings.logo_url}
                   alt={settings.site_name || 'Logo'}
                   onError={() => setLogoError(true)}
-                  className="w-10 h-10 sm:w-11 sm:h-11 border-[3px] border-[var(--nb-border)] object-contain bg-[var(--nb-surface)] p-1 shrink-0"
+                  className="w-10 h-10 sm:w-11 sm:h-11 object-contain shrink-0"
                 />
               ) : (
                 <div
@@ -187,8 +187,13 @@ export const Navbar: React.FC = () => {
             ) : user ? (
               <Dropdown
                 trigger={
-                  <div className="flex items-center justify-center border-[2.5px] border-[var(--nb-border)] bg-[var(--nb-surface)] p-1 shadow-[2px_2px_0px_0px_var(--nb-shadow)] hover:bg-[var(--nb-yellow)] transition-colors cursor-pointer">
-                    <Avatar fallback={user.username.substring(0, 2).toUpperCase()} size="sm" variant="pink" />
+                  <div className="flex items-center justify-center cursor-pointer group">
+                    <Avatar
+                      fallback={user.username.substring(0, 2).toUpperCase()}
+                      size="sm"
+                      variant="pink"
+                      className="transition-transform group-hover:-translate-y-0.5"
+                    />
                   </div>
                 }
                 items={userMenuItems}
@@ -245,14 +250,23 @@ export const Navbar: React.FC = () => {
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between border-b-[3px] border-[var(--nb-border)] pb-4">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-9 h-9 border-[2.5px] border-[var(--nb-border)] flex items-center justify-center font-black text-sm text-[#000000]"
-                    style={{ backgroundColor: `var(--nb-${logoBgTone})` }}
-                  >
-                    N/S
-                  </div>
+                  {settings.logo_url && !logoError ? (
+                    <img
+                      src={settings.logo_url}
+                      alt={settings.site_name || 'Logo'}
+                      onError={() => setLogoError(true)}
+                      className="w-9 h-9 object-contain shrink-0"
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 border-[2.5px] border-[var(--nb-border)] flex items-center justify-center font-black text-sm text-[#000000]"
+                      style={{ backgroundColor: `var(--nb-${logoBgTone})` }}
+                    >
+                      {(settings.site_name || 'N/S').slice(0, 3).toUpperCase()}
+                    </div>
+                  )}
                   <span className="font-black text-lg tracking-tighter text-[var(--nb-text)] uppercase">
-                    NETSTORE
+                    {settings.site_name || 'NETSTORE'}
                   </span>
                 </div>
                 <IconButton
