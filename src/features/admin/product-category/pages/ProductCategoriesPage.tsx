@@ -16,6 +16,7 @@ import { Checkbox } from '../../../../components/ui/Checkbox';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const ProductCategoriesPage: React.FC = () => {
@@ -37,6 +38,7 @@ export const ProductCategoriesPage: React.FC = () => {
   // Per-row Toggling & Deleting States
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: number; name: string } | null>(null);
 
   // 1. TanStack Query for Product Categories (Server-State)
   const queryParams = useMemo(
@@ -185,10 +187,7 @@ export const ProductCategoriesPage: React.FC = () => {
   };
 
   const handleDelete = (id: number, name: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus Kategori Produk "${name}"?`)) {
-      return;
-    }
-    deleteMutation.mutate(id);
+    setCategoryToDelete({ id, name });
   };
 
   const handleToggleActive = (cat: ProductCategoryData) => {
@@ -420,6 +419,23 @@ export const ProductCategoriesPage: React.FC = () => {
           </div>
         </form>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(categoryToDelete)}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={() => {
+          if (categoryToDelete) {
+            deleteMutation.mutate(categoryToDelete.id);
+            setCategoryToDelete(null);
+          }
+        }}
+        title="HAPUS KATEGORI PRODUK?"
+        description={`Apakah Anda yakin ingin menghapus Kategori Produk "${categoryToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 };

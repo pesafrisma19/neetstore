@@ -18,6 +18,7 @@ import {
   updateAdminBanner, 
   deleteAdminBanner 
 } from '../../../../utils/api';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export interface BannerItem {
@@ -36,6 +37,8 @@ export const BannersPage: React.FC = () => {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [linkUrl, setLinkUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [bannerToDelete, setBannerToDelete] = useState<BannerItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const fetchBanners = async () => {
     try {
@@ -72,23 +75,8 @@ export const BannersPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Yakin ingin menghapus banner ini secara permanen?')) return;
-    try {
-      await deleteAdminBanner(id);
-      addToast({
-        title: 'BANNER DIHAPUS 🗑️',
-        message: 'Banner promo berhasil dihapus dari sistem.',
-        type: 'success',
-      });
-      fetchBanners();
-    } catch (err: any) {
-      addToast({
-        title: 'GAGAL MENGHAPUS',
-        message: err.message || 'Gagal menghapus banner.',
-        type: 'error',
-      });
-    }
+  const handleDelete = (banner: BannerItem) => {
+    setBannerToDelete(banner);
   };
 
   const handleCreateBanner = async (e: React.FormEvent) => {
@@ -247,7 +235,7 @@ export const BannersPage: React.FC = () => {
                   <Button
                     variant="white"
                     size="sm"
-                    onClick={() => handleDelete(banner.id)}
+                    onClick={() => handleDelete(banner)}
                     className="font-black uppercase text-xs text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="w-3.5 h-3.5 stroke-[3]" />
@@ -326,6 +314,39 @@ export const BannersPage: React.FC = () => {
           </div>
         </form>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(bannerToDelete)}
+        onClose={() => setBannerToDelete(null)}
+        onConfirm={async () => {
+          if (!bannerToDelete) return;
+          setIsDeleting(true);
+          try {
+            await deleteAdminBanner(bannerToDelete.id);
+            addToast({
+              title: 'BANNER DIHAPUS 🗑️',
+              message: 'Banner promo berhasil dihapus dari sistem.',
+              type: 'success',
+            });
+            fetchBanners();
+          } catch (err: any) {
+            addToast({
+              title: 'GAGAL MENGHAPUS',
+              message: err.message || 'Gagal menghapus banner.',
+              type: 'error',
+            });
+          } finally {
+            setIsDeleting(false);
+            setBannerToDelete(null);
+          }
+        }}
+        title="HAPUS BANNER?"
+        description={`Apakah Anda yakin ingin menghapus banner "${bannerToDelete?.title}" secara permanen? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import {
   Eye, 
   EyeOff
 } from 'lucide-react';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export interface ArticleItem {
@@ -22,6 +23,7 @@ export interface ArticleItem {
 
 export const NewsPageAdmin: React.FC = () => {
   const { addToast } = useToast();
+  const [articleToDelete, setArticleToDelete] = useState<{ id: number; title: string } | null>(null);
   const [articles, setArticles] = useState<ArticleItem[]>([
     {
       id: 1,
@@ -66,13 +68,7 @@ export const NewsPageAdmin: React.FC = () => {
   };
 
   const handleDelete = (id: number, title: string) => {
-    if (!window.confirm(`Yakin ingin menghapus artikel "${title}"?`)) return;
-    setArticles(articles.filter((a) => a.id !== id));
-    addToast({
-      title: 'ARTIKEL DIHAPUS 🗑️',
-      message: `Artikel "${title}" telah dihapus dari sistem.`,
-      type: 'success',
-    });
+    setArticleToDelete({ id, title });
   };
 
   const getCategoryBadgeColor = (cat: string) => {
@@ -216,6 +212,27 @@ export const NewsPageAdmin: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(articleToDelete)}
+        onClose={() => setArticleToDelete(null)}
+        onConfirm={() => {
+          if (articleToDelete) {
+            setArticles(articles.filter((a) => a.id !== articleToDelete.id));
+            addToast({
+              title: 'ARTIKEL DIHAPUS 🗑️',
+              message: `Artikel "${articleToDelete.title}" telah dihapus dari sistem.`,
+              type: 'success',
+            });
+            setArticleToDelete(null);
+          }
+        }}
+        title="HAPUS BERITA?"
+        description={`Apakah Anda yakin ingin menghapus artikel "${articleToDelete?.title}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+      />
     </div>
   );
 };

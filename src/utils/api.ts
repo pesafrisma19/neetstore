@@ -1133,6 +1133,59 @@ export const getBrandReviews = (brandSlug: string, params?: { page?: number; lim
   return apiFetch<BrandReviewsResponse>(`/reviews/brand/${encodeURIComponent(brandSlug)}${qStr ? `?${qStr}` : ''}`);
 };
 
+export interface AdminReviewItem {
+  id: number;
+  rating: number;
+  satisfaction: ReviewSatisfactionType;
+  comment: string | null;
+  createdAt: string;
+  updatedAt: string;
+  transactionId?: number | null;
+  transactionRef?: string | null;
+  likeCount: number;
+  user?: {
+    id: number | null;
+    username: string;
+    email?: string | null;
+  } | null;
+  product: {
+    id?: number;
+    name: string;
+    brand?: {
+      id: number;
+      name: string;
+      slug: string;
+    } | null;
+  };
+}
+
+export interface AdminReviewsResponse {
+  success: boolean;
+  data: AdminReviewItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const getAdminReviews = (params?: { page?: number; limit?: number; search?: string; rating?: number; brandId?: number }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.append('page', String(params.page));
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.search) query.append('search', params.search);
+  if (params?.rating) query.append('rating', String(params.rating));
+  if (params?.brandId) query.append('brandId', String(params.brandId));
+  const qStr = query.toString();
+  return apiFetch<AdminReviewsResponse>(`/admin/reviews${qStr ? `?${qStr}` : ''}`);
+};
+
+export const deleteAdminReview = (id: number) =>
+  apiFetch<{ success: boolean; message: string }>(`/admin/reviews/${id}`, {
+    method: 'DELETE',
+  });
+
 // === 10 Transaksi Terakhir Publik (Live Stream) ===
 export interface PublicRecentTransactionItem {
   createdAt: string;

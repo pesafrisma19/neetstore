@@ -18,6 +18,7 @@ import { Checkbox } from '../../../../components/ui/Checkbox';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 import { COUNTRIES } from '../../../../utils/countries';
 
@@ -56,6 +57,7 @@ export const RegionsPage: React.FC = () => {
   // Per-row Toggling State
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [regionToDelete, setRegionToDelete] = useState<{ id: number; name: string } | null>(null);
 
   const toggleExpandCountries = (id: number) => {
     setExpandedCountries((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -244,10 +246,7 @@ export const RegionsPage: React.FC = () => {
   };
 
   const handleDelete = (id: number, name: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus Region "${name}"?`)) {
-      return;
-    }
-    deleteMutation.mutate(id);
+    setRegionToDelete({ id, name });
   };
 
   const handleToggleActive = (region: RegionData) => {
@@ -648,6 +647,23 @@ export const RegionsPage: React.FC = () => {
           </div>
         </form>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(regionToDelete)}
+        onClose={() => setRegionToDelete(null)}
+        onConfirm={() => {
+          if (regionToDelete) {
+            deleteMutation.mutate(regionToDelete.id);
+            setRegionToDelete(null);
+          }
+        }}
+        title="HAPUS REGION?"
+        description={`Apakah Anda yakin ingin menghapus Region "${regionToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '.
 import { Plus, Edit, Trash2, RefreshCw, AlertCircle, Sparkles, DollarSign } from 'lucide-react';
 import type { PricingRuleData } from '../../types';
 import { PricingRuleModal } from '../components/PricingRuleModal';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 interface TabPricingRulesProps {
@@ -166,10 +167,10 @@ export const TabPricingRules: React.FC<TabPricingRulesProps> = ({
 export const PricingRulesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PricingRuleData | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [ruleToDelete, setRuleToDelete] = useState<PricingRuleData | null>(null);
 
   // TanStack Query for Pricing Rules list
   const {
@@ -230,8 +231,8 @@ export const PricingRulesPage: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus Aturan Margin ini?')) return;
-    deleteMutation.mutate(id);
+    const target = pricingRules.find((r) => r.id === id) || null;
+    setRuleToDelete(target || ({ id, targetType: 'Rule', targetId: id } as any));
   };
 
   const handleReprice = () => {
@@ -279,6 +280,23 @@ export const PricingRulesPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         editingRule={editingRule}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(ruleToDelete)}
+        onClose={() => setRuleToDelete(null)}
+        onConfirm={() => {
+          if (ruleToDelete) {
+            deleteMutation.mutate(ruleToDelete.id);
+            setRuleToDelete(null);
+          }
+        }}
+        title="HAPUS ATURAN MARGIN?"
+        description={`Apakah Anda yakin ingin menghapus Aturan Margin (${ruleToDelete?.targetType || 'Rule'}) ini? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

@@ -23,6 +23,7 @@ import { Edit, Trash2, Search, ChevronLeft, ChevronRight, Layers, X, RefreshCw, 
 import type { ProductData, CategoryData, BrandData, ProviderData } from '../../types';
 import { ProductModal } from '../components/ProductModal';
 import { GetProductModal } from '../components/GetProductModal';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 export const ProductsPage: React.FC = () => {
@@ -33,6 +34,7 @@ export const ProductsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGetProductModalOpen, setIsGetProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<ProductData | null>(null);
 
   // Pagination & Filter States (Local UI State)
   const [currentPage, setCurrentPage] = useState(1);
@@ -229,9 +231,8 @@ export const ProductsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProduct = (id: number) => {
-    if (!window.confirm('Yakin ingin menghapus produk ini?')) return;
-    deleteMutation.mutate(id);
+  const handleDeleteProduct = (product: ProductData) => {
+    setDeletingProduct(product);
   };
 
   const allSelected = products.length > 0 && selectedIds.size === products.length;
@@ -559,7 +560,7 @@ export const ProductsPage: React.FC = () => {
                             <Button
                               variant="pink"
                               size="sm"
-                              onClick={() => handleDeleteProduct(p.id)}
+                              onClick={() => handleDeleteProduct(p)}
                               disabled={isDeleting}
                               isLoading={isDeleting}
                             >
@@ -713,6 +714,23 @@ export const ProductsPage: React.FC = () => {
         isOpen={isGetProductModalOpen}
         onClose={() => setIsGetProductModalOpen(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.products.all })}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingProduct)}
+        onClose={() => setDeletingProduct(null)}
+        onConfirm={() => {
+          if (deletingProduct) {
+            deleteMutation.mutate(deletingProduct.id);
+            setDeletingProduct(null);
+          }
+        }}
+        title="HAPUS PRODUK?"
+        description={`Apakah Anda yakin ingin menghapus produk "${deletingProduct?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

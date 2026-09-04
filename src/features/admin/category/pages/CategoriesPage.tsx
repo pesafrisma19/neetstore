@@ -9,6 +9,7 @@ import { Plus, Edit, Trash2, RefreshCw, AlertCircle, Search } from 'lucide-react
 import type { CategoryData } from '../../types';
 import { CategoryModal } from '../components/CategoryModal';
 import { CategoryIcon } from '../../../../components/ui/CategoryIcon';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 interface TabCategoriesProps {
@@ -143,10 +144,10 @@ export const TabCategories: React.FC<TabCategoriesProps> = ({
 export const CategoriesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryData | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CategoryData | null>(null);
 
   // TanStack Query for categories list
   const {
@@ -192,8 +193,8 @@ export const CategoriesPage: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    if (!window.confirm('Yakin ingin menghapus kategori ini? Semua produk & brand terkait mungkin terpengaruh.')) return;
-    deleteMutation.mutate(id);
+    const target = categories.find((c) => c.id === id) || null;
+    setCategoryToDelete(target || ({ id, name: `ID #${id}` } as any));
   };
 
   const handleModalSuccess = (msg: string) => {
@@ -239,6 +240,23 @@ export const CategoriesPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         category={selectedCategory}
         onSuccess={handleModalSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(categoryToDelete)}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={() => {
+          if (categoryToDelete) {
+            deleteMutation.mutate(categoryToDelete.id);
+            setCategoryToDelete(null);
+          }
+        }}
+        title="HAPUS KATEGORI?"
+        description={`Apakah Anda yakin ingin menghapus kategori "${categoryToDelete?.name}"? Semua produk & brand terkait mungkin terpengaruh. Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

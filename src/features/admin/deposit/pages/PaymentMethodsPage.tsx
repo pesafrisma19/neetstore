@@ -6,9 +6,8 @@ import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
 import { Plus, Edit, Trash2, CreditCard, RefreshCw, AlertTriangle } from 'lucide-react';
 import type { PaymentMethodData } from '../../types';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
-
-
 
 export const PaymentMethodsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +16,8 @@ export const PaymentMethodsPage: React.FC = () => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isError, setIsError] = useState<boolean>(false);
+  const [pmToDelete, setPmToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const fetchAll = async () => {
     setIsLoading(true);
@@ -53,15 +54,8 @@ export const PaymentMethodsPage: React.FC = () => {
     }
   };
 
-  const handleDeletePayment = async (id: number, name: string) => {
-    if (!window.confirm(`Yakin ingin menghapus metode pembayaran "${name}"?`)) return;
-    try {
-      await apiFetch(`/admin/payment-methods/${id}`, { method: 'DELETE' });
-      addToast({ title: 'METODE DIHAPUS 🗑️', message: `Metode ${name} berhasil dihapus.`, type: 'success' });
-      fetchAll();
-    } catch (error: any) {
-      addToast({ title: 'GAGAL MENGHAPUS', message: error?.message || 'Gagal menghapus metode bayar', type: 'error' });
-    }
+  const handleDeletePayment = (id: number, name: string) => {
+    setPmToDelete({ id, name });
   };
 
   // Helper untuk format scope usage text
@@ -268,6 +262,31 @@ export const PaymentMethodsPage: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(pmToDelete)}
+        onClose={() => setPmToDelete(null)}
+        onConfirm={async () => {
+          if (!pmToDelete) return;
+          setIsDeleting(true);
+          try {
+            await apiFetch(`/admin/payment-methods/${pmToDelete.id}`, { method: 'DELETE' });
+            addToast({ title: 'METODE DIHAPUS 🗑️', message: `Metode ${pmToDelete.name} berhasil dihapus.`, type: 'success' });
+            fetchAll();
+          } catch (error: any) {
+            addToast({ title: 'GAGAL MENGHAPUS', message: error?.message || 'Gagal menghapus metode bayar', type: 'error' });
+          } finally {
+            setIsDeleting(false);
+            setPmToDelete(null);
+          }
+        }}
+        title="HAPUS METODE PEMBAYARAN?"
+        description={`Apakah Anda yakin ingin menghapus metode pembayaran "${pmToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { Badge } from '../../../../components/ui/Badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../../components/ui/Table';
 import { Plus, Edit, Trash2, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import type { BrandData } from '../../types';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 import { useToast } from '../../../../components/ui/ToastContext';
 
 interface TabBrandsProps {
@@ -173,6 +174,7 @@ export const BrandsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [brandToDelete, setBrandToDelete] = useState<BrandData | null>(null);
 
   // TanStack Query for brands list
   const {
@@ -216,8 +218,8 @@ export const BrandsPage: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    if (!window.confirm('Yakin hapus Brand ini? Semua produk di dalamnya mungkin terpengaruh.')) return;
-    deleteMutation.mutate(id);
+    const target = brands.find((b) => b.id === id) || null;
+    setBrandToDelete(target || ({ id, name: `ID #${id}` } as any));
   };
 
   return (
@@ -253,6 +255,23 @@ export const BrandsPage: React.FC = () => {
           isDeletingId={deletingId}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(brandToDelete)}
+        onClose={() => setBrandToDelete(null)}
+        onConfirm={() => {
+          if (brandToDelete) {
+            deleteMutation.mutate(brandToDelete.id);
+            setBrandToDelete(null);
+          }
+        }}
+        title="HAPUS BRAND?"
+        description={`Apakah Anda yakin ingin menghapus Brand "${brandToDelete?.name}"? Semua produk di dalamnya mungkin terpengaruh. Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 };

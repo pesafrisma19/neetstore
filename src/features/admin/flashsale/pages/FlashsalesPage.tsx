@@ -22,6 +22,7 @@ import {
 } from '../../../../utils/api';
 import { queryKeys } from '../../../../services/queryKeys';
 import { FlashsaleFormModal } from '../components/FlashsaleFormModal';
+import { ConfirmDialog } from '../../../../components/ui/ConfirmDialog';
 
 export const FlashsalesPage: React.FC = () => {
   const { addToast } = useToast();
@@ -33,6 +34,7 @@ export const FlashsalesPage: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [deletingFlashsale, setDeletingFlashsale] = useState<{ id: number; name: string } | null>(null);
 
   // 1. Fetch Flashsales via TanStack Query
   const { data: flashsales = [], isLoading, isError, refetch } = useQuery({
@@ -94,8 +96,7 @@ export const FlashsalesPage: React.FC = () => {
   };
 
   const handleDelete = (id: number, name: string) => {
-    if (!window.confirm(`Yakin ingin menghapus promo Flashsale "${name}"?`)) return;
-    deleteMutation.mutate(id);
+    setDeletingFlashsale({ id, name });
   };
 
   return (
@@ -327,6 +328,23 @@ export const FlashsalesPage: React.FC = () => {
         onSubmit={handleCreateOrUpdate}
         initialData={editingItem}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingFlashsale)}
+        onClose={() => setDeletingFlashsale(null)}
+        onConfirm={() => {
+          if (deletingFlashsale) {
+            deleteMutation.mutate(deletingFlashsale.id);
+            setDeletingFlashsale(null);
+          }
+        }}
+        title="HAPUS PROMO FLASHSALE?"
+        description={`Apakah Anda yakin ingin menghapus promo Flashsale "${deletingFlashsale?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="HAPUS"
+        cancelLabel="BATAL"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );
