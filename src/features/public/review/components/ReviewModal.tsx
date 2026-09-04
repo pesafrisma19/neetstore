@@ -115,9 +115,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 </button>
               );
             })}
-            <span className="ml-2 font-black text-sm px-2.5 py-1 border-[2px] border-black bg-white shadow-[2px_2px_0px_0px_#000]">
-              {rating} / 5
-            </span>
           </div>
         </div>
 
